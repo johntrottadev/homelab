@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: alertmanager-pv
+  namespace: monitoring
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: "monitoring"
+  nfs:
+    path: /volume1/kub/homelab/monitoring/alert-manager
+    server: __NAS-HOST__

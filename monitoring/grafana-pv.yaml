@@ -6,11 +6,14 @@ metadata:
 spec:
   capacity:
     storage: 10Gi
-  volumeMode: Filesystem
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: "monitoring"
   nfs:
     path: /volume1/kub/homelab/monitoring/grafana
     server: __NAS-HOST__
+  mountOptions:
+    - nolock
+    - noatime
+    - nfsvers=4.1

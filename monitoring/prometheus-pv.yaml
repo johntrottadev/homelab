@@ -7,9 +7,13 @@ spec:
   capacity:
     storage: 50Gi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: "monitoring"
   nfs:
     path: /volume1/kub/homelab/monitoring/prometheus
     server: __NAS-HOST__
+  mountOptions:
+    - nolock
+    - noatime
+    - nfsvers=4.1

@@ -205,19 +205,12 @@ prometheus:
           volumeName: prometheus-pv
     additionalScrapeConfigs:
       - job_name: "proxmox"
-        metrics_path: "/pve?target=__PVE1-IP__"
+        metrics_path: "/pve"
         static_configs:
           - targets: ["__PVE1-IP__:9221"]
-
-      - job_name: "proxmox"
-        metrics_path: "/pve?target=__PVE2-IP__"
+      - job_name: "pihole"
         static_configs:
-          - targets: ["__PVE2-IP__:9221"]
-
-      - job_name: "proxmox"
-        metrics_path: "/pve?target=__PVE3-IP__"
-        static_configs:
-          - targets: ["__PVE3-IP__:9221"]
+          - targets: ["__PIHOLE1-IP__:9617"]
 thanosRuler:
   enabled: false
 

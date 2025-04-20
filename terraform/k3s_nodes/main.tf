@@ -10,7 +10,7 @@ terraform {
 provider "proxmox" {
   pm_api_url   = "https://__PVE1-IP__:8006/api2/json"  # Replace with your Proxmox URL
   pm_user      = "terraform@pve"                                        # Or your specific Proxmox user
-  pm_password  = "w&1l6MdUp&44lQ#pVlYX%M3x"                                   # Replace with your password or use an environment variable
+  pm_password  = var.pm_password                                   # Replace with your password or use an environment variable
   pm_tls_insecure = true
 }
 resource "proxmox_vm_qemu" "ubuntu_vm" {

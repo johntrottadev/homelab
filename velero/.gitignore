@@ -1,0 +1,5 @@
+# Never commit Wasabi credentials or Kopia passphrases
+wasabi-creds
+kopia-passphrase
+*.local
+*.creds

@@ -1,6 +1,11 @@
 ## VeleroUI (seriohub/vui chart) values
 ## Chart repo: https://seriohub.github.io/velero-helm/
-## Exposed at velero-ui.__BASE-DOMAIN__ via existing Traefik ingress
+##
+## Chart's ingress template forces a TLS block with secretName references.
+## Setting exposure.mode: clusterIP gives us plain ClusterIP services; a
+## separate simple Ingress (velero/ui/ingress.yaml) handles routing in the
+## same style as jellyfin/ingress.yaml. TLS is terminated externally by
+## the nginx-proxy-manager layer.
 ##
 ## Default login is admin / admin — change after first login.
 
@@ -12,29 +17,11 @@ global:
   k8SInclusterMode: true
 
 exposure:
-  mode: ingress
-  ingress:
-    ingressClassName: traefik
-    metadata:
-      annotations:
-        traefik.ingress.kubernetes.io/router.entrypoints: web
-    spec:
-      tls:
-        - hosts:
-            - velero-ui.__BASE-DOMAIN__
-            - velero-ui-api.__BASE-DOMAIN__
+  mode: clusterIP
+  clusterIP:
+    protocol: http
+    wsProtocol: ws
 
-## Host configuration for the ingress — vui.__BASE-DOMAIN__ for the UI, vui-api.__BASE-DOMAIN__ for the API
-## The chart creates two Ingress resources (one for UI, one for API) by default
-uiService:
-  ingress:
-    host: velero-ui.__BASE-DOMAIN__
-
-apiService:
-  ingress:
-    host: velero-ui-api.__BASE-DOMAIN__
-
-## Resources
 apiService:
   deployment:
     resources:
@@ -44,8 +31,6 @@ apiService:
       limits:
         cpu: 500m
         memory: 512Mi
-  ingress:
-    host: velero-ui-api.__BASE-DOMAIN__
 
 uiService:
   deployment:
@@ -56,10 +41,8 @@ uiService:
       limits:
         cpu: 300m
         memory: 256Mi
-  ingress:
-    host: velero-ui.__BASE-DOMAIN__
 
-## Disable multi-cluster core and watchdog services for single-cluster homelab
+## Disable multi-cluster core, watchdog, nats for single-cluster homelab
 coreService:
   enabled: false
 

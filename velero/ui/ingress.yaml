@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: velero-ui
+  namespace: velero
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: velero-ui.__BASE-DOMAIN__
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vui-ui-clusterip-svc
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: vui-api-clusterip-svc
+            port:
+              number: 80
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: vui-api-clusterip-svc
+            port:
+              number: 80

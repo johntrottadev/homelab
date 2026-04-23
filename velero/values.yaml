@@ -9,16 +9,17 @@
 
 image:
   repository: velero/velero
-  tag: v1.15.0
   pullPolicy: IfNotPresent
 
 initContainers:
   - name: velero-plugin-for-aws
-    image: velero/velero-plugin-for-aws:v1.11.0
+    image: velero/velero-plugin-for-aws:v1.12.0
     imagePullPolicy: IfNotPresent
     volumeMounts:
       - mountPath: /target
         name: plugins
+
+upgradeCRDs: false
 
 configuration:
   backupStorageLocation:

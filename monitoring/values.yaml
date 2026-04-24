@@ -50,8 +50,12 @@ grafana:
   ## Pin to latest stable. Chart default tracks kube-prometheus-stack's
   ## appVersion (was 11.5.1 on chart 69.3.1). Bumping here lets us upgrade
   ## Grafana independently of the kps chart.
+  ##
+  ## 13.0.1 shipped with a session-token rotation bug that 401s
+  ## authenticated requests mid-session; 13.1.0 only exists as dated build
+  ## snapshots (no clean semver release), so stay on the latest stable 12.x.
   image:
-    tag: "13.0.1"
+    tag: "12.4.3"
   ## NFS-hostile nodes (k3s-6 no nfs-common, k3s-4 evicted) are handled by
   ## taints — Grafana can land on any remaining node freely.
   persistence:

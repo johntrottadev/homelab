@@ -14,28 +14,41 @@ provider "proxmox" {
   pm_tls_insecure     = true
 }
 
-resource "proxmox_vm_qemu" "k3s-7" {
-  name        = "k3s-7"
-  target_node = "__PVE-NODE-2__"
+# k3s worker VMs cloned from the kub-tmp template.
+# Add a node: add an entry to var.workers and `terraform apply`.
+resource "proxmox_vm_qemu" "worker" {
+  for_each = var.workers
+
+  name        = each.key
+  target_node = each.value.target_node
   clone       = "kub-tmp"
   full_clone  = true
 
+  # Created stopped; starts after cloud-init drive + config is set below.
   vm_state = "stopped"
 
+  # UEFI + q35 machine to match template expectations
   bios    = "ovmf"
   machine = "q35"
+
+  # Boot order: scsi0 first, net0 as PXE fallback (matches template)
+  boot = "order=scsi0;net0"
+
+  # Template OS has initramfs drivers for virtio-scsi-single — lsi (provider
+  # default) leaves the guest unable to find its root disk and UEFI sits at
+  # "no bootable device". This is the critical template-matching knob.
+  scsihw = "virtio-scsi-single"
+
+  # Hardware — matches template sizing
+  sockets  = 1
+  cores    = 8
+  memory   = 32768
+  cpu_type = "x86-64-v2-aes"
 
   efidisk {
     efitype = "4m"
     storage = "zfs1"
   }
-
-  boot = "order=scsi0"
-
-  sockets  = 1
-  cores    = 8
-  memory   = 32768
-  cpu_type = "x86-64-v2-aes"
 
   disk {
     slot    = "scsi0"
@@ -44,9 +57,23 @@ resource "proxmox_vm_qemu" "k3s-7" {
     size    = "100G"
   }
 
+  # Cloud-init CD-ROM — required for ipconfig0/sshkeys/etc. to reach the guest.
+  disk {
+    slot    = "ide2"
+    type    = "cloudinit"
+    storage = "zfs1"
+  }
+
   network {
     id     = 0
     model  = "virtio"
     bridge = "vmbr1"
   }
+
+  # Cloud-init: static IP, user, SSH keys, DNS. Guest picks these up on boot.
+  ipconfig0    = "ip=${each.value.ip}/24,gw=${var.lan_gateway}"
+  ciuser       = var.ci_user
+  sshkeys      = var.ssh_pubkeys
+  nameserver   = var.lan_dns
+  searchdomain = var.search_domain
 }

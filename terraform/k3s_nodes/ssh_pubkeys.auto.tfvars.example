@@ -1,0 +1,8 @@
+# Copy to ssh_pubkeys.auto.tfvars (gitignored) and fill in real pubkeys.
+# Keys are placed on each worker's bastion user via cloud-init.
+# Keep them newline-separated inside the heredoc.
+
+ssh_pubkeys = <<-EOT
+ssh-ed25519 AAAA...replace-with-operator-key operator@workstation
+ssh-ed25519 AAAA...replace-with-bastion-key bastion@bastion-lxc
+EOT

@@ -13,52 +13,6 @@ provider "proxmox" {
   pm_api_token_secret = var.pm_token_secret
   pm_tls_insecure     = true
 }
-resource "proxmox_vm_qemu" "ubuntu_vm" {
-#  vmid        = 110
-  name        = "k3s-5"
-  target_node = "__PVE-NODE-2__"
-  clone       = "kub-tmp"
-  full_clone  = true
-
-  # ─── Power state ─────────────────────────────────
-  # Keep it off while we configure BIOS/EFI
-  vm_state = "stopped"
-
-  # ─── Firmware & machine ──────────────────────────
-  bios    = "ovmf"    # switch to UEFI
-  machine = "q35"     # required for OVMF firmware :contentReference[oaicite:0]{index=0}
-
-  # ─── EFI disk ────────────────────────────────────
-  # Proxmox will automatically pre-load keys on this disk
-  efidisk {
-    efitype = "4m"        # typical size
-    storage = "zfs1"      # where to store the EFI volume
-  }                       # :contentReference[oaicite:1]{index=1}
-
-  # ─── Boot order ──────────────────────────────────
-  # Look at the EFI disk first, then your main scsi0 disk
-  boot = "order=scsi0"  
-
-  # ─── CPU & RAM ──────────────────────────────────
-  sockets    = 1
-  cores      = 8
-  memory     = 32768
-  cpu_type   = "x86-64-v2-aes"   # your chosen CPU model :contentReference[oaicite:2]{index=2}
-
-  # ─── Disks & NIC ───────────────────────────────
-  disk {
-    slot    = "scsi0"
-    type    = "disk"
-    storage = "zfs1"
-    size    = "100G"
-  }
-
-  network {
-    id      = 0
-    model   = "virtio"
-    bridge  = "vmbr1"
-  }
-}
 
 resource "proxmox_vm_qemu" "k3s-7" {
   name        = "k3s-7"

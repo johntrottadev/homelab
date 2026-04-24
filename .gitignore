@@ -1,2 +1,8 @@
 ansible/logs/
 .DS_Store
+
+# Real S3/Wasabi credentials live next to manifests but must never be committed.
+# Templates live at *-creds.template and ARE tracked.
+wasabi-creds
+*-creds
+!*-creds.template

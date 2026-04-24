@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-velero-per-app-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  velero-per-app.json: |
+    {
+      "title": "Velero — Per-App Backup Detail",
+      "uid": "velero-per-app",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["velero", "backup"],
+      "time": {"from": "now-14d", "to": "now"},
+      "refresh": "1m",
+      "templating": {
+        "list": [
+          {
+            "name": "backup",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": {"query": "label_values(velero_podvolumebackup_info, backup_name)", "refId": "backup"},
+            "refresh": 2,
+            "sort": 5,
+            "current": {"text": "$__all", "value": "$__all"},
+            "includeAll": true,
+            "multi": true
+          },
+          {
+            "name": "namespace",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": {"query": "label_values(velero_podvolumebackup_info{backup_name=~\"$backup\"}, namespace)", "refId": "namespace"},
+            "refresh": 2,
+            "sort": 1,
+            "current": {"text": "$__all", "value": "$__all"},
+            "includeAll": true,
+            "multi": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Items Backed Up",
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(velero_backup_cr_items_backed_up{name=~\"$backup\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 2, "type": "stat", "title": "Pods Backed Up",
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count(velero_podvolumebackup_info{backup_name=~\"$backup\", phase=\"Completed\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3, "type": "stat", "title": "Bytes Transferred",
+          "gridPos": {"h": 4, "w": 5, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(velero_podvolumebackup_bytes_done{backup_name=~\"$backup\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}}
+        },
+        {
+          "id": 4, "type": "stat", "title": "Incremental (New) Bytes",
+          "gridPos": {"h": 4, "w": 5, "x": 13, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(velero_podvolumebackup_incremental_bytes{backup_name=~\"$backup\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "bytes", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "purple", "value": null}]}}}
+        },
+        {
+          "id": 5, "type": "stat", "title": "Failed PVBs",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count(velero_podvolumebackup_info{backup_name=~\"$backup\", phase!=\"Completed\"}) or vector(0)", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}}
+        },
+        {
+          "id": 6, "type": "piechart", "title": "PodVolumeBackups by Phase",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count by (phase) (velero_podvolumebackup_info{backup_name=~\"$backup\"})", "refId": "A", "legendFormat": "{{phase}}"}],
+          "options": {"legend": {"displayMode": "table", "placement": "right", "values": ["value"]}, "pieType": "donut"}
+        },
+        {
+          "id": 7, "type": "barchart", "title": "Bytes Transferred by Namespace",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum by (namespace) (velero_podvolumebackup_bytes_done{backup_name=~\"$backup\", namespace=~\"$namespace\"})", "refId": "A", "legendFormat": "{{namespace}}", "instant": true}],
+          "fieldConfig": {"defaults": {"unit": "bytes"}},
+          "options": {"orientation": "horizontal", "xTickLabelRotation": 0, "legend": {"showLegend": false}}
+        },
+        {
+          "id": 8, "type": "barchart", "title": "PodVolumeBackups by Node",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count by (node) (velero_podvolumebackup_info{backup_name=~\"$backup\"})", "refId": "A", "legendFormat": "{{node}}", "instant": true}],
+          "options": {"orientation": "horizontal", "legend": {"showLegend": false}}
+        },
+        {
+          "id": 9, "type": "table", "title": "Per-Pod Volume Detail",
+          "gridPos": {"h": 12, "w": 24, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "velero_podvolumebackup_info{backup_name=~\"$backup\", namespace=~\"$namespace\"}", "refId": "info", "format": "table", "instant": true},
+            {"expr": "velero_podvolumebackup_bytes_done{backup_name=~\"$backup\", namespace=~\"$namespace\"}", "refId": "done", "format": "table", "instant": true},
+            {"expr": "velero_podvolumebackup_bytes_total{backup_name=~\"$backup\", namespace=~\"$namespace\"}", "refId": "total", "format": "table", "instant": true},
+            {"expr": "velero_podvolumebackup_incremental_bytes{backup_name=~\"$backup\", namespace=~\"$namespace\"}", "refId": "incr", "format": "table", "instant": true}
+          ],
+          "transformations": [
+            {"id": "merge", "options": {}},
+            {"id": "organize", "options": {
+              "excludeByName": {
+                "Time": true, "__name__": true, "endpoint": true, "instance": true, "job": true, "service": true, "container": true,
+                "customresource_group": true, "customresource_kind": true, "customresource_version": true,
+                "name": true, "storage_location": true, "snapshot_id": true, "uploader": true
+              },
+              "indexByName": {
+                "namespace": 0, "pod": 1, "volume": 2, "node": 3, "phase": 4,
+                "Value #done": 5, "Value #incr": 6, "Value #total": 7, "backup_name": 8
+              },
+              "renameByName": {
+                "Value #done": "Bytes Done",
+                "Value #incr": "Incremental Bytes",
+                "Value #total": "Bytes Total",
+                "backup_name": "Backup"
+              }
+            }}
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"align": "auto", "filterable": true}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Bytes Done"}, "properties": [{"id": "unit", "value": "bytes"}]},
+              {"matcher": {"id": "byName", "options": "Bytes Total"}, "properties": [{"id": "unit", "value": "bytes"}]},
+              {"matcher": {"id": "byName", "options": "Incremental Bytes"}, "properties": [{"id": "unit", "value": "bytes"}]},
+              {"matcher": {"id": "byName", "options": "phase"}, "properties": [{"id": "custom.cellOptions", "value": {"type": "color-text"}}, {"id": "mappings", "value": [{"type": "value", "options": {"Completed": {"color": "green", "index": 0}, "Failed": {"color": "red", "index": 1}, "InProgress": {"color": "blue", "index": 2}}}]}]}
+            ]
+          },
+          "options": {"showHeader": true, "sortBy": [{"displayName": "Bytes Done", "desc": true}]}
+        },
+        {
+          "id": 10, "type": "table", "title": "Pods Missing From Latest Backup (backup_name=$backup)",
+          "gridPos": {"h": 10, "w": 12, "x": 0, "y": 24},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "group by (namespace, pod) (kube_pod_info{namespace=~\"$namespace\"}) unless on (namespace, pod) group by (namespace, pod) (velero_podvolumebackup_info{backup_name=~\"$backup\"})", "refId": "A", "format": "table", "instant": true}],
+          "transformations": [
+            {"id": "organize", "options": {
+              "excludeByName": {"Time": true, "Value": true, "__name__": true},
+              "indexByName": {"namespace": 0, "pod": 1}
+            }}
+          ],
+          "description": "Pods that did NOT produce a PodVolumeBackup in the selected backup. Expected for stateless pods (no PVCs). Investigate any stateful pod that appears here."
+        },
+        {
+          "id": 11, "type": "timeseries", "title": "Bytes Transferred by Namespace (History)",
+          "gridPos": {"h": 10, "w": 12, "x": 12, "y": 24},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum by (namespace) (velero_podvolumebackup_bytes_done)", "refId": "A", "legendFormat": "{{namespace}}"}],
+          "fieldConfig": {"defaults": {"unit": "bytes", "custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}, "fillOpacity": 80, "lineWidth": 0}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["max"]}}
+        }
+      ]
+    }

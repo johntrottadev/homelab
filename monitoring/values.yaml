@@ -47,6 +47,13 @@ alertmanager:
 grafana:
   enabled: true
   fullnameOverride: grafana
+  ## Pin to latest stable. Chart default tracks kube-prometheus-stack's
+  ## appVersion (was 11.5.1 on chart 69.3.1). Bumping here lets us upgrade
+  ## Grafana independently of the kps chart.
+  image:
+    tag: "13.0.1"
+  ## NFS-hostile nodes (k3s-6 no nfs-common, k3s-4 evicted) are handled by
+  ## taints — Grafana can land on any remaining node freely.
   persistence:
     enabled: true
     type: sts
@@ -139,6 +146,92 @@ kube-state-metrics:
           sourceLabels:
             - __meta_kubernetes_pod_node_name
           targetLabel: kubernetes_node
+  rbac:
+    extraRules:
+      - apiGroups: ["velero.io"]
+        resources: ["backups", "podvolumebackups", "restores", "schedules"]
+        verbs: ["list", "watch"]
+  customResourceState:
+    enabled: true
+    config:
+      kind: CustomResourceStateMetrics
+      spec:
+        resources:
+          - groupVersionKind:
+              group: velero.io
+              version: v1
+              kind: PodVolumeBackup
+            metricNamePrefix: velero_podvolumebackup
+            labelsFromPath:
+              name: [metadata, name]
+              namespace: [spec, pod, namespace]
+              pod: [spec, pod, name]
+              volume: [spec, volume]
+              node: [spec, node]
+              uploader: [spec, uploaderType]
+              backup_name: [metadata, labels, "velero.io/backup-name"]
+            metrics:
+              - name: info
+                help: "PodVolumeBackup metadata and current phase"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+                      storage_location: [spec, backupStorageLocation]
+                      snapshot_id: [status, snapshotID]
+              - name: bytes_done
+                help: "Bytes transferred so far for this PodVolumeBackup"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, progress, bytesDone]
+                    nilIsZero: true
+              - name: bytes_total
+                help: "Total bytes to transfer for this PodVolumeBackup"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, progress, totalBytes]
+                    nilIsZero: true
+              - name: incremental_bytes
+                help: "Incremental bytes written by the uploader (Kopia/Restic)"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, incrementalBytes]
+                    nilIsZero: true
+          - groupVersionKind:
+              group: velero.io
+              version: v1
+              kind: Backup
+            metricNamePrefix: velero_backup_cr
+            labelsFromPath:
+              name: [metadata, name]
+              schedule: [metadata, labels, "velero.io/schedule-name"]
+              storage_location: [spec, storageLocation]
+            metrics:
+              - name: info
+                help: "Backup metadata and current phase"
+                each:
+                  type: Info
+                  info:
+                    labelsFromPath:
+                      phase: [status, phase]
+              - name: items_backed_up
+                help: "Items successfully backed up in this Backup"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, progress, itemsBackedUp]
+                    nilIsZero: true
+              - name: items_total
+                help: "Total items targeted by this Backup"
+                each:
+                  type: Gauge
+                  gauge:
+                    path: [status, progress, totalItems]
+                    nilIsZero: true
 
 nodeExporter:
   enabled: true
@@ -191,6 +284,8 @@ prometheus:
   enabled: true
   prometheusSpec:
     replicas: 1
+    ## NFS-hostile nodes are blocked by taints (k3s-6 storage/nfs=unsupported,
+    ## k3s-4 evicted). Prometheus is free to land on k3s-1/2/5.
     storageSpec:
       volumeClaimTemplate:
         metadata:

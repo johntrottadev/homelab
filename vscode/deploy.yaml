@@ -39,7 +39,7 @@ spec:
             allowPrivilegeEscalation: true
             capabilities:
               add: ["CHOWN", "SETUID", "SETGID"]
-          image: lscr.io/linuxserver/code-server:latest
+          image: lscr.io/linuxserver/code-server:4.117.0-ls334
           ports:
             - containerPort: 8443
           env:

@@ -5,14 +5,19 @@ variable "pm_token_secret" {
 }
 
 variable "workers" {
-  description = "k3s worker nodes to provision. Key is hostname, value is placement/IP."
+  description = <<-EOT
+    k3s worker nodes to provision. Key is hostname, value is placement/IP.
+    Add a new worker by adding a map entry and running `terraform apply`.
+
+    k3s-1/2/5/6/7 are pre-existing and not TF-managed — they were created
+    before this module was refactored. Don't try to import them; the
+    Telmate provider's efidisk handling forces replacement on import.
+  EOT
   type = map(object({
     target_node = string
     ip          = string # e.g. "__LAN-IP__"
   }))
-  default = {
-    k3s-7 = { target_node = "__PVE-NODE-2__", ip = "__LAN-IP__" }
-  }
+  default = {}
 }
 
 variable "lan_gateway" {

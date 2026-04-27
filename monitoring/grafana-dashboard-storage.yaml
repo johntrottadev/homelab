@@ -78,9 +78,11 @@ data:
           "type": "table", "title": "PBS — Last Backup Age per VM (sorted oldest first)",
           "id": 8, "gridPos": {"h": 8, "w": 16, "x": 8, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"refId": "A", "expr": "(time() - pbs_snapshot_vm_last_timestamp) / 3600", "format": "table", "instant": true, "legendFormat": "__auto"}],
+          "targets": [
+            {"refId": "A", "expr": "(time() - pbs_snapshot_vm_last_timestamp) / 3600\n  * on(vm_id) group_left(pve_name)\n    label_replace(\n      label_replace(pve_guest_info, \"vm_id\", \"$2\", \"id\", \"(qemu|lxc)/(.+)\"),\n      \"pve_name\", \"$1\", \"name\", \"(.+)\"\n    )", "format": "table", "instant": true, "legendFormat": "__auto"}
+          ],
           "transformations": [
-            {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "namespace": true, "endpoint": true, "service": true, "container": true, "pod": true, "prometheus": true}, "renameByName": {"vm_id": "VM ID", "vm_name": "VM Name", "datastore": "Datastore", "namespace": "PBS Namespace", "Value": "Last Backup (h)"}}}
+            {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "namespace": true, "endpoint": true, "service": true, "container": true, "pod": true, "prometheus": true, "vm_name": true, "node": true, "tags": true, "template": true, "type": true}, "renameByName": {"vm_id": "VMID", "pve_name": "Current PVE Name", "datastore": "Datastore", "Value": "Last Backup (h)"}, "indexByName": {"vm_id": 0, "pve_name": 1, "datastore": 2, "Value": 3}}}
           ],
           "fieldConfig": {
             "defaults": {"custom": {"align": "left"}},
@@ -124,10 +126,12 @@ data:
               ]},
               {"matcher": {"id": "byName", "options": "Life Remaining (%)"}, "properties": [
                 {"id": "unit", "value": "percent"},
+                {"id": "mappings", "value": [{"type": "value", "options": {"-1": {"text": "N/A", "color": "text", "index": 0}}}]},
                 {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "orange", "value": 20}, {"color": "yellow", "value": 50}, {"color": "green", "value": 80}]}},
                 {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}}
               ]},
               {"matcher": {"id": "byName", "options": "Bad Sectors"}, "properties": [
+                {"id": "mappings", "value": [{"type": "value", "options": {"-1": {"text": "N/A", "color": "text", "index": 0}}}]},
                 {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}},
                 {"id": "custom.cellOptions", "value": {"type": "color-text"}}
               ]}

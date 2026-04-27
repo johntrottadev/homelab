@@ -193,9 +193,12 @@ spec:
             description: 'diskHealthStatus={{ $value }} on {{ $labels.diskID }} — investigate via DSM Storage Manager.'
 
         - alert: SynologyDiskRemainLifeLow
-          ## diskRemainLife is SSD wear-leveling % (lifetime remaining).
-          ## Synology reports 100 for HDDs (no wear concept), so filter to <100.
-          expr: diskRemainLife{job="snmp-synology"} < 20
+          ## diskRemainLife is SSD wear-leveling %. Synology reports -1 for
+          ## HDDs (no wear concept) and 100 for healthy SSDs. Filter to
+          ## >=0 to skip the N/A case so HDDs don't false-fire.
+          expr: |
+            diskRemainLife{job="snmp-synology"} >= 0
+              and diskRemainLife{job="snmp-synology"} < 20
           for: 1h
           labels:
             severity: warning

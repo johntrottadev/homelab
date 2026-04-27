@@ -1,0 +1,98 @@
+## backup-host-exporter — natrontech/backup-host-exporter scrapes the PBS API and exposes
+## Prometheus metrics (datastore usage, last-backup age per VM/snapshot,
+## task status, etc).
+##
+## Credentials live in backup-host-exporter-credentials Secret, applied separately
+## from /mnt/code/secrets/homelab/monitoring/wave-2b-secrets.yaml — never
+## committed to git.
+##
+## Apply: kubectl apply -f monitoring/backup-host-exporter.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backup-host-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: backup-host-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backup-host-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backup-host-exporter
+    spec:
+      containers:
+        - name: backup-host-exporter
+          image: ghcr.io/natrontech/backup-host-exporter:v0.9.0
+          ## Configured via env (binary reads PBS_* env vars natively).
+          ## Flags would expose secrets in process listing.
+          env:
+            - name: PBS_ENDPOINT
+              value: https://__LAN-IP__:8007
+            - name: PBS_INSECURE
+              value: "true"
+            - name: PBS_LISTEN_ADDRESS
+              value: ":9101"
+            - name: PBS_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: backup-host-exporter-credentials
+                  key: username
+            - name: PBS_API_TOKEN_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: backup-host-exporter-credentials
+                  key: token-name
+            - name: PBS_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backup-host-exporter-credentials
+                  key: token-secret
+          ports:
+            - name: metrics
+              containerPort: 9101
+          readinessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /metrics, port: metrics }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits:   { memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backup-host-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: backup-host-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: backup-host-exporter
+  ports:
+    - name: metrics
+      port: 9101
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backup-host-exporter
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backup-host-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s
+      scrapeTimeout: 30s

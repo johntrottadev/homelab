@@ -1,0 +1,166 @@
+## snmp-exporter — scrapes Synology DSM and Palo Alto PAN-OS over SNMPv3.
+## Config (snmp.yml) is mounted as a ConfigMap with `${VAR}` placeholders;
+## an initContainer renders the final config from a Secret holding the v3
+## credentials (auth + priv passwords). snmp_exporter v0.27 does not
+## natively expand env vars in its config, hence the render step.
+##
+## Credentials Secret (snmp-exporter-credentials) is applied separately
+## from /mnt/code/secrets/homelab/monitoring/wave-2b-secrets.yaml.
+##
+## Apply: kubectl apply -f monitoring/snmp-exporter.yaml
+##        (snmp.yml ConfigMap is created with --from-file in the same step)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snmp-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: snmp-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: snmp-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: snmp-exporter
+      annotations:
+        ## bump when the snmp.yml ConfigMap changes to force re-render
+        config-revision: "1"
+    spec:
+      initContainers:
+        - name: render-config
+          image: alpine:3.21
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              apk add --no-cache --quiet gettext >/dev/null
+              envsubst '$$SYNO_SNMP_USER $$SYNO_SNMP_AUTH_PASS $$SYNO_SNMP_PRIV_PASS $$PA_SNMP_USER $$PA_SNMP_AUTH_PASS $$PA_SNMP_PRIV_PASS' \
+                < /tmpl/snmp.yml > /rendered/snmp.yml
+              echo "rendered $(wc -l < /rendered/snmp.yml) lines"
+          env:
+            - name: SYNO_SNMP_USER
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: synology-username } }
+            - name: SYNO_SNMP_AUTH_PASS
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: synology-auth-pass } }
+            - name: SYNO_SNMP_PRIV_PASS
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: synology-priv-pass } }
+            - name: PA_SNMP_USER
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: paloalto-username } }
+            - name: PA_SNMP_AUTH_PASS
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: paloalto-auth-pass } }
+            - name: PA_SNMP_PRIV_PASS
+              valueFrom: { secretKeyRef: { name: snmp-exporter-credentials, key: paloalto-priv-pass } }
+          volumeMounts:
+            - name: tmpl
+              mountPath: /tmpl
+              readOnly: true
+            - name: rendered
+              mountPath: /rendered
+      containers:
+        - name: snmp-exporter
+          image: quay.io/prometheus/snmp-exporter:v0.27.0
+          args:
+            - --config.file=/etc/snmp_exporter/snmp.yml
+            - --web.listen-address=:9116
+          ports:
+            - name: http
+              containerPort: 9116
+          volumeMounts:
+            - name: rendered
+              mountPath: /etc/snmp_exporter
+              readOnly: true
+          ## snmp_exporter v0.27 doesn't expose /-/healthy or /-/ready;
+          ## probe the root index instead which always returns 200.
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /, port: http }
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits:   { memory: 256Mi }
+      volumes:
+        - name: tmpl
+          configMap:
+            name: snmp-exporter-config
+        - name: rendered
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: snmp-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: snmp-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: snmp-exporter
+  ports:
+    - name: http
+      port: 9116
+      targetPort: http
+---
+## Probe CR — Synology NAS via Synology MIB module
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: snmp-synology
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: snmp-synology
+  module: synology
+  prober:
+    url: snmp-exporter.monitoring.svc:9116
+    path: /snmp
+  scrapeTimeout: 30s
+  interval: 60s
+  targets:
+    staticConfig:
+      static:
+        - __NAS-IP__
+      labels:
+        target_kind: synology
+      relabelingConfigs:
+        ## snmp_exporter v0.27 expects auth as a separate URL param
+        - sourceLabels: [__address__]
+          regex: .*
+          targetLabel: __param_auth
+          replacement: synology_v3
+          action: replace
+---
+## Probe CR — Palo Alto via PAN-OS module (paloalto_fw)
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: snmp-paloalto
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: snmp-paloalto
+  module: paloalto_fw
+  prober:
+    url: snmp-exporter.monitoring.svc:9116
+    path: /snmp
+  scrapeTimeout: 30s
+  interval: 60s
+  targets:
+    staticConfig:
+      static:
+        - __LAN-IP__
+      labels:
+        target_kind: paloalto
+      relabelingConfigs:
+        - sourceLabels: [__address__]
+          regex: .*
+          targetLabel: __param_auth
+          replacement: paloalto_v3
+          action: replace

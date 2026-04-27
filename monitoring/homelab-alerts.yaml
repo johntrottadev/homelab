@@ -108,6 +108,120 @@ spec:
             summary: 'PVE storage {{ $labels.id }} >92% full'
             description: 'Storage {{ $labels.id }} at {{ $value | printf "%.1f" }}%. Free space immediately or backups will fail.'
 
+    - name: homelab.backup-host.rules
+      interval: 1m
+      rules:
+        - alert: PBSExporterDown
+          expr: up{job="backup-host-exporter"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: backup-host
+          annotations:
+            summary: 'backup-host-exporter scrape failing'
+            description: 'Prometheus cannot scrape backup-host-exporter — backup observability is blind.'
+
+        - alert: PBSDatastoreHigh
+          expr: |
+            100 * (pbs_size - pbs_available) / pbs_size > 85
+          for: 30m
+          labels:
+            severity: warning
+            component: backup-host
+          annotations:
+            summary: 'PBS datastore {{ $labels.datastore }} >85% full'
+            description: 'Datastore {{ $labels.datastore }} at {{ $value | printf "%.1f" }}%. Backup rotation or prune may need attention.'
+
+        - alert: PBSDatastoreCritical
+          expr: |
+            100 * (pbs_size - pbs_available) / pbs_size > 92
+          for: 10m
+          labels:
+            severity: critical
+            component: backup-host
+          annotations:
+            summary: 'PBS datastore {{ $labels.datastore }} >92% full'
+            description: 'Datastore {{ $labels.datastore }} at {{ $value | printf "%.1f" }}%. New backups will fail soon.'
+
+        - alert: PBSVMBackupStale
+          ## Fires for any VM whose last backup is >36h old, but only if it
+          ## has a backup within the last 14 days (filters out long-decommissioned VMs).
+          expr: |
+            (time() - pbs_snapshot_vm_last_timestamp > 36*3600)
+              and (pbs_snapshot_vm_last_timestamp > time() - 14*86400)
+          for: 30m
+          labels:
+            severity: warning
+            component: backup-host
+          annotations:
+            summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+            description: 'Last backup {{ $value | humanizeDuration }} ago on datastore {{ $labels.datastore }}. Threshold 36h.'
+
+        - alert: PBSBackupVerifyFailed
+          expr: pbs_snapshot_vm_last_verify == 0
+          for: 30m
+          labels:
+            severity: warning
+            component: backup-host
+          annotations:
+            summary: 'PBS verify failed on last backup of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+            description: 'Most recent backup did not pass verify on datastore {{ $labels.datastore }}.'
+
+    - name: homelab.synology.rules
+      interval: 1m
+      rules:
+        - alert: SynologySNMPDown
+          expr: up{job="snmp-synology"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: synology
+          annotations:
+            summary: 'Synology NAS SNMP scrape failing'
+            description: 'snmp-exporter cannot reach __NAS-IP__ — NAS observability is blind.'
+
+        - alert: SynologyDiskUnhealthy
+          ## diskHealthStatus: 1 = Normal, 2 = Initialized, 3 = NotInitialized,
+          ## 4 = SystemPartitionFailed, 5 = Crashed.
+          expr: diskHealthStatus{job="snmp-synology"} > 1
+          for: 15m
+          labels:
+            severity: warning
+            component: synology
+          annotations:
+            summary: 'Synology disk reports non-normal health'
+            description: 'diskHealthStatus={{ $value }} on {{ $labels.diskID }} — investigate via DSM Storage Manager.'
+
+        - alert: SynologyDiskRemainLifeLow
+          ## diskRemainLife is SSD wear-leveling % (lifetime remaining).
+          ## Synology reports 100 for HDDs (no wear concept), so filter to <100.
+          expr: diskRemainLife{job="snmp-synology"} < 20
+          for: 1h
+          labels:
+            severity: warning
+            component: synology
+          annotations:
+            summary: 'Synology SSD wear: {{ $labels.diskID }} at {{ $value }}% lifetime'
+            description: 'SSD wear-leveling indicator at {{ $value }}%. Plan replacement before <10%.'
+
+    - name: homelab.paloalto.rules
+      interval: 1m
+      rules:
+        - alert: PaloAltoSNMPDown
+          ## Conditional on prior-observed up — won't fire during initial setup
+          ## before SNMPv3 user is configured. Fires only when a previously-up
+          ## device goes down.
+          expr: |
+            up{job="snmp-paloalto"} == 0
+              and max_over_time(up{job="snmp-paloalto"}[24h]) == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: paloalto
+          annotations:
+            summary: 'Palo Alto SNMP scrape failing'
+            description: 'snmp-exporter cannot reach __LAN-IP__ — firewall observability is blind. Was previously responsive.'
+
     - name: homelab.network.rules
       interval: 30s
       rules:

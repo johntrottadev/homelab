@@ -13,8 +13,11 @@ node-exporter, and prometheus-operator.
 | `ingress.yaml` | `grafana.__BASE-DOMAIN__` and `prometheus.__BASE-DOMAIN__` |
 | `grafana-dashboard-velero-per-app.yaml` | Custom Velero per-app dashboard |
 | `pushover-secret.yaml.example` | Template for the Alertmanager Pushover Secret |
-| `homelab-alerts.yaml` | Custom PrometheusRule (velero, pve, network, k8s) |
+| `homelab-alerts.yaml` | Custom PrometheusRule (velero, pve, network, k8s, backup-host, synology, paloalto) |
 | `blackbox-exporter.yaml` | blackbox-exporter Deployment + Service + Probe CRs |
+| `backup-host-exporter.yaml` | natrontech/backup-host-exporter Deployment + Service + ServiceMonitor |
+| `snmp-exporter.yaml` | snmp-exporter Deployment (with envsubst init) + Probe CRs (Synology, PAN-OS) |
+| `snmp.yml` | snmp-exporter config (vendored from snmp_exporter v0.27.0 release; modules: synology, paloalto_fw, if_mib) |
 
 ## Custom alert coverage
 
@@ -26,11 +29,32 @@ Beyond the kube-prometheus-stack defaults, `homelab-alerts.yaml` adds:
 | `homelab.pve.rules` | `PVENodeDown`, `PVEGuestUnexpectedlyDown` (onboot=1 only), `PVEStorageHigh` (>85%), `PVEStorageCritical` (>92%) |
 | `homelab.network.rules` | `WANDown` (both public TCP/53 probes failing), `PublicDNSResolutionFailing` |
 | `homelab.k8s.rules` | `HomelabPVCHigh` (>85%), `HomelabPVCCritical` (>92%) |
+| `homelab.backup-host.rules` | `PBSExporterDown`, `PBSDatastoreHigh` (>85%), `PBSDatastoreCritical` (>92%), `PBSVMBackupStale` (>36h, scoped to last 14d), `PBSBackupVerifyFailed` |
+| `homelab.synology.rules` | `SynologySNMPDown`, `SynologyDiskUnhealthy`, `SynologyDiskRemainLifeLow` (<20% wear life) |
+| `homelab.paloalto.rules` | `PaloAltoSNMPDown` (only fires after device has been seen up — avoids false-fires during initial config) |
 
 Probes (via blackbox-exporter):
 
 - `wan` — TCP/53 to 1.1.1.1 and 8.8.8.8
 - `public_dns` — DNS A query for `cloudflare.com` against 1.1.1.1 and 8.8.8.8
+
+Probes (via snmp-exporter):
+
+- `synology` — __NAS-IP__, SNMPv3 with `synology` module
+- `paloalto` — __LAN-IP__, SNMPv3 with `paloalto_fw` module
+
+## Wave 2B credential bootstrap
+
+PBS API token + SNMPv3 creds live in `/Volumes/code/secrets/homelab/monitoring/wave-2b-secrets.yaml` (off-repo, NFS-shared with k3s-1 as `/mnt/code/secrets`). They get rendered into k8s Secrets via `kubectl create secret ... --dry-run=client -o yaml | kubectl apply -f -`.
+
+Per-exporter Secret keys:
+
+| Secret | Keys (from wave-2b-secrets.yaml) |
+|---|---|
+| `backup-host-exporter-credentials` | `username` (`<user>@<realm>` from `backup-host.api_token_id`), `token-name` (`<tokenname>`), `token-secret` (`backup-host.api_token_secret`) |
+| `snmp-exporter-credentials` | `synology-username`, `synology-auth-pass`, `synology-priv-pass`, `paloalto-username`, `paloalto-auth-pass`, `paloalto-priv-pass` |
+
+The `snmp-exporter` uses an init container with `envsubst` to render `/etc/snmp_exporter/snmp.yml` from `snmp.yml.tmpl` + the env vars at pod start.
 
 ## Apply workflow (run from k3s-1)
 

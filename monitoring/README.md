@@ -22,6 +22,7 @@ node-exporter, and prometheus-operator.
 | `grafana-dashboard-storage.yaml` | Homelab storage dashboard (PBS + Synology disks + k8s PVCs + PVE storage) |
 | `grafana-dashboard-pve.yaml` | PVE cluster dashboard (nodes, guests inventory, top consumers, network I/O) |
 | `grafana-dashboard-pihole.yaml` | Pi-hole DNS dashboard (multi-instance: pihole1 + pihole2) |
+| `grafana-dashboard-homelab.yaml` | Homelab front page (set as Grafana default home) — alert summary, subsystem health tiles, live alerts, quick stats |
 | `pihole-exporter.yaml` | eko/pihole-exporter Deployment + ServiceMonitor (Pi-hole v6 multi-instance scraping) |
 
 ## Custom alert coverage

@@ -1,0 +1,241 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-homelab-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  homelab.json: |
+    {
+      "title": "Homelab — Front Page",
+      "uid": "homelab-front-page",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["homelab", "overview", "front-page"],
+      "time": {"from": "now-6h", "to": "now"},
+      "refresh": "30s",
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "row", "title": "Alert summary",
+          "id": 100, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+          "collapsed": false, "panels": []
+        },
+        {
+          "type": "stat", "title": "Critical Alerts Firing",
+          "id": 1, "gridPos": {"h": 5, "w": 6, "x": 0, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",severity=\"critical\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Warning Alerts Firing",
+          "id": 2, "gridPos": {"h": 5, "w": 6, "x": 6, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",severity=\"warning\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "orange", "value": 5}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Pending Alerts",
+          "id": 3, "gridPos": {"h": 5, "w": 6, "x": 12, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"pending\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}, {"color": "yellow", "value": 1}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Watchdog (heartbeat)",
+          "id": 4, "gridPos": {"h": 5, "w": 6, "x": 18, "y": 1},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertname=\"Watchdog\",alertstate=\"firing\"})"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "mappings": [{"type": "value", "options": {"1": {"text": "alive", "color": "green"}, "0": {"text": "DEAD", "color": "red"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "row", "title": "Subsystem health (click tiles for details)",
+          "id": 101, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 6},
+          "collapsed": false, "panels": []
+        },
+        {
+          "type": "stat", "title": "PVE Cluster",
+          "id": 5, "gridPos": {"h": 6, "w": 6, "x": 0, "y": 7},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=\"pve\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"},
+          "links": [{"title": "Open PVE Cluster dashboard", "url": "/d/homelab-pve", "targetBlank": false}]
+        },
+        {
+          "type": "stat", "title": "Storage",
+          "id": 6, "gridPos": {"h": 6, "w": 6, "x": 6, "y": 7},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=~\"backup-host|synology|storage\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"},
+          "links": [{"title": "Open Storage dashboard", "url": "/d/homelab-storage", "targetBlank": false}]
+        },
+        {
+          "type": "stat", "title": "Pi-hole DNS",
+          "id": 7, "gridPos": {"h": 6, "w": 6, "x": 12, "y": 7},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=\"pihole\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"},
+          "links": [{"title": "Open Pi-hole dashboard", "url": "/d/homelab-pihole", "targetBlank": false}]
+        },
+        {
+          "type": "stat", "title": "Palo Alto Firewall",
+          "id": 8, "gridPos": {"h": 6, "w": 6, "x": 18, "y": 7},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=\"paloalto\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"},
+          "links": [{"title": "Open Palo Alto dashboard", "url": "/d/paloalto-firewall", "targetBlank": false}]
+        },
+        {
+          "type": "stat", "title": "WAN / Network",
+          "id": 9, "gridPos": {"h": 6, "w": 6, "x": 0, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=\"network\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 2}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Velero / PBS Backups",
+          "id": 10, "gridPos": {"h": 6, "w": 6, "x": 6, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",component=~\"velero|backup-host\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "k3s Cluster",
+          "id": 11, "gridPos": {"h": 6, "w": 6, "x": 12, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",namespace=~\"kube-system|monitoring\"}) + count(ALERTS{alertstate=\"firing\",alertname=~\"Kube.*|Node.*\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 3}]}, "mappings": [{"type": "value", "options": {"0": {"text": "healthy", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Total Active Alerts",
+          "id": 12, "gridPos": {"h": 6, "w": 6, "x": 18, "y": 13},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",alertname!=\"Watchdog\"}) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "orange", "value": 5}, {"color": "red", "value": 10}]}, "mappings": [{"type": "value", "options": {"0": {"text": "ALL CLEAR", "color": "green"}}}]}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "background", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "row", "title": "Active alerts (live)",
+          "id": 102, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 19},
+          "collapsed": false, "panels": []
+        },
+        {
+          "type": "table", "title": "Currently Firing",
+          "id": 13, "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "ALERTS{alertstate=\"firing\",alertname!=\"Watchdog\"}", "format": "table", "instant": true, "legendFormat": "__auto"}],
+          "transformations": [
+            {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "namespace": true, "endpoint": true, "service": true, "container": true, "pod": true, "prometheus": true, "Value": true, "alertstate": true, "endpoint_status": true, "target_kind": true, "metrics_path": true, "node": true}, "renameByName": {"alertname": "Alert", "severity": "Severity", "component": "Component", "id": "Resource", "ifName": "Interface", "diskID": "Disk", "vm_id": "VMID", "vm_name": "VM Name"}, "indexByName": {"alertname": 0, "severity": 1, "component": 2}}}
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"align": "left"}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Severity"}, "properties": [
+                {"id": "mappings", "value": [{"type": "value", "options": {"critical": {"text": "critical", "color": "red"}, "warning": {"text": "warning", "color": "orange"}, "info": {"text": "info", "color": "blue"}}}]},
+                {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+              ]}
+            ]
+          },
+          "options": {"showHeader": true, "footer": {"show": true, "reducer": ["count"], "fields": ""}, "sortBy": [{"displayName": "Severity", "desc": false}, {"displayName": "Alert", "desc": false}]}
+        },
+        {
+          "type": "row", "title": "Quick stats",
+          "id": 103, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 30},
+          "collapsed": false, "panels": []
+        },
+        {
+          "type": "stat", "title": "PVE Nodes Online",
+          "id": 14, "gridPos": {"h": 5, "w": 4, "x": 0, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"node/.*\"} == 1)"}, {"refId": "B", "expr": "count(pve_up{id=~\"node/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 3}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "/^Value #A$/"}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Guests Running",
+          "id": 15, "gridPos": {"h": 5, "w": 4, "x": 4, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"qemu/.*|lxc/.*\"} == 1)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Cluster CPU",
+          "id": 16, "gridPos": {"h": 5, "w": 4, "x": 8, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * avg(pve_cpu_usage_ratio{id=~\"node/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "PBS Used",
+          "id": 17, "gridPos": {"h": 5, "w": 4, "x": 12, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * sum(pbs_used) / sum(pbs_size)"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 60}, {"color": "orange", "value": 80}, {"color": "red", "value": 92}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "DNS Queries / min",
+          "id": 18, "gridPos": {"h": 5, "w": 4, "x": 16, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "60 * sum(rate(pihole_dns_queries_today[5m]))"}],
+          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "PA Sessions",
+          "id": 19, "gridPos": {"h": 5, "w": 4, "x": 20, "y": 31},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSessionActive"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "row", "title": "Trends (last 6h)",
+          "id": 104, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 36},
+          "collapsed": false, "panels": []
+        },
+        {
+          "type": "timeseries", "title": "Alert volume by severity",
+          "id": 20, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 37},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",severity=\"critical\"}) or vector(0)", "legendFormat": "critical"},
+            {"refId": "B", "expr": "count(ALERTS{alertstate=\"firing\",severity=\"warning\"}) or vector(0)", "legendFormat": "warning"},
+            {"refId": "C", "expr": "count(ALERTS{alertstate=\"pending\"}) or vector(0)", "legendFormat": "pending"}
+          ],
+          "fieldConfig": {
+            "defaults": {"unit": "short", "min": 0, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 25, "showPoints": "never", "stacking": {"mode": "normal"}}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "critical"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+              {"matcher": {"id": "byName", "options": "warning"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]},
+              {"matcher": {"id": "byName", "options": "pending"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]}
+            ]
+          },
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "type": "timeseries", "title": "WAN reachability (5m success rate)",
+          "id": 21, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 37},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "avg_over_time(probe_success{target_kind=\"wan\"}[5m])", "legendFormat": "{{instance}}"}],
+          "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "min", "mean"]}, "tooltip": {"mode": "multi"}}
+        }
+      ]
+    }

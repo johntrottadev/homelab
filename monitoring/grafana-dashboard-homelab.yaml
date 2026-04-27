@@ -134,19 +134,47 @@ data:
           "collapsed": false, "panels": []
         },
         {
-          "type": "table", "title": "Currently Firing",
+          "type": "alertlist", "title": "Currently Firing — Click for runbook + dashboard",
           "id": 13, "gridPos": {"h": 10, "w": 24, "x": 0, "y": 20},
+          "datasource": {"type": "alertmanager", "uid": "alertmanager"},
+          "options": {
+            "viewMode": "list",
+            "groupMode": "default",
+            "sortOrder": 3,
+            "stateFilter": {"firing": true, "pending": true},
+            "showInstances": true,
+            "alertInstanceLabelFilter": "alertname!=\"Watchdog\""
+          }
+        },
+        {
+          "type": "table", "title": "Firing — labels view (with click-through)",
+          "id": 22, "gridPos": {"h": 8, "w": 24, "x": 0, "y": 30},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "ALERTS{alertstate=\"firing\",alertname!=\"Watchdog\"}", "format": "table", "instant": true, "legendFormat": "__auto"}],
           "transformations": [
             {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true, "namespace": true, "endpoint": true, "service": true, "container": true, "pod": true, "prometheus": true, "Value": true, "alertstate": true, "endpoint_status": true, "target_kind": true, "metrics_path": true, "node": true}, "renameByName": {"alertname": "Alert", "severity": "Severity", "component": "Component", "id": "Resource", "ifName": "Interface", "diskID": "Disk", "vm_id": "VMID", "vm_name": "VM Name"}, "indexByName": {"alertname": 0, "severity": 1, "component": 2}}}
           ],
           "fieldConfig": {
-            "defaults": {"custom": {"align": "left"}},
+            "defaults": {
+              "custom": {"align": "left"},
+              "links": [
+                {"title": "Open Alertmanager (silence/inhibit)", "url": "https://prometheus.__BASE-DOMAIN__/alerts?search=${__data.fields.Alert}", "targetBlank": true}
+              ]
+            },
             "overrides": [
               {"matcher": {"id": "byName", "options": "Severity"}, "properties": [
                 {"id": "mappings", "value": [{"type": "value", "options": {"critical": {"text": "critical", "color": "red"}, "warning": {"text": "warning", "color": "orange"}, "info": {"text": "info", "color": "blue"}}}]},
                 {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+              ]},
+              {"matcher": {"id": "byName", "options": "Component"}, "properties": [
+                {"id": "links", "value": [
+                  {"title": "Open Storage dashboard", "url": "/d/homelab-storage", "targetBlank": false}
+                ]}
+              ]},
+              {"matcher": {"id": "byName", "options": "Alert"}, "properties": [
+                {"id": "links", "value": [
+                  {"title": "Runbook", "url": "https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#${__data.fields.Alert:lowercase}", "targetBlank": true}
+                ]}
               ]}
             ]
           },
@@ -154,12 +182,12 @@ data:
         },
         {
           "type": "row", "title": "Quick stats",
-          "id": 103, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 30},
+          "id": 103, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 38},
           "collapsed": false, "panels": []
         },
         {
           "type": "stat", "title": "PVE Nodes Online",
-          "id": 14, "gridPos": {"h": 5, "w": 4, "x": 0, "y": 31},
+          "id": 14, "gridPos": {"h": 5, "w": 4, "x": 0, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"node/.*\"} == 1)"}, {"refId": "B", "expr": "count(pve_up{id=~\"node/.*\"})"}],
           "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 3}]}}},
@@ -167,7 +195,7 @@ data:
         },
         {
           "type": "stat", "title": "Guests Running",
-          "id": 15, "gridPos": {"h": 5, "w": 4, "x": 4, "y": 31},
+          "id": 15, "gridPos": {"h": 5, "w": 4, "x": 4, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"qemu/.*|lxc/.*\"} == 1)"}],
           "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
@@ -175,7 +203,7 @@ data:
         },
         {
           "type": "stat", "title": "Cluster CPU",
-          "id": 16, "gridPos": {"h": 5, "w": 4, "x": 8, "y": 31},
+          "id": 16, "gridPos": {"h": 5, "w": 4, "x": 8, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "100 * avg(pve_cpu_usage_ratio{id=~\"node/.*\"})"}],
           "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
@@ -183,7 +211,7 @@ data:
         },
         {
           "type": "stat", "title": "PBS Used",
-          "id": 17, "gridPos": {"h": 5, "w": 4, "x": 12, "y": 31},
+          "id": 17, "gridPos": {"h": 5, "w": 4, "x": 12, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "100 * sum(pbs_used) / sum(pbs_size)"}],
           "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 60}, {"color": "orange", "value": 80}, {"color": "red", "value": 92}]}}},
@@ -191,7 +219,7 @@ data:
         },
         {
           "type": "stat", "title": "DNS Queries / min",
-          "id": 18, "gridPos": {"h": 5, "w": 4, "x": 16, "y": 31},
+          "id": 18, "gridPos": {"h": 5, "w": 4, "x": 16, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "60 * sum(rate(pihole_dns_queries_today[5m]))"}],
           "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "blue"}}},
@@ -199,7 +227,7 @@ data:
         },
         {
           "type": "stat", "title": "PA Sessions",
-          "id": 19, "gridPos": {"h": 5, "w": 4, "x": 20, "y": 31},
+          "id": 19, "gridPos": {"h": 5, "w": 4, "x": 20, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "panSessionActive"}],
           "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
@@ -207,12 +235,12 @@ data:
         },
         {
           "type": "row", "title": "Trends (last 6h)",
-          "id": 104, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 36},
+          "id": 104, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 44},
           "collapsed": false, "panels": []
         },
         {
           "type": "timeseries", "title": "Alert volume by severity",
-          "id": 20, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 37},
+          "id": 20, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 45},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [
             {"refId": "A", "expr": "count(ALERTS{alertstate=\"firing\",severity=\"critical\"}) or vector(0)", "legendFormat": "critical"},
@@ -231,7 +259,7 @@ data:
         },
         {
           "type": "timeseries", "title": "WAN reachability (5m success rate)",
-          "id": 21, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 37},
+          "id": 21, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 45},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
           "targets": [{"refId": "A", "expr": "avg_over_time(probe_success{target_kind=\"wan\"}[5m])", "legendFormat": "{{instance}}"}],
           "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never"}}},

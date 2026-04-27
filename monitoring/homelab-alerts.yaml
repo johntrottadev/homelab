@@ -27,6 +27,8 @@ spec:
           annotations:
             summary: 'Velero daily-apps backup is stale'
             description: 'Last successful daily-apps backup was {{ $value | humanizeDuration }} ago (threshold 30h). Check Velero CRs and PodVolumeBackup status.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#velerodailybackupstale'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: VeleroWeeklyBackupStale
           expr: |
@@ -38,6 +40,8 @@ spec:
           annotations:
             summary: 'Velero weekly-apps backup is stale'
             description: 'Last successful weekly-apps backup was {{ $value | humanizeDuration }} ago (threshold 8d).'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#veleroweeklybackupstale'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: VeleroBackupRecentFailure
           expr: |
@@ -50,6 +54,8 @@ spec:
           annotations:
             summary: 'Velero schedule {{ $labels.schedule }} had a failed or partially-failed backup in the last 24h'
             description: 'Inspect the most recent Backup CR for schedule={{ $labels.schedule }} — check item errors and pod-volume backup status.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#velerobackuprecentfailure'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: VeleroBackupStorageDown
           expr: velero_backup_location_status_gauge == 0
@@ -60,6 +66,8 @@ spec:
           annotations:
             summary: 'Velero BackupStorageLocation {{ $labels.name }} is unavailable'
             description: 'BSL {{ $labels.name }} has been Unavailable for 15m+ — Wasabi auth/network issue most likely. New backups cannot upload.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#velerobackupstoragedown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
     - name: homelab.pve.rules
       interval: 1m
@@ -73,6 +81,8 @@ spec:
           annotations:
             summary: 'PVE node {{ $labels.id }} is down'
             description: 'Proxmox node {{ $labels.id }} reports down for 5+ minutes per pve-exporter on __PVE-NODE-1__.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pvenodedown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-pve'
 
         - alert: PVEGuestUnexpectedlyDown
           expr: pve_up{id=~"qemu/.*|lxc/.*"} == 0 and pve_onboot_status{id=~"qemu/.*|lxc/.*"} == 1
@@ -83,6 +93,8 @@ spec:
           annotations:
             summary: 'PVE guest {{ $labels.id }} is down (onboot=enabled)'
             description: 'Guest {{ $labels.id }} has onboot=1 but is not running for 10m+. Either it crashed or boot failed.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pveguestunexpectedlydown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-pve'
 
         - alert: PVEStorageHigh
           expr: |
@@ -95,6 +107,8 @@ spec:
           annotations:
             summary: 'PVE storage {{ $labels.id }} >85% full'
             description: 'Storage {{ $labels.id }} at {{ $value | printf "%.1f" }}% utilization.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pvestoragehigh'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PVEStorageCritical
           expr: |
@@ -107,6 +121,8 @@ spec:
           annotations:
             summary: 'PVE storage {{ $labels.id }} >92% full'
             description: 'Storage {{ $labels.id }} at {{ $value | printf "%.1f" }}%. Free space immediately or backups will fail.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pvestoragecritical'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
     - name: homelab.backup-host.rules
       interval: 1m
@@ -120,6 +136,8 @@ spec:
           annotations:
             summary: 'backup-host-exporter scrape failing'
             description: 'Prometheus cannot scrape backup-host-exporter — backup observability is blind.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsexporterdown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PBSDatastoreHigh
           expr: |
@@ -131,6 +149,8 @@ spec:
           annotations:
             summary: 'PBS datastore {{ $labels.datastore }} >85% full'
             description: 'Datastore {{ $labels.datastore }} at {{ $value | printf "%.1f" }}%. Backup rotation or prune may need attention.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsdatastorehigh'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PBSDatastoreCritical
           expr: |
@@ -142,6 +162,8 @@ spec:
           annotations:
             summary: 'PBS datastore {{ $labels.datastore }} >92% full'
             description: 'Datastore {{ $labels.datastore }} at {{ $value | printf "%.1f" }}%. New backups will fail soon.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsdatastorecritical'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PBSVMBackupStale
           ## Fires for any VM whose last backup is >36h old, but only if it
@@ -156,6 +178,8 @@ spec:
           annotations:
             summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
             description: 'Last backup {{ $value | humanizeDuration }} ago on datastore {{ $labels.datastore }}. Threshold 36h.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PBSBackupVerifyFailed
           expr: pbs_snapshot_vm_last_verify == 0
@@ -166,6 +190,8 @@ spec:
           annotations:
             summary: 'PBS verify failed on last backup of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
             description: 'Most recent backup did not pass verify on datastore {{ $labels.datastore }}.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsbackupverifyfailed'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
     - name: homelab.synology.rules
       interval: 1m
@@ -179,6 +205,8 @@ spec:
           annotations:
             summary: 'Synology NAS SNMP scrape failing'
             description: 'snmp-exporter cannot reach __NAS-IP__ — NAS observability is blind.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologysnmpdown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: SynologyDiskUnhealthy
           ## diskHealthStatus: 1 = Normal, 2 = Initialized, 3 = NotInitialized,
@@ -191,6 +219,8 @@ spec:
           annotations:
             summary: 'Synology disk reports non-normal health'
             description: 'diskHealthStatus={{ $value }} on {{ $labels.diskID }} — investigate via DSM Storage Manager.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologydiskunhealthy'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: SynologyDiskRemainLifeLow
           ## diskRemainLife is SSD wear-leveling %. Synology reports -1 for
@@ -206,6 +236,8 @@ spec:
           annotations:
             summary: 'Synology SSD wear: {{ $labels.diskID }} at {{ $value }}% lifetime'
             description: 'SSD wear-leveling indicator at {{ $value }}%. Plan replacement before <10%.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologydiskremainlifelow'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
     - name: homelab.paloalto.rules
       interval: 1m
@@ -224,6 +256,8 @@ spec:
           annotations:
             summary: 'Palo Alto SNMP scrape failing ({{ $labels.job }})'
             description: 'snmp-exporter cannot reach __LAN-IP__ via {{ $labels.job }} — firewall observability is blind. Was previously responsive.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltosnmpdown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoSessionUtilizationHigh
           expr: 100 * panSessionActive / panSessionMax > 50
@@ -234,6 +268,8 @@ spec:
           annotations:
             summary: 'PA session table >50% full ({{ $value | printf "%.1f" }}%)'
             description: 'Active sessions {{ with query "panSessionActive" }}{{ . | first | value }}{{ end }} of {{ with query "panSessionMax" }}{{ . | first | value }}{{ end }}. Investigate scan/attack or runaway client.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltosessionutilizationhigh'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoSessionUtilizationCritical
           expr: 100 * panSessionActive / panSessionMax > 80
@@ -244,6 +280,8 @@ spec:
           annotations:
             summary: 'PA session table >80% full ({{ $value | printf "%.1f" }}%)'
             description: 'Session table near exhaustion. New connections may be dropped imminently.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltosessionutilizationcritical'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoSessionDiscardsSpike
           ## panSessionDiscard is cumulative since boot. Rate >5/sec sustained
@@ -256,6 +294,8 @@ spec:
           annotations:
             summary: 'PA session-discard rate elevated ({{ $value | printf "%.1f" }}/s)'
             description: 'Sessions are being discarded at {{ $value | printf "%.1f" }}/s for 15m+. Could indicate scan/attack, policy denial spike, or session-table pressure.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltosessiondiscardsspike'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoInterfaceSaturationHigh
           ## Full-duplex links: alert if either direction exceeds 80% of
@@ -278,6 +318,8 @@ spec:
           annotations:
             summary: 'PA interface {{ $labels.ifName }} >80% saturated'
             description: 'Interface {{ $labels.ifName }} sustained >80% link-speed utilization for 10m+ (peak direction).'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltointerfacesaturationhigh'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoInterfaceSaturationCritical
           expr: |
@@ -297,6 +339,8 @@ spec:
           annotations:
             summary: 'PA interface {{ $labels.ifName }} >95% saturated'
             description: 'Interface {{ $labels.ifName }} pinned to link speed for 5m+. Drops likely.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltointerfacesaturationcritical'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PaloAltoInterfaceErrorsSpike
           expr: |
@@ -309,6 +353,8 @@ spec:
           annotations:
             summary: 'PA interface {{ $labels.ifName }} input errors >1/s'
             description: 'Input error rate {{ $value | printf "%.2f" }}/s for 15m+ — usually a layer-1/cable/duplex issue.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#paloaltointerfaceerrorsspike'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
     - name: homelab.pihole.rules
       interval: 1m
@@ -322,6 +368,8 @@ spec:
           annotations:
             summary: 'pihole-exporter scrape failing'
             description: 'Cannot reach pihole-exporter — DNS observability is blind. Either the exporter pod is unhealthy or both Pi-holes are unreachable.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#piholeexporterdown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-pihole'
 
         - alert: PiholeDisabled
           ## pihole_status: 1 = blocking enabled, 0 = blocking disabled
@@ -335,6 +383,8 @@ spec:
           annotations:
             summary: 'Pi-hole blocking disabled on {{ $labels.hostname }}'
             description: 'Ad-blocking is OFF on {{ $labels.hostname }}. Re-enable in the admin UI or check why it was disabled.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#piholedisabled'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-pihole'
 
         - alert: PiholeUpstreamSlow
           ## Upstream DNS resolution time elevated. Excludes cache and
@@ -348,6 +398,8 @@ spec:
           annotations:
             summary: 'Pi-hole upstream {{ $labels.destination_name }} slow ({{ $value | printf "%.2f" }}s)'
             description: 'On {{ $labels.hostname }}, average response time from {{ $labels.destination_name }} is {{ $value | printf "%.2f" }}s for 15m+. Upstream DNS provider issue.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#piholeupstreamslow'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-pihole'
 
     - name: homelab.network.rules
       interval: 30s
@@ -364,6 +416,8 @@ spec:
           annotations:
             summary: 'WAN connectivity lost — all public TCP/53 probes failing'
             description: 'Both 1.1.1.1:53 and 8.8.8.8:53 unreachable for 2m+. Check Palo Alto WAN interface and ISP.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#wandown'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
         - alert: PublicDNSResolutionFailing
           expr: probe_success{target_kind="public_dns"} == 0
@@ -374,6 +428,8 @@ spec:
           annotations:
             summary: 'Public DNS resolver {{ $labels.instance }} not answering'
             description: 'DNS query against {{ $labels.instance }} has been failing for 5m+.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#publicdnsresolutionfailing'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/paloalto-firewall'
 
     - name: homelab.k8s.rules
       interval: 1m
@@ -389,6 +445,8 @@ spec:
           annotations:
             summary: 'PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} >85% full'
             description: 'PVC at {{ $value | printf "%.1f" }}% on node {{ $labels.kubernetes_node }}.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#homelabpvchigh'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: HomelabPVCCritical
           expr: |
@@ -401,3 +459,5 @@ spec:
           annotations:
             summary: 'PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} >92% full'
             description: 'PVC at {{ $value | printf "%.1f" }}% on node {{ $labels.kubernetes_node }}. Resize or free space.'
+            runbook_url: 'https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#homelabpvccritical'
+            dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'

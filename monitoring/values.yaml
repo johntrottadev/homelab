@@ -79,35 +79,41 @@ alertmanager:
             token_file: /etc/alertmanager/secrets/pushover-creds/token
             priority: "1"
             send_resolved: true
+            html: true
             title: '[CRITICAL] {{ .CommonLabels.alertname }} ({{ .Status }})'
             message: |-
-              {{ range .Alerts }}
-              severity: {{ .Labels.severity }}
-              namespace: {{ .Labels.namespace }}
-              instance: {{ .Labels.instance }}{{ if .Labels.pod }}
-              pod: {{ .Labels.pod }}{{ end }}
-              summary: {{ .Annotations.summary }}
-              description: {{ .Annotations.description }}
+              {{ range .Alerts }}<b>severity:</b> {{ .Labels.severity }}
+              {{ if .Labels.namespace }}<b>namespace:</b> {{ .Labels.namespace }}
+              {{ end }}{{ if .Labels.instance }}<b>instance:</b> {{ .Labels.instance }}
+              {{ end }}{{ if .Labels.pod }}<b>pod:</b> {{ .Labels.pod }}
               {{ end }}
-            url: 'https://grafana.__BASE-DOMAIN__/alerting/list'
-            url_title: 'Open Grafana alerts'
+              <b>{{ .Annotations.summary }}</b>
+              {{ .Annotations.description }}
+              {{ if .Annotations.runbook_url }}
+              <a href="{{ .Annotations.runbook_url }}">[runbook]</a>{{ end }}
+              {{ end }}
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+            url_title: 'Open dashboard'
       - name: pushover-warning
         pushover_configs:
           - user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
             token_file: /etc/alertmanager/secrets/pushover-creds/token
             priority: "0"
             send_resolved: true
+            html: true
             title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
             message: |-
-              {{ range .Alerts }}
-              severity: {{ .Labels.severity }}
-              namespace: {{ .Labels.namespace }}
-              instance: {{ .Labels.instance }}{{ if .Labels.pod }}
-              pod: {{ .Labels.pod }}{{ end }}
-              summary: {{ .Annotations.summary }}
+              {{ range .Alerts }}<b>severity:</b> {{ .Labels.severity }}
+              {{ if .Labels.namespace }}<b>namespace:</b> {{ .Labels.namespace }}
+              {{ end }}{{ if .Labels.instance }}<b>instance:</b> {{ .Labels.instance }}
+              {{ end }}{{ if .Labels.pod }}<b>pod:</b> {{ .Labels.pod }}
               {{ end }}
-            url: 'https://grafana.__BASE-DOMAIN__/alerting/list'
-            url_title: 'Open Grafana alerts'
+              <b>{{ .Annotations.summary }}</b>
+              {{ if .Annotations.runbook_url }}
+              <a href="{{ .Annotations.runbook_url }}">[runbook]</a>{{ end }}
+              {{ end }}
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+            url_title: 'Open dashboard'
     templates:
       - '/etc/alertmanager/config/*.tmpl'
   alertmanagerSpec:

@@ -32,7 +32,87 @@ defaultRules:
 alertmanager:
   enabled: true
   fullnameOverride: alertmanager
+  ## Routing config. Pushover credentials are not stored here — they live in
+  ## the `pushover-creds` Secret (keys: user_key, token), mounted into the
+  ## Alertmanager pod via `alertmanagerSpec.secrets` below and read through
+  ## the `_file` variants (Alertmanager 0.27+).
+  config:
+    global:
+      resolve_timeout: 5m
+    inhibit_rules:
+      - source_matchers: [severity = critical]
+        target_matchers: [severity =~ "warning|info"]
+        equal: [namespace, alertname]
+      - source_matchers: [severity = warning]
+        target_matchers: [severity = info]
+        equal: [namespace, alertname]
+      - source_matchers: [alertname = InfoInhibitor]
+        target_matchers: [severity = info]
+        equal: [namespace]
+      - target_matchers: [alertname = InfoInhibitor]
+    route:
+      group_by: [namespace, alertname]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: pushover-warning
+      routes:
+        - matchers: [alertname = "Watchdog"]
+          receiver: "null"
+        - matchers: [alertname = "InfoInhibitor"]
+          receiver: "null"
+        - matchers: [severity = "critical"]
+          receiver: pushover-critical
+          group_wait: 10s
+          repeat_interval: 1h
+          continue: false
+        - matchers: [severity = "warning"]
+          receiver: pushover-warning
+          repeat_interval: 4h
+        - matchers: [severity = "info"]
+          receiver: "null"
+    receivers:
+      - name: "null"
+      - name: pushover-critical
+        pushover_configs:
+          - user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+            token_file: /etc/alertmanager/secrets/pushover-creds/token
+            priority: "1"
+            send_resolved: true
+            title: '[CRITICAL] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            message: |-
+              {{ range .Alerts }}
+              severity: {{ .Labels.severity }}
+              namespace: {{ .Labels.namespace }}
+              instance: {{ .Labels.instance }}{{ if .Labels.pod }}
+              pod: {{ .Labels.pod }}{{ end }}
+              summary: {{ .Annotations.summary }}
+              description: {{ .Annotations.description }}
+              {{ end }}
+            url: 'https://grafana.__BASE-DOMAIN__/alerting/list'
+            url_title: 'Open Grafana alerts'
+      - name: pushover-warning
+        pushover_configs:
+          - user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+            token_file: /etc/alertmanager/secrets/pushover-creds/token
+            priority: "0"
+            send_resolved: true
+            title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            message: |-
+              {{ range .Alerts }}
+              severity: {{ .Labels.severity }}
+              namespace: {{ .Labels.namespace }}
+              instance: {{ .Labels.instance }}{{ if .Labels.pod }}
+              pod: {{ .Labels.pod }}{{ end }}
+              summary: {{ .Annotations.summary }}
+              {{ end }}
+            url: 'https://grafana.__BASE-DOMAIN__/alerting/list'
+            url_title: 'Open Grafana alerts'
+    templates:
+      - '/etc/alertmanager/config/*.tmpl'
   alertmanagerSpec:
+    secrets:
+      - pushover-creds
     storage:
       volumeClaimTemplate:
         spec:
@@ -91,13 +171,19 @@ kubelet:
           - node
         targetLabel: instance
 
+## k3s control-plane components (controller-manager, scheduler, proxy, etcd)
+## bind metrics to 127.0.0.1 by default, so external scraping fails.
+## Endpoint lists also still referenced decommissioned k3s-3/k3s-4.
+##
+## To re-enable later, pass these flags to the k3s servers:
+##   --kube-controller-manager-arg=bind-address=0.0.0.0
+##   --kube-scheduler-arg=bind-address=0.0.0.0
+##   --kube-proxy-arg=metrics-bind-address=0.0.0.0
+##   --etcd-expose-metrics=true
+## then set `enabled: true` and update `endpoints:` to current master IPs only
+## (workers don't run scheduler/controller-manager/etcd).
 kubeControllerManager:
-  enabled: true
-  endpoints:
-    - __K3S-API-IP__
-    - __LAN-IP__
-    - __LAN-IP__
-    - __LAN-IP__
+  enabled: false
 
 coreDns:
   enabled: true
@@ -106,32 +192,13 @@ kubeDns:
   enabled: false
 
 kubeEtcd:
-  enabled: true
-  endpoints:
-    - __K3S-API-IP__
-    - __LAN-IP__
-    - __LAN-IP__
-    - __LAN-IP__
-  service:
-    enabled: true
-    port: 2381
-    targetPort: 2381
+  enabled: false
 
 kubeScheduler:
-  enabled: true
-  endpoints:
-    - __K3S-API-IP__
-    - __LAN-IP__
-    - __LAN-IP__
-    - __LAN-IP__
+  enabled: false
 
 kubeProxy:
-  enabled: true
-  endpoints:
-    - __K3S-API-IP__
-    - __LAN-IP__
-    - __LAN-IP__
-    - __LAN-IP__
+  enabled: false
 
 kubeStateMetrics:
   enabled: true
@@ -307,9 +374,8 @@ prometheus:
         metrics_path: "/pve"
         static_configs:
           - targets: ["__PVE1-IP__:9221"]
-      - job_name: "pihole"
-        static_configs:
-          - targets: ["__PIHOLE1-IP__:9617"]
+      ## pihole exporter removed — never installed on pihole1 (no service,
+      ## no listener on :9617). Re-add when pihole-exporter is deployed.
 thanosRuler:
   enabled: false
 

@@ -1,0 +1,142 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-pihole-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  pihole.json: |
+    {
+      "title": "Homelab — Pi-hole DNS",
+      "uid": "homelab-pihole",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["pihole", "dns", "homelab"],
+      "time": {"from": "now-24h", "to": "now"},
+      "refresh": "1m",
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "stat", "title": "pihole1 Status",
+          "id": 1, "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_status{hostname=\"__PIHOLE1-IP__\"}"}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"1": {"text": "enabled", "color": "green"}, "0": {"text": "disabled", "color": "red"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "pihole2 Status",
+          "id": 2, "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_status{hostname=\"__PIHOLE2-IP__\"}"}],
+          "fieldConfig": {"defaults": {"mappings": [{"type": "value", "options": {"1": {"text": "enabled", "color": "green"}, "0": {"text": "disabled", "color": "red"}}}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Queries Today (both)",
+          "id": 3, "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sum(pihole_dns_queries_today)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Blocked Today (both)",
+          "id": 4, "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sum(pihole_ads_blocked_today)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "red"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Block Rate (avg)",
+          "id": 5, "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "avg(pihole_ads_percentage_today)"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "orange", "value": 15}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Active Clients",
+          "id": 6, "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "max(pihole_unique_clients)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "timeseries", "title": "Queries / sec (per Pi-hole)",
+          "id": 7, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "rate(pihole_dns_queries_today[5m])", "legendFormat": "{{hostname}}"}],
+          "fieldConfig": {"defaults": {"unit": "qps", "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "type": "timeseries", "title": "Block Rate % over Time (per Pi-hole)",
+          "id": 8, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_ads_percentage_today", "legendFormat": "{{hostname}}"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi"}}
+        },
+        {
+          "type": "piechart", "title": "Forward Destinations — pihole1 (last sample)",
+          "id": 9, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_forward_destinations{hostname=\"__PIHOLE1-IP__\"}", "legendFormat": "{{destination_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "short"}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]}, "displayLabels": ["percent"], "pieType": "donut"}
+        },
+        {
+          "type": "piechart", "title": "Forward Destinations — pihole2 (last sample)",
+          "id": 10, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_forward_destinations{hostname=\"__PIHOLE2-IP__\"}", "legendFormat": "{{destination_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "short"}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]}, "displayLabels": ["percent"], "pieType": "donut"}
+        },
+        {
+          "type": "bargauge", "title": "Top 15 Blocked Domains",
+          "id": 11, "gridPos": {"h": 10, "w": 12, "x": 0, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(15, sum by(domain) (pihole_top_ads))", "legendFormat": "{{domain}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "red"}}},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"}
+        },
+        {
+          "type": "bargauge", "title": "Top 15 Queried Domains",
+          "id": 12, "gridPos": {"h": 10, "w": 12, "x": 12, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(15, sum by(domain) (pihole_top_queries))", "legendFormat": "{{domain}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"}
+        },
+        {
+          "type": "bargauge", "title": "Top 15 Querying Clients",
+          "id": 13, "gridPos": {"h": 10, "w": 12, "x": 0, "y": 30},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(15, sum by(client) (pihole_top_sources))", "legendFormat": "{{client}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "purple"}}},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"}
+        },
+        {
+          "type": "piechart", "title": "Query Types Distribution",
+          "id": 14, "gridPos": {"h": 10, "w": 12, "x": 12, "y": 30},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sum by(query_type) (pihole_querytypes)", "legendFormat": "{{query_type}}"}],
+          "fieldConfig": {"defaults": {"unit": "percent"}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "values": ["value", "percent"]}, "displayLabels": ["percent"], "pieType": "donut"}
+        },
+        {
+          "type": "timeseries", "title": "Upstream DNS Response Time (s)",
+          "id": 15, "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "pihole_forward_destinations_responsetime{destination_name!~\"cache|blocklist\"}", "legendFormat": "{{hostname}} → {{destination_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "s", "decimals": 3, "custom": {"drawStyle": "line", "lineWidth": 1.5, "fillOpacity": 5, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "mean", "max"]}, "tooltip": {"mode": "multi"}}
+        }
+      ]
+    }

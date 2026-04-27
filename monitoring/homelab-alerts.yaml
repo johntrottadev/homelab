@@ -310,6 +310,45 @@ spec:
             summary: 'PA interface {{ $labels.ifName }} input errors >1/s'
             description: 'Input error rate {{ $value | printf "%.2f" }}/s for 15m+ — usually a layer-1/cable/duplex issue.'
 
+    - name: homelab.pihole.rules
+      interval: 1m
+      rules:
+        - alert: PiholeExporterDown
+          expr: up{job="pihole-exporter"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: pihole
+          annotations:
+            summary: 'pihole-exporter scrape failing'
+            description: 'Cannot reach pihole-exporter — DNS observability is blind. Either the exporter pod is unhealthy or both Pi-holes are unreachable.'
+
+        - alert: PiholeDisabled
+          ## pihole_status: 1 = blocking enabled, 0 = blocking disabled
+          ## (someone manually clicked "Disable" in the admin UI). 15m
+          ## buffer because user may temp-disable for troubleshooting.
+          expr: pihole_status == 0
+          for: 15m
+          labels:
+            severity: warning
+            component: pihole
+          annotations:
+            summary: 'Pi-hole blocking disabled on {{ $labels.hostname }}'
+            description: 'Ad-blocking is OFF on {{ $labels.hostname }}. Re-enable in the admin UI or check why it was disabled.'
+
+        - alert: PiholeUpstreamSlow
+          ## Upstream DNS resolution time elevated. Excludes cache and
+          ## blocklist (those are local instant lookups).
+          expr: |
+            pihole_forward_destinations_responsetime{destination_name!~"cache|blocklist"} > 0.5
+          for: 15m
+          labels:
+            severity: warning
+            component: pihole
+          annotations:
+            summary: 'Pi-hole upstream {{ $labels.destination_name }} slow ({{ $value | printf "%.2f" }}s)'
+            description: 'On {{ $labels.hostname }}, average response time from {{ $labels.destination_name }} is {{ $value | printf "%.2f" }}s for 15m+. Upstream DNS provider issue.'
+
     - name: homelab.network.rules
       interval: 30s
       rules:

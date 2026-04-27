@@ -1,0 +1,148 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-paloalto-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  paloalto.json: |
+    {
+      "title": "Palo Alto — Firewall Health",
+      "uid": "paloalto-firewall",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["paloalto", "network", "homelab"],
+      "time": {"from": "now-6h", "to": "now"},
+      "refresh": "30s",
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "stat", "title": "Model",
+          "id": 1, "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sysName{job=\"snmp-paloalto\"}", "legendFormat": "{{sysName}}"}],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "name", "colorMode": "none", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "PAN-OS Version",
+          "id": 2, "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSysSwVersion", "legendFormat": "{{panSysSwVersion}}"}],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "name", "colorMode": "none", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Uptime",
+          "id": 3, "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sysUpTime{job=\"snmp-paloalto\"} / 100"}],
+          "fieldConfig": {"defaults": {"unit": "s", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "App-ID Content",
+          "id": 4, "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSysAppVersion", "legendFormat": "{{panSysAppVersion}}"}],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "name", "colorMode": "none", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "AV Content",
+          "id": 5, "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSysAvVersion", "legendFormat": "{{panSysAvVersion}}"}],
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "name", "colorMode": "none", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Active Sessions",
+          "id": 6, "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSessionActive"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50000}, {"color": "red", "value": 100000}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value_and_name", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "gauge", "title": "Session Table Utilization",
+          "id": 7, "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * panSessionActive / panSessionMax"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
+          "options": {"showThresholdLabels": false, "showThresholdMarkers": true}
+        },
+        {
+          "type": "timeseries", "title": "Sessions by Protocol",
+          "id": 8, "gridPos": {"h": 8, "w": 16, "x": 8, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"refId": "A", "expr": "panSessionActiveTcp", "legendFormat": "TCP"},
+            {"refId": "B", "expr": "panSessionActiveUdp", "legendFormat": "UDP"},
+            {"refId": "C", "expr": "panSessionActiveICMP", "legendFormat": "ICMP"},
+            {"refId": "D", "expr": "panSessionActive", "legendFormat": "Total"}
+          ],
+          "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never", "stacking": {"mode": "none"}}}},
+          "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "timeseries", "title": "Interface Bandwidth — Inbound (per interface)",
+          "id": 9, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "8 * rate(ifHCInOctets{job=\"snmp-paloalto-if\",ifName!~\"loopback|tunnel|vlan\"}[5m]) and on(ifIndex) ifHighSpeed{job=\"snmp-paloalto-if\"} > 0", "legendFormat": "{{ifName}}"}],
+          "fieldConfig": {"defaults": {"unit": "bps", "custom": {"drawStyle": "line", "lineWidth": 1.5, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "timeseries", "title": "Interface Bandwidth — Outbound (per interface)",
+          "id": 10, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "8 * rate(ifHCOutOctets{job=\"snmp-paloalto-if\",ifName!~\"loopback|tunnel|vlan\"}[5m]) and on(ifIndex) ifHighSpeed{job=\"snmp-paloalto-if\"} > 0", "legendFormat": "{{ifName}}"}],
+          "fieldConfig": {"defaults": {"unit": "bps", "custom": {"drawStyle": "line", "lineWidth": 1.5, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "timeseries", "title": "Connection Rate (CPS)",
+          "id": 11, "gridPos": {"h": 7, "w": 12, "x": 0, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "panSessionCps", "legendFormat": "new sessions/s"}],
+          "fieldConfig": {"defaults": {"unit": "cps", "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never"}, "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single"}}
+        },
+        {
+          "type": "timeseries", "title": "Sessions Discarded (rate, 5m)",
+          "id": 12, "gridPos": {"h": 7, "w": 12, "x": 12, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "rate(panSessionDiscard[5m])", "legendFormat": "discards/s"}],
+          "fieldConfig": {"defaults": {"unit": "cps", "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never"}, "color": {"mode": "fixed", "fixedColor": "red"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]}}},
+          "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "single"}}
+        },
+        {
+          "type": "table", "title": "Interface Status",
+          "id": 13, "gridPos": {"h": 9, "w": 24, "x": 0, "y": 27},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"refId": "A", "expr": "ifAdminStatus{job=\"snmp-paloalto-if\"}", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "B", "expr": "ifHighSpeed{job=\"snmp-paloalto-if\"}", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "C", "expr": "8 * rate(ifHCInOctets{job=\"snmp-paloalto-if\"}[5m])", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "D", "expr": "8 * rate(ifHCOutOctets{job=\"snmp-paloalto-if\"}[5m])", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "E", "expr": "rate(ifInErrors{job=\"snmp-paloalto-if\"}[5m])", "format": "table", "instant": true, "legendFormat": "__auto"}
+          ],
+          "transformations": [
+            {"id": "joinByField", "options": {"byField": "ifIndex", "mode": "outer"}},
+            {"id": "organize", "options": {"excludeByName": {"Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true, "Time 5": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true, "__name__ 5": true, "instance 1": true, "instance 2": true, "instance 3": true, "instance 4": true, "instance 5": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true, "job 5": true, "namespace 1": true, "namespace 2": true, "namespace 3": true, "namespace 4": true, "namespace 5": true, "target_kind 1": true, "target_kind 2": true, "target_kind 3": true, "target_kind 4": true, "target_kind 5": true, "endpoint 1": true, "endpoint 2": true, "endpoint 3": true, "endpoint 4": true, "endpoint 5": true, "service 1": true, "service 2": true, "service 3": true, "service 4": true, "service 5": true, "container 1": true, "container 2": true, "container 3": true, "container 4": true, "container 5": true, "pod 1": true, "pod 2": true, "pod 3": true, "pod 4": true, "pod 5": true, "ifAlias 1": true, "ifAlias 2": true, "ifAlias 3": true, "ifAlias 4": true, "ifAlias 5": true, "ifDescr 1": true, "ifDescr 2": true, "ifDescr 3": true, "ifDescr 4": true, "ifDescr 5": true, "ifName 2": true, "ifName 3": true, "ifName 4": true, "ifName 5": true}, "renameByName": {"ifName 1": "Interface", "Value #A": "Admin", "Value #B": "Speed (Mbps)", "Value #C": "In (bps)", "Value #D": "Out (bps)", "Value #E": "Errors/s"}}}
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"align": "left"}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "In (bps)"}, "properties": [{"id": "unit", "value": "bps"}]},
+              {"matcher": {"id": "byName", "options": "Out (bps)"}, "properties": [{"id": "unit", "value": "bps"}]},
+              {"matcher": {"id": "byName", "options": "Errors/s"}, "properties": [{"id": "unit", "value": "cps"}]},
+              {"matcher": {"id": "byName", "options": "Admin"}, "properties": [
+                {"id": "mappings", "value": [{"type": "value", "options": {"1": {"text": "up", "color": "green"}, "2": {"text": "down", "color": "red"}, "3": {"text": "testing", "color": "orange"}}}]},
+                {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+              ]}
+            ]
+          },
+          "options": {"showHeader": true, "sortBy": [{"displayName": "In (bps)", "desc": true}]}
+        }
+      ]
+    }

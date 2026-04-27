@@ -212,15 +212,100 @@ spec:
           ## before SNMPv3 user is configured. Fires only when a previously-up
           ## device goes down.
           expr: |
-            up{job="snmp-paloalto"} == 0
-              and max_over_time(up{job="snmp-paloalto"}[24h]) == 1
+            up{job=~"snmp-paloalto.*"} == 0
+              and max_over_time(up{job=~"snmp-paloalto.*"}[24h]) == 1
           for: 10m
           labels:
             severity: warning
             component: paloalto
           annotations:
-            summary: 'Palo Alto SNMP scrape failing'
-            description: 'snmp-exporter cannot reach __LAN-IP__ — firewall observability is blind. Was previously responsive.'
+            summary: 'Palo Alto SNMP scrape failing ({{ $labels.job }})'
+            description: 'snmp-exporter cannot reach __LAN-IP__ via {{ $labels.job }} — firewall observability is blind. Was previously responsive.'
+
+        - alert: PaloAltoSessionUtilizationHigh
+          expr: 100 * panSessionActive / panSessionMax > 50
+          for: 15m
+          labels:
+            severity: warning
+            component: paloalto
+          annotations:
+            summary: 'PA session table >50% full ({{ $value | printf "%.1f" }}%)'
+            description: 'Active sessions {{ with query "panSessionActive" }}{{ . | first | value }}{{ end }} of {{ with query "panSessionMax" }}{{ . | first | value }}{{ end }}. Investigate scan/attack or runaway client.'
+
+        - alert: PaloAltoSessionUtilizationCritical
+          expr: 100 * panSessionActive / panSessionMax > 80
+          for: 5m
+          labels:
+            severity: critical
+            component: paloalto
+          annotations:
+            summary: 'PA session table >80% full ({{ $value | printf "%.1f" }}%)'
+            description: 'Session table near exhaustion. New connections may be dropped imminently.'
+
+        - alert: PaloAltoSessionDiscardsSpike
+          ## panSessionDiscard is cumulative since boot. Rate >5/sec sustained
+          ## for 15m is well above a quiet-homelab baseline (currently ~0).
+          expr: rate(panSessionDiscard[5m]) > 5
+          for: 15m
+          labels:
+            severity: warning
+            component: paloalto
+          annotations:
+            summary: 'PA session-discard rate elevated ({{ $value | printf "%.1f" }}/s)'
+            description: 'Sessions are being discarded at {{ $value | printf "%.1f" }}/s for 15m+. Could indicate scan/attack, policy denial spike, or session-table pressure.'
+
+        - alert: PaloAltoInterfaceSaturationHigh
+          ## Full-duplex links: alert if either direction exceeds 80% of
+          ## ifHighSpeed (Mbps). Filter to physical interfaces (HighSpeed>0)
+          ## that are admin-up.
+          expr: |
+            (
+              max by(ifName, ifIndex, instance) (
+                8 * rate(ifHCInOctets{job="snmp-paloalto-if"}[5m])
+                  or 8 * rate(ifHCOutOctets{job="snmp-paloalto-if"}[5m])
+              )
+              / on(ifIndex) group_left() (ifHighSpeed{job="snmp-paloalto-if"} * 1e6)
+            ) * 100 > 80
+            and on(ifIndex) ifAdminStatus{job="snmp-paloalto-if"} == 1
+            and on(ifIndex) ifHighSpeed{job="snmp-paloalto-if"} > 0
+          for: 10m
+          labels:
+            severity: warning
+            component: paloalto
+          annotations:
+            summary: 'PA interface {{ $labels.ifName }} >80% saturated'
+            description: 'Interface {{ $labels.ifName }} sustained >80% link-speed utilization for 10m+ (peak direction).'
+
+        - alert: PaloAltoInterfaceSaturationCritical
+          expr: |
+            (
+              max by(ifName, ifIndex, instance) (
+                8 * rate(ifHCInOctets{job="snmp-paloalto-if"}[5m])
+                  or 8 * rate(ifHCOutOctets{job="snmp-paloalto-if"}[5m])
+              )
+              / on(ifIndex) group_left() (ifHighSpeed{job="snmp-paloalto-if"} * 1e6)
+            ) * 100 > 95
+            and on(ifIndex) ifAdminStatus{job="snmp-paloalto-if"} == 1
+            and on(ifIndex) ifHighSpeed{job="snmp-paloalto-if"} > 0
+          for: 5m
+          labels:
+            severity: critical
+            component: paloalto
+          annotations:
+            summary: 'PA interface {{ $labels.ifName }} >95% saturated'
+            description: 'Interface {{ $labels.ifName }} pinned to link speed for 5m+. Drops likely.'
+
+        - alert: PaloAltoInterfaceErrorsSpike
+          expr: |
+            rate(ifInErrors{job="snmp-paloalto-if"}[5m]) > 1
+            and on(ifIndex) ifAdminStatus{job="snmp-paloalto-if"} == 1
+          for: 15m
+          labels:
+            severity: warning
+            component: paloalto
+          annotations:
+            summary: 'PA interface {{ $labels.ifName }} input errors >1/s'
+            description: 'Input error rate {{ $value | printf "%.2f" }}/s for 15m+ — usually a layer-1/cable/duplex issue.'
 
     - name: homelab.network.rules
       interval: 30s

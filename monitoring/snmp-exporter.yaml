@@ -137,6 +137,9 @@ spec:
           action: replace
 ---
 ## Probe CR — Palo Alto via PAN-OS module (paloalto_fw)
+## The paloalto_fw module walks PAN-OS enterprise OIDs (sessions, content
+## versions, etc). For interface counters / bandwidth we need a second
+## Probe targeting the same device with the if_mib module — see below.
 apiVersion: monitoring.coreos.com/v1
 kind: Probe
 metadata:
@@ -147,6 +150,35 @@ metadata:
 spec:
   jobName: snmp-paloalto
   module: paloalto_fw
+  prober:
+    url: snmp-exporter.monitoring.svc:9116
+    path: /snmp
+  scrapeTimeout: 30s
+  interval: 60s
+  targets:
+    staticConfig:
+      static:
+        - __LAN-IP__
+      labels:
+        target_kind: paloalto
+      relabelingConfigs:
+        - sourceLabels: [__address__]
+          regex: .*
+          targetLabel: __param_auth
+          replacement: paloalto_v3
+          action: replace
+---
+## Probe CR — Palo Alto IF-MIB (interface bandwidth + admin/oper status)
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: snmp-paloalto-if
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  jobName: snmp-paloalto-if
+  module: if_mib
   prober:
     url: snmp-exporter.monitoring.svc:9116
     path: /snmp

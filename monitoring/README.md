@@ -18,6 +18,7 @@ node-exporter, and prometheus-operator.
 | `backup-host-exporter.yaml` | natrontech/backup-host-exporter Deployment + Service + ServiceMonitor |
 | `snmp-exporter.yaml` | snmp-exporter Deployment (with envsubst init) + Probe CRs (Synology, PAN-OS) |
 | `snmp.yml` | snmp-exporter config (vendored from snmp_exporter v0.27.0 release; modules: synology, paloalto_fw, if_mib) |
+| `grafana-dashboard-paloalto.yaml` | Palo Alto firewall dashboard ConfigMap (13 panels: capacity, sessions, interfaces, discards) |
 
 ## Custom alert coverage
 

@@ -13,6 +13,24 @@ node-exporter, and prometheus-operator.
 | `ingress.yaml` | `grafana.__BASE-DOMAIN__` and `prometheus.__BASE-DOMAIN__` |
 | `grafana-dashboard-velero-per-app.yaml` | Custom Velero per-app dashboard |
 | `pushover-secret.yaml.example` | Template for the Alertmanager Pushover Secret |
+| `homelab-alerts.yaml` | Custom PrometheusRule (velero, pve, network, k8s) |
+| `blackbox-exporter.yaml` | blackbox-exporter Deployment + Service + Probe CRs |
+
+## Custom alert coverage
+
+Beyond the kube-prometheus-stack defaults, `homelab-alerts.yaml` adds:
+
+| Group | Alerts |
+|---|---|
+| `homelab.velero.rules` | `VeleroDailyBackupStale` (>30h), `VeleroWeeklyBackupStale` (>8d), `VeleroBackupRecentFailure` (24h window), `VeleroBackupStorageDown` |
+| `homelab.pve.rules` | `PVENodeDown`, `PVEGuestUnexpectedlyDown` (onboot=1 only), `PVEStorageHigh` (>85%), `PVEStorageCritical` (>92%) |
+| `homelab.network.rules` | `WANDown` (both public TCP/53 probes failing), `PublicDNSResolutionFailing` |
+| `homelab.k8s.rules` | `HomelabPVCHigh` (>85%), `HomelabPVCCritical` (>92%) |
+
+Probes (via blackbox-exporter):
+
+- `wan` — TCP/53 to 1.1.1.1 and 8.8.8.8
+- `public_dns` — DNS A query for `cloudflare.com` against 1.1.1.1 and 8.8.8.8
 
 ## Apply workflow (run from k3s-1)
 
@@ -31,6 +49,14 @@ sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade prometheus \
   --version 69.3.1 \
   -n monitoring \
   -f /mnt/code/homelab/monitoring/values.yaml
+```
+
+For flat manifest changes (alert rules, blackbox-exporter), `kubectl apply`:
+
+```bash
+sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml apply \
+  -f /mnt/code/homelab/monitoring/homelab-alerts.yaml \
+  -f /mnt/code/homelab/monitoring/blackbox-exporter.yaml
 ```
 
 ## Alert routing

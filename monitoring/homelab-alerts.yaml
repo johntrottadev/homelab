@@ -1,0 +1,162 @@
+## Homelab-specific alert rules — complements the kube-prometheus-stack defaults.
+## Severity routing (configured in monitoring/values.yaml):
+##   critical → Pushover priority 1, 1h repeat
+##   warning  → Pushover priority 0, 4h repeat
+##
+## Apply: kubectl apply -f monitoring/homelab-alerts.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: homelab-alerts
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack
+    release: prometheus
+spec:
+  groups:
+    - name: homelab.velero.rules
+      interval: 1m
+      rules:
+        - alert: VeleroDailyBackupStale
+          expr: |
+            time() - velero_backup_last_successful_timestamp{schedule="daily-apps"} > 30 * 3600
+          for: 15m
+          labels:
+            severity: critical
+            component: velero
+          annotations:
+            summary: 'Velero daily-apps backup is stale'
+            description: 'Last successful daily-apps backup was {{ $value | humanizeDuration }} ago (threshold 30h). Check Velero CRs and PodVolumeBackup status.'
+
+        - alert: VeleroWeeklyBackupStale
+          expr: |
+            time() - velero_backup_last_successful_timestamp{schedule="weekly-apps"} > 8 * 86400
+          for: 1h
+          labels:
+            severity: warning
+            component: velero
+          annotations:
+            summary: 'Velero weekly-apps backup is stale'
+            description: 'Last successful weekly-apps backup was {{ $value | humanizeDuration }} ago (threshold 8d).'
+
+        - alert: VeleroBackupRecentFailure
+          expr: |
+            increase(velero_backup_failure_total[24h])
+              + increase(velero_backup_partial_failure_total[24h]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: velero
+          annotations:
+            summary: 'Velero schedule {{ $labels.schedule }} had a failed or partially-failed backup in the last 24h'
+            description: 'Inspect the most recent Backup CR for schedule={{ $labels.schedule }} — check item errors and pod-volume backup status.'
+
+        - alert: VeleroBackupStorageDown
+          expr: velero_backup_location_status_gauge == 0
+          for: 15m
+          labels:
+            severity: critical
+            component: velero
+          annotations:
+            summary: 'Velero BackupStorageLocation {{ $labels.name }} is unavailable'
+            description: 'BSL {{ $labels.name }} has been Unavailable for 15m+ — Wasabi auth/network issue most likely. New backups cannot upload.'
+
+    - name: homelab.pve.rules
+      interval: 1m
+      rules:
+        - alert: PVENodeDown
+          expr: pve_up{id=~"node/.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: pve
+          annotations:
+            summary: 'PVE node {{ $labels.id }} is down'
+            description: 'Proxmox node {{ $labels.id }} reports down for 5+ minutes per pve-exporter on __PVE-NODE-1__.'
+
+        - alert: PVEGuestUnexpectedlyDown
+          expr: pve_up{id=~"qemu/.*|lxc/.*"} == 0 and pve_onboot_status{id=~"qemu/.*|lxc/.*"} == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: pve
+          annotations:
+            summary: 'PVE guest {{ $labels.id }} is down (onboot=enabled)'
+            description: 'Guest {{ $labels.id }} has onboot=1 but is not running for 10m+. Either it crashed or boot failed.'
+
+        - alert: PVEStorageHigh
+          expr: |
+            100 * pve_disk_usage_bytes{id=~"storage/.*"}
+              / pve_disk_size_bytes{id=~"storage/.*"} > 85
+          for: 30m
+          labels:
+            severity: warning
+            component: pve
+          annotations:
+            summary: 'PVE storage {{ $labels.id }} >85% full'
+            description: 'Storage {{ $labels.id }} at {{ $value | printf "%.1f" }}% utilization.'
+
+        - alert: PVEStorageCritical
+          expr: |
+            100 * pve_disk_usage_bytes{id=~"storage/.*"}
+              / pve_disk_size_bytes{id=~"storage/.*"} > 92
+          for: 10m
+          labels:
+            severity: critical
+            component: pve
+          annotations:
+            summary: 'PVE storage {{ $labels.id }} >92% full'
+            description: 'Storage {{ $labels.id }} at {{ $value | printf "%.1f" }}%. Free space immediately or backups will fail.'
+
+    - name: homelab.network.rules
+      interval: 30s
+      rules:
+        - alert: WANDown
+          ## Both public TCP/53 probes failing simultaneously means we've lost
+          ## external connectivity (or both Cloudflare AND Google are down).
+          expr: |
+            min by () (probe_success{target_kind="wan"}) == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: network
+          annotations:
+            summary: 'WAN connectivity lost — all public TCP/53 probes failing'
+            description: 'Both 1.1.1.1:53 and 8.8.8.8:53 unreachable for 2m+. Check Palo Alto WAN interface and ISP.'
+
+        - alert: PublicDNSResolutionFailing
+          expr: probe_success{target_kind="public_dns"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            component: network
+          annotations:
+            summary: 'Public DNS resolver {{ $labels.instance }} not answering'
+            description: 'DNS query against {{ $labels.instance }} has been failing for 5m+.'
+
+    - name: homelab.k8s.rules
+      interval: 1m
+      rules:
+        - alert: HomelabPVCHigh
+          expr: |
+            100 * kubelet_volume_stats_used_bytes
+              / kubelet_volume_stats_capacity_bytes > 85
+          for: 30m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: 'PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} >85% full'
+            description: 'PVC at {{ $value | printf "%.1f" }}% on node {{ $labels.kubernetes_node }}.'
+
+        - alert: HomelabPVCCritical
+          expr: |
+            100 * kubelet_volume_stats_used_bytes
+              / kubelet_volume_stats_capacity_bytes > 92
+          for: 10m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: 'PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} >92% full'
+            description: 'PVC at {{ $value | printf "%.1f" }}% on node {{ $labels.kubernetes_node }}. Resize or free space.'

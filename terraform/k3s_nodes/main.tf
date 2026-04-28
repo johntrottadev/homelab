@@ -76,4 +76,9 @@ resource "proxmox_vm_qemu" "worker" {
   sshkeys      = var.ssh_pubkeys
   nameserver   = var.lan_dns
   searchdomain = var.search_domain
+
+  # Custom cloud-init user-data — installs nfs-common so NFS-backed PVCs mount
+  # cleanly on first boot. Snippet must be present on the PVE node's `local`
+  # snippets storage at the path below before apply. See cloud-init/README.
+  cicustom = "user=local:snippets/k3s-worker-user-data.yaml"
 }

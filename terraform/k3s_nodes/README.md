@@ -42,32 +42,46 @@ env:
 
 **Note on `vip_subnet`:** kube-vip's address builder concatenates `address + "/" + subnet`, so `vip_subnet=__LAN-SVC-CIDR__` produces the malformed CIDR `__K3S-VIP__/__LAN-SVC-CIDR__` and the leader silently fails to add the service. Always use the bare prefix length. (Cost us ~4 min of mid-cutover debugging on Phase 13.)
 
+### Cloud-init customization — `cicustom` is now wired
+
+`main.tf` references `local:snippets/k3s-worker-user-data.yaml`. The snippet source of truth lives in this repo at `cloud-init/k3s-worker-user-data.yaml`.
+
+**Currently installs:**
+- `nfs-common` — required for NFS-backed PVCs; missing from `kub-tmp` so fresh workers hang `ContainerCreating` for any pod with an NFS volume. Discovered on k3s-7 post-rebuild (2026-04-27).
+
+**Deploy step (manual, one-time per PVE node hosting the snippets storage):**
+
+```bash
+scp cloud-init/k3s-worker-user-data.yaml root@<pve-node>:/var/lib/vz/snippets/
+```
+
+The snippet must exist on PVE BEFORE `terraform apply` for a new worker. Without it, the clone boots fine but cloud-init logs an error and skips the user-data step. Existing k3s-1/2/5/6/7 are unaffected (not TF-managed).
+
 ### Optional future hardening (not done today)
 
-If you want fresh workers to come up with stable iface names AND no cloud-init `set-name: eth0` rename, add a `cicustom` snippet to the Terraform that disables cloud-init network management:
+If you want fresh workers to come up with stable iface names AND no cloud-init `set-name: eth0` rename, extend `cloud-init/k3s-worker-user-data.yaml` to disable cloud-init network management:
 
-```hcl
-# Snippet in main.tf (NOT applied — design only):
-cicustom = "user=local:snippets/k3s-worker-user-data.yaml"
-# k3s-worker-user-data.yaml content:
-#   #cloud-config
-#   write_files:
-#     - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-#       content: "network: {config: disabled}"
-#     - path: /etc/netplan/01-static.yaml
-#       permissions: '0600'
-#       content: |
-#         network:
-#           version: 2
-#           renderer: networkd
-#           ethernets:
-#             enp6s18:
-#               addresses: ["${each.value.ip}/24"]
-#               nameservers: { addresses: [__PIHOLE1-IP__], search: [__BASE-DOMAIN__] }
-#               routes: [{ to: default, via: __LAN-IP__ }]
-#   runcmd:
-#     - netplan apply
+```yaml
+# Append to cloud-init/k3s-worker-user-data.yaml (NOT applied — design only):
+write_files:
+  - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    content: "network: {config: disabled}"
+  - path: /etc/netplan/01-static.yaml
+    permissions: '0600'
+    content: |
+      network:
+        version: 2
+        renderer: networkd
+        ethernets:
+          enp6s18:
+            addresses: ["<NODE_IP>/24"]
+            nameservers: { addresses: [__PIHOLE1-IP__], search: [__BASE-DOMAIN__] }
+            routes: [{ to: default, via: __LAN-IP__ }]
+runcmd:
+  - netplan apply
 ```
+
+(Note: `<NODE_IP>` would need to be templated per-clone — Proxmox cicustom doesn't support TF interpolation directly. Workaround is one snippet per worker, or a separate cloud-init step that reads the IP from `ipconfig0`.)
 
 This locks the iface name to `enp6s18` and bypasses ProxMox's cloud-init-generated `set-name: eth0`. The trade-off is that the snippet hard-codes `enp6s18`, which only works on q35 machines. If you switch to pc-i440fx, the snippet needs to switch to `ens18`.
 

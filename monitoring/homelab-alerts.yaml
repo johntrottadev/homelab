@@ -166,11 +166,18 @@ spec:
             dashboard_url: 'https://grafana.__BASE-DOMAIN__/d/homelab-storage'
 
         - alert: PBSVMBackupStale
-          ## Fires for any VM whose last backup is >36h old, but only if it
-          ## has a backup within the last 14 days (filters out long-decommissioned VMs).
+          ## Fires for any VM whose last backup is >36h old AND that is
+          ## currently running in PVE (joined via pve_up on vm_id).
+          ## Skips:
+          ##   - decommissioned VMs (no pve_up entry)
+          ##   - intentionally stopped VMs (pve_up == 0) — if you want
+          ##     a stopped VM to still be backed up, run it briefly so
+          ##     the next backup catches it
           expr: |
             (time() - pbs_snapshot_vm_last_timestamp > 36*3600)
-              and (pbs_snapshot_vm_last_timestamp > time() - 14*86400)
+              and on(vm_id) (
+                label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
+              )
           for: 30m
           labels:
             severity: warning

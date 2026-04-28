@@ -1,0 +1,22 @@
+# Flux entrypoint for cluster `default` (k3s, 5 nodes, kube-vip VIP __K3S-VIP__).
+#
+# Referenced by `Kustomization flux-system/flux-system` with `spec.path: ./clusters/default`.
+# Flux's source-controller fetches this repo; kustomize-controller applies the resources
+# listed below. New cluster-shared manifests land here; per-app k8s objects (PVCs, Deployments,
+# Services) continue to live in their per-app directories at the repo root and are referenced
+# from this list.
+#
+# Bootstrap created during Phase 14 Wave 1 prep
+# (bastion .planning/phases/14-traefik-cert-manager-subdomain-split/) — Plan 14-04 will append:
+#   - cert-manager/cluster-issuer-prod.yaml
+#   - cert-manager/cluster-issuer-staging.yaml
+#   - cert-manager/wildcard-jt-lab-net.yaml
+#   - traefik/tlsstore-default.yaml
+#   - traefik/serverstransport-lan-self-signed.yaml
+#
+# Kept as `explicit-list` (not `directory-scan`) so reviewers see exactly what Flux applies.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources: []

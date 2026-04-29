@@ -23,5 +23,6 @@ resources:
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml
   - cert-manager/wildcard-jt-lab-net.yaml
+  - cert-manager/wildcard-jt-lab-net-staging.yaml
   - traefik/tlsstore-default.yaml
   - traefik/serverstransport-lan-self-signed.yaml

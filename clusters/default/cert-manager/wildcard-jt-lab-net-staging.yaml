@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-jt-lab-net-staging
+  namespace: kube-system
+spec:
+  secretName: wildcard-jt-lab-net-staging
+  duration: 2160h
+  renewBefore: 360h
+  privateKey:
+    rotationPolicy: Always
+  dnsNames:
+  - "*.__BASE-DOMAIN__"
+  - "__BASE-DOMAIN__"
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer

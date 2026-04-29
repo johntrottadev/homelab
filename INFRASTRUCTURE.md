@@ -92,6 +92,25 @@ Enables per-app point-in-time restore through `velero restore create`. Replaces 
 
 All NFS-backed PVs are **static** (hand-written `spec.nfs.path/server`) — they bypass the CSI driver for provisioning, which is why Kasten couldn't snapshot them. Velero's Kopia uploader works on any PVC type so it sidesteps this entirely.
 
+### Flux-managed app workloads (per-app subdirs under `clusters/default/`)
+
+| App                  | Hostname                | NAS path                            | Notes |
+|----------------------|-------------------------|-------------------------------------|-------|
+| uptime-kuma          | uptime.__BASE-DOMAIN__       | `/volume1/kub/homelab/uptime-kuma`  | RWO 2Gi, runs as 1000:1000 |
+| netalert (NetAlertX) | netalert.__BASE-DOMAIN__     | `/volume1/kub/homelab/netalert`     | RWO 5Gi, runs as 20211:20211, **hostNetwork: true** pinned to k3s-1 (LAN ARP/mDNS discovery) |
+
+Other apps (`freshrss`, `grafana`, `n8n`, `paperless`, ...) are
+IngressRoute-only under flux today; their workloads are still
+`kubectl apply`-managed and are tracked in the broader homelab GitOps
+migration scope. See bastion backlog `999.2 — homelab GitOps migration`.
+
+#### Retired apps
+
+- **Fing** (260429-k88) — replaced by NetAlertX 2026-04-29 after
+  CrashLoopBackOff on the agent's account-linking flow. NAS path
+  `/volume1/kub/homelab/fing` retains data; operator wipes via DSM
+  if/when desired.
+
 ## Known Constraints
 
 - **k3s-6 lacks `nfs-common`** — pods using NFS PVs fail to mount here. Pin NFS-dependent workloads to `k3s-2` via `nodeSelector: { kubernetes.io/hostname: k3s-2 }` (pattern used by jellyfin and paperless).

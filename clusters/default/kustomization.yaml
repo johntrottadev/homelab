@@ -70,7 +70,6 @@ resources:
   - loki/namespace.yaml
   - loki/helmrepository-grafana.yaml
   - loki/loki-pv.yaml
-  - loki/loki-pvc.yaml
   - loki/loki-helmrelease.yaml
   - loki/promtail-helmrelease.yaml
   - loki/grafana-datasource-configmap.yaml

@@ -62,7 +62,18 @@ spec:
       replicas: 1
       persistence:
         enabled: true
-        existingClaim: loki-data  # static-bound PVC from scaffold commit
+        # Chart 7.0.0 has no `existingClaim` knob for singleBinary — the
+        # volumeClaimTemplate `storage` auto-creates PVC `storage-loki-0`.
+        # Bind that PVC to our static NFS-backed PV via storageClass + size +
+        # label selector match. The PV (loki-pv.yaml) carries
+        # `loki-storage: "true"`.
+        storageClass: storage
+        size: 50Gi
+        accessModes:
+          - ReadWriteOnce
+        selector:
+          matchLabels:
+            loki-storage: "true"
       resources:
         requests:
           cpu: 200m
@@ -115,7 +126,9 @@ spec:
         enabled: false
         grafanaAgent:
           installOperator: false
-      lokiCanary:
-        enabled: false
+    # `lokiCanary` is a TOP-LEVEL chart key in 7.0.0, not under monitoring.
+    # Disabling here avoids the 5-pod canary DaemonSet (one per node).
+    lokiCanary:
+      enabled: false
     test:
       enabled: false

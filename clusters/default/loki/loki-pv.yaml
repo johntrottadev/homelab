@@ -1,9 +1,17 @@
 # Static NFS PV. NAS path /volume1/kub/homelab/loki pre-created by operator
 # (chown 10001:10001 — Loki upstream chart default UID; mode 0755).
+#
+# Label `loki-storage: "true"` is matched by the Loki HelmRelease's
+# singleBinary.persistence.selector.matchLabels — chart 7.0.0 auto-creates a
+# StatefulSet volumeClaimTemplate "storage" → PVC `storage-loki-0`, which
+# binds to this PV via the selector match. Chart does NOT support
+# `existingClaim` for singleBinary mode in 7.0.0.
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: loki-pv
+  labels:
+    loki-storage: "true"
 spec:
   capacity:
     storage: 50Gi

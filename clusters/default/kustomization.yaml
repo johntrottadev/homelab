@@ -35,6 +35,13 @@ resources:
   # Wave 2 — cluster-app IngressRoutes (Pattern 4 — one file per cluster-routed host
   # in 14-NPM-INVENTORY.md; IngressRoute lives in the app's namespace, no Service)
   # Workload + routing — uptime-kuma precedent (homelab GitOps migration scope).
+  - netalert/namespace.yaml
+  - netalert/pv.yaml
+  - netalert/pvc.yaml
+  - netalert/deployment.yaml
+  - netalert/service.yaml
+  - netalert/endpoints.yaml
+  - netalert/ingressroute.yaml
   - freshrss.yaml
   - grafana.yaml
   - guac.yaml

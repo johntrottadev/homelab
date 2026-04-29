@@ -1,0 +1,19 @@
+# Headless Service — pod is on hostNetwork, has no cluster pod-IP.
+# The manual EndpointSlice in endpoints.yaml maps the Service name
+# to the host IP __K3S-API-IP__:20211 (k3s-1).
+apiVersion: v1
+kind: Service
+metadata:
+  name: netalert
+  namespace: netalert
+  labels:
+    app: netalert
+spec:
+  type: ClusterIP
+  clusterIP: None              # headless — required for hostNetwork target
+  ports:
+    - name: http
+      port: 20211
+      targetPort: 20211
+      protocol: TCP
+  # NO selector — Endpoints are managed manually by endpoints.yaml.

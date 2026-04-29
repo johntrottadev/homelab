@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: netalert-data
+  namespace: netalert
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: storage
+  # Static binding — guarantees this PVC binds to netalert-data-pv.
+  volumeName: netalert-data-pv

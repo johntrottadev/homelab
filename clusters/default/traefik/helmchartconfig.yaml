@@ -36,11 +36,19 @@ spec:
             app.kubernetes.io/name: traefik
             app.kubernetes.io/instance: traefik-kube-system
     # Phase 14 D-04 — global HTTP→HTTPS 301 redirect on web entrypoint.
-    # Modern syntax (Traefik chart >=v34); current chart is 39.x per 14-FLUX-PROBE.md.
-    # Replaces per-route redirect Middlewares — every IngressRoute on `web`
-    # entrypoint now redirects to `websecure` automatically.
+    # Chart 34+ deprecated `ports.web.redirectTo` in favor of
+    # `ports.web.http.redirections.entryPoint` (per upstream Traefik syntax).
+    # Current chart is 39.x — only the `http.redirections.entryPoint` form is
+    # honored by the chart's _podtemplate.tpl. The chart resolves `to: websecure`
+    # to `:443` (exposedPort of the websecure entrypoint).
+    # Replaces per-route redirect Middlewares — every HTTP request on `web`
+    # entrypoint now redirects to `websecure` regardless of IngressRoute matches.
     ports:
       web:
-        redirectTo:
-          port: websecure
-          priority: 10
+        http:
+          redirections:
+            entryPoint:
+              to: websecure
+              scheme: https
+              permanent: true
+              priority: 10

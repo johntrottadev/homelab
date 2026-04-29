@@ -17,9 +17,12 @@ spec:
       labels:
         app: uptime-kuma
     spec:
+      # Note: louislam/uptime-kuma:1 runs as root by design — its entrypoint
+      # does its own chown on /app/data, then drops privileges internally.
+      # Setting pod-level runAsUser/runAsGroup breaks the container's startup
+      # ("chown: changing ownership of '/app/data': Operation not permitted").
+      # Keep fsGroup for the NFS mount + rely on init-chmod for one-time NAS prep.
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
         fsGroup: 1000
       initContainers:
         - name: init-chmod

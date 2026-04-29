@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fing-data
+  namespace: fing
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: storage
+  # Static binding: guarantees this PVC binds to fing-data-pv, not some other
+  # storage-class PV that happens to be Available. Same pattern as uptime-kuma.
+  volumeName: fing-data-pv

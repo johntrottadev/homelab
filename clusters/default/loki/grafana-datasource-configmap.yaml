@@ -1,0 +1,24 @@
+# Grafana datasource provisioning — picked up by the grafana-sc-datasources
+# sidecar in monitoring/grafana-0 (LABEL=grafana_datasource, value="1",
+# NAMESPACE unset → watches monitoring ns only). Sidecar live-reloads via
+# Grafana provisioning API on change — no Grafana pod restart required.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-datasource
+  namespace: monitoring  # MUST be monitoring — sidecar watches its own ns
+  labels:
+    grafana_datasource: "1"
+data:
+  loki-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.loki.svc.cluster.local:3100
+        isDefault: false
+        editable: false
+        jsonData:
+          timeout: 60
+          maxLines: 1000

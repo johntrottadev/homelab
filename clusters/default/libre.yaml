@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: libre
+  namespace: libre
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`libre.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: libreoffice
+          port: 80

@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: freshrss
+  namespace: rss
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`freshrss.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: freshrss
+          port: 80

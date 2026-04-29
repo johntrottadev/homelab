@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: guac
+  namespace: homelab
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`guac.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: guacamole-service
+          port: 8080

@@ -28,6 +28,10 @@ resources:
   - traefik/tlsstore-default.yaml
   - traefik/serverstransport-lan-self-signed.yaml
 
+  # Wave 4 — Traefik k3s HelmChartConfig (Phase 13 values + Phase 14 D-04 redirect).
+  # Brings the previously kubectl-applied HelmChartConfig under Flux management.
+  - traefik/helmchartconfig.yaml
+
   # Wave 2 — cluster-app IngressRoutes (Pattern 4 — one file per cluster-routed host
   # in 14-NPM-INVENTORY.md; IngressRoute lives in the app's namespace, no Service)
   - fing.yaml

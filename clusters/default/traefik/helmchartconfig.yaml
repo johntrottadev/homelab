@@ -1,0 +1,46 @@
+# Traefik k3s HelmChartConfig — patches the built-in `kube-system/traefik` HelmChart.
+#
+# Single canonical resource (k3s helm-controller looks up HelmChartConfig by name+namespace
+# matching the HelmChart, so one HelmChartConfig per chart — must not split into multiple files).
+#
+# History of valuesContent fields:
+#   - service.annotations.kube-vip.io/loadbalancerIPs (Phase 13 — kube-vip LB VIP)
+#   - deployment.replicas: 3 (Phase 13)
+#   - topologySpreadConstraints (Phase 13 — replica spread across nodes)
+#   - ports.web.redirectTo (Phase 14 Wave 4 D-04 — global HTTP→HTTPS 301 redirect)
+#
+# Brought under Flux GitOps management as part of Phase 14 Plan 07 Task 1
+# (was previously `kubectl apply`-managed by Phase 13).
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  failurePolicy: reinstall
+  valuesContent: |-
+    service:
+      annotations:
+        kube-vip.io/loadbalancerIPs: "__K3S-VIP__"
+    deployment:
+      replicas: 3
+    # Spread replicas across nodes — single-node loss takes at most 1 replica.
+    # ScheduleAnyway (vs DoNotSchedule) keeps things scheduling on a 4-node
+    # post-failure cluster instead of going Pending.
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: traefik
+            app.kubernetes.io/instance: traefik-kube-system
+    # Phase 14 D-04 — global HTTP→HTTPS 301 redirect on web entrypoint.
+    # Modern syntax (Traefik chart >=v34); current chart is 39.x per 14-FLUX-PROBE.md.
+    # Replaces per-route redirect Middlewares — every IngressRoute on `web`
+    # entrypoint now redirects to `websecure` automatically.
+    ports:
+      web:
+        redirectTo:
+          port: websecure
+          priority: 10

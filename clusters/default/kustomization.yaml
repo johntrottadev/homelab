@@ -90,3 +90,4 @@ resources:
   - sw10.yaml
   - synology.yaml         # consolidated synology.__BASE-DOMAIN__ + __NAS-HOST__
   - torrents.yaml
+  - wazuh.yaml            # docker-1:5601 (HTTPS upstream, lan-self-signed) — first docker-1-backed external-IP HTTPS bundle

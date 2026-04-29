@@ -15,6 +15,22 @@ table.
 |----------------------|-------------------------|---------------------------------|
 | uptime-kuma          | uptime.__BASE-DOMAIN__       | `clusters/default/uptime-kuma/` |
 | netalert (NetAlertX) | netalert.__BASE-DOMAIN__     | `clusters/default/netalert/`    |
+| loki                 | (internal-only)         | `clusters/default/loki/`        |
+| promtail             | (DaemonSet)             | `clusters/default/loki/`        |
+
+### Helm-shipped apps
+
+Apps that ship via Helm (e.g., Loki) live under their own per-app subdir
+and reference a shared `HelmRepository` in `flux-system` (see the `grafana`
+HelmRepository in `clusters/default/loki/helmrepository-grafana.yaml`).
+Future Grafana-stack apps reuse the same HelmRepository instead of
+declaring their own.
+
+`loki` has **no IngressRoute** and **no LoadBalancer Service** — it is
+internal-only. Grafana (in the `monitoring` ns) queries Loki via the
+in-cluster ClusterIP at `loki.loki.svc.cluster.local:3100`. Do not add an
+IngressRoute for Loki without explicitly re-evaluating the security posture
+(logs may contain secrets in error stacks).
 
 ## Repository conventions
 

@@ -92,12 +92,24 @@ Enables per-app point-in-time restore through `velero restore create`. Replaces 
 
 All NFS-backed PVs are **static** (hand-written `spec.nfs.path/server`) — they bypass the CSI driver for provisioning, which is why Kasten couldn't snapshot them. Velero's Kopia uploader works on any PVC type so it sidesteps this entirely.
 
+### Flux Helm machinery
+
+As of 2026-04-29, flux-source has its first `HelmRepository` and `HelmRelease`
+resources (Loki + Promtail). Future Helm-shipped apps can reuse the existing
+HelmRepository in `flux-system` ns instead of declaring their own:
+
+| Repository | URL | Used by |
+|---|---|---|
+| `grafana` | https://grafana.github.io/helm-charts | `loki`, `promtail` (and future Grafana-stack apps: Alloy, Tempo, Mimir, ...) |
+
 ### Flux-managed app workloads (per-app subdirs under `clusters/default/`)
 
 | App                  | Hostname                | NAS path                            | Notes |
 |----------------------|-------------------------|-------------------------------------|-------|
 | uptime-kuma          | uptime.__BASE-DOMAIN__       | `/volume1/kub/homelab/uptime-kuma`  | RWO 2Gi, runs as 1000:1000 |
 | netalert (NetAlertX) | netalert.__BASE-DOMAIN__     | `/volume1/kub/homelab/netalert`     | RWO 5Gi, runs as 20211:20211, **hostNetwork: true** pinned to k3s-1 (LAN ARP/mDNS discovery) |
+| loki                 | (internal-only)         | `/volume1/kub/homelab/loki`         | RWO 50Gi, runs as 10001:10001, monolithic mode (chart `loki` 7.0.0 / app 3.6.7), 14d retention. **NO IngressRoute / NO LoadBalancer** — Grafana queries via in-cluster ClusterIP `loki.loki.svc.cluster.local:3100`. First flux HelmRelease in this repo. Pinned to k3s-1 via `nodeSelector` (k3s-7 currently fails to mount the loki NFS path). |
+| promtail             | (DaemonSet, no host)    | (no PVC)                            | Chart `promtail` 6.17.1 / app 3.5.1. Runs on every k3s node incl. control-plane via standard CP tolerations. Ships pod logs + journald → Loki at `loki.loki.svc.cluster.local:3100`. ServiceMonitor labelled `release=prometheus`. |
 
 Other apps (`freshrss`, `grafana`, `n8n`, `paperless`, ...) are
 IngressRoute-only under flux today; their workloads are still

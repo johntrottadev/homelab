@@ -46,7 +46,17 @@ resources:
   - n8n.yaml
   - paperless.yaml
   - prometheus.yaml
-  - uptime.yaml
+  # Workload + routing — preview of v1.2 GitOps migration scope.
+  # Unlike the IngressRoute-only files above, this subdirectory holds the full
+  # uptime-kuma workload (Namespace/PV/PVC/Deployment/Service/IngressRoute).
+  # Don't propagate this pattern to other apps yet — the migration phase will
+  # sequence per-app moves explicitly.
+  - uptime-kuma/namespace.yaml
+  - uptime-kuma/pv.yaml
+  - uptime-kuma/pvc.yaml
+  - uptime-kuma/deployment.yaml
+  - uptime-kuma/service.yaml
+  - uptime-kuma/ingressroute.yaml
   - velero-ui.yaml
   - vs.yaml
 

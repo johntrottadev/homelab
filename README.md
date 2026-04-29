@@ -17,6 +17,7 @@ table.
 | netalert (NetAlertX) | netalert.__BASE-DOMAIN__     | `clusters/default/netalert/`    |
 | loki                 | (internal-only)         | `clusters/default/loki/`        |
 | promtail             | (DaemonSet)             | `clusters/default/loki/`        |
+| wazuh (route only)   | wazuh.__BASE-DOMAIN__        | `clusters/default/wazuh.yaml` (route only — workload runs as docker compose on docker-1; vendored copy at `bastion/services/wazuh/`) |
 
 ### Helm-shipped apps
 

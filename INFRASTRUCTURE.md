@@ -116,6 +116,36 @@ IngressRoute-only under flux today; their workloads are still
 `kubectl apply`-managed and are tracked in the broader homelab GitOps
 migration scope. See bastion backlog `999.2 — homelab GitOps migration`.
 
+### External-IP-backend bundles (Service + EndpointSlice + IngressRoute)
+
+These routes expose hosts that run **outside** the k3s cluster. Each
+bundle is one YAML file at `clusters/default/<host>.yaml` containing a
+headless Service, a static EndpointSlice pointing to the external IP, and
+an IngressRoute on the `websecure` entrypoint. ProxMox hosts (`__PVE-NODE-1__-3`,
+`backup-host`), the Synology DSM (`synology` / `storage`), DNS hosts (`dns`, `dns2`),
+the network switches (`sw`, `sw10`), and the Pi-hole admin (`pa`) all
+follow this pattern with HTTPS upstream and `serversTransport: lan-self-signed`
+to skip cert verification on internal self-signed certs.
+
+| Hostname                | EndpointSlice -> | Backend                        | Notes |
+|-------------------------|-------------------|--------------------------------|-------|
+| __PVE-NODE-1__.__BASE-DOMAIN__         | __PVE1-IP__:8006   | ProxMox VE 1                   | HTTPS + lan-self-signed |
+| __PVE-NODE-2__.__BASE-DOMAIN__         | __PVE2-IP__:8006   | ProxMox VE 2                   | HTTPS + lan-self-signed |
+| __PVE-NODE-3__.__BASE-DOMAIN__         | __PVE3-IP__:8006   | ProxMox VE 3                   | HTTPS + lan-self-signed |
+| backup-host.__BASE-DOMAIN__          | __PVE-IP__:8007   | ProxMox Backup Server          | HTTPS + lan-self-signed |
+| synology.__BASE-DOMAIN__ + __NAS-HOST__ | __NAS-IP__:5001 | Synology DSM        | HTTPS + lan-self-signed (consolidated) |
+| dns.__BASE-DOMAIN__ / dns2.__BASE-DOMAIN__ | __LAN-IP__/31:443 | Pi-hole 1 / 2 admin     | HTTPS + lan-self-signed |
+| sw.__BASE-DOMAIN__ / sw10.__BASE-DOMAIN__  | (switch IPs)        | Network switch admin    | HTTPS + lan-self-signed |
+| **wazuh.__BASE-DOMAIN__**    | **__LAN-IP__:5601** | **docker-1 docker compose (Wazuh)** | **First docker-1-backed external-IP HTTPS bundle (260429-qyu).** Single-node Wazuh stack from upstream `wazuh/wazuh-docker@v4.14.5`. Vendored compose copy at `bastion/services/wazuh/`. |
+| torrents.__BASE-DOMAIN__     | __LAN-IP__:8080   | docker-1 qbittorrent              | Plain HTTP upstream |
+
+Other docker-1-backed routes (`guac`, `hoarder`, `libre`, `n8n`,
+`paperless`, `pa`) all use plain HTTP upstream because the underlying
+service binds HTTP only — `wazuh` is the first docker-1-backed route that
+needs HTTPS upstream (the dashboard binds 5601 with a self-signed cert).
+Pattern is reusable for any future docker-1 service whose upstream presents
+HTTPS with a self-signed cert.
+
 #### Retired apps
 
 - **Fing** (260429-k88) — replaced by NetAlertX 2026-04-29 after

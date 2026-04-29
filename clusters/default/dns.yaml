@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-dns
+  namespace: kube-system
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-dns-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-dns
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+- name: http
+  protocol: TCP
+  port: 80
+endpoints:
+- addresses:
+  - __PIHOLE1-IP__
+  conditions:
+    ready: true
+    serving: true
+    terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: dns-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`dns.__BASE-DOMAIN__`)
+    kind: Rule
+    services:
+    - name: ext-dns
+      port: 80
+      scheme: http

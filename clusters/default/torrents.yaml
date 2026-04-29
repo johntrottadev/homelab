@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-torrents
+  namespace: kube-system
+spec:
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8085
+    targetPort: 8085
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-torrents-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-torrents
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+- name: http
+  protocol: TCP
+  port: 8085
+endpoints:
+- addresses:
+  - __LAN-IP__
+  conditions:
+    ready: true
+    serving: true
+    terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: torrents-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`torrents.__BASE-DOMAIN__`)
+    kind: Rule
+    services:
+    - name: ext-torrents
+      port: 8085
+      scheme: http

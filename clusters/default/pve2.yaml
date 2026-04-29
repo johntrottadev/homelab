@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-__PVE-NODE-2__
+  namespace: kube-system
+spec:
+  ports:
+  - name: https
+    protocol: TCP
+    port: 8006
+    targetPort: 8006
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-__PVE-NODE-2__-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-__PVE-NODE-2__
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+- name: https
+  protocol: TCP
+  port: 8006
+endpoints:
+- addresses:
+  - __PVE2-IP__
+  conditions:
+    ready: true
+    serving: true
+    terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: __PVE-NODE-2__-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`__PVE-NODE-2__.__BASE-DOMAIN__`)
+    kind: Rule
+    services:
+    - name: ext-__PVE-NODE-2__
+      port: 8006
+      scheme: https
+      serversTransport: lan-self-signed

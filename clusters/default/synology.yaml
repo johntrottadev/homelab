@@ -1,0 +1,51 @@
+# Consolidated route for inventory ids 4 (synology.__BASE-DOMAIN__) + 36 (__NAS-HOST__) —
+# both forward to the Synology DSM at __NAS-IP__:5001 per 14-NPM-INVENTORY.md.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-synology
+  namespace: kube-system
+spec:
+  ports:
+  - name: https
+    protocol: TCP
+    port: 5001
+    targetPort: 5001
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-synology-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-synology
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+- name: https
+  protocol: TCP
+  port: 5001
+endpoints:
+- addresses:
+  - __NAS-IP__
+  conditions:
+    ready: true
+    serving: true
+    terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: synology-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`synology.__BASE-DOMAIN__`) || Host(`__NAS-HOST__`)
+    kind: Rule
+    services:
+    - name: ext-synology
+      port: 5001
+      scheme: https
+      serversTransport: lan-self-signed

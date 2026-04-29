@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-pa
+  namespace: kube-system
+spec:
+  ports:
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-pa-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-pa
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+- name: https
+  protocol: TCP
+  port: 443
+endpoints:
+- addresses:
+  - __LAN-IP__
+  conditions:
+    ready: true
+    serving: true
+    terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pa-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - match: Host(`pa.__BASE-DOMAIN__`)
+    kind: Rule
+    services:
+    - name: ext-pa
+      port: 443
+      scheme: https
+      serversTransport: lan-self-signed

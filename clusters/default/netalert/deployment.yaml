@@ -76,6 +76,7 @@ spec:
               port: 20211
             initialDelaySeconds: 30
             periodSeconds: 30
+            timeoutSeconds: 5
             failureThreshold: 5
           readinessProbe:
             httpGet:
@@ -83,6 +84,7 @@ spec:
               port: 20211
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
       volumes:
         - name: data

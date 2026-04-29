@@ -20,9 +20,43 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # Wave 1 — cert-manager + Traefik shared
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml
   - cert-manager/wildcard-jt-lab-net.yaml
   - cert-manager/wildcard-jt-lab-net-staging.yaml
   - traefik/tlsstore-default.yaml
   - traefik/serverstransport-lan-self-signed.yaml
+
+  # Wave 2 — cluster-app IngressRoutes (Pattern 4 — one file per cluster-routed host
+  # in 14-NPM-INVENTORY.md; IngressRoute lives in the app's namespace, no Service)
+  - fing.yaml
+  - freshrss.yaml
+  - grafana.yaml
+  - guac.yaml
+  - hoarder.yaml
+  - homarr.yaml
+  - ittools.yaml
+  - jellyfin.yaml
+  - libre.yaml
+  - n8n.yaml
+  - paperless.yaml
+  - prometheus.yaml
+  - uptime.yaml
+  - velero-ui.yaml
+  - vs.yaml
+
+  # Wave 2 — external-IP-backend bundles (Pattern 5 — Service + EndpointSlice +
+  # IngressRoute, all in kube-system; ServersTransport lan-self-signed for HTTPS)
+  - dns.yaml
+  - dns2.yaml
+  - pa.yaml
+  - backup-host.yaml
+  - __PVE-NODE-1__.yaml
+  - __PVE-MGMT-1__.yaml
+  - __PVE-NODE-2__.yaml
+  - __PVE-NODE-3__.yaml
+  - sw.yaml
+  - sw10.yaml
+  - synology.yaml         # consolidated synology.__BASE-DOMAIN__ + __NAS-HOST__
+  - torrents.yaml

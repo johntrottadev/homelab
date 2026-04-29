@@ -51,4 +51,7 @@ spec:
               to: websecure
               scheme: https
               permanent: true
-              priority: 10
+              # priority OMITTED — Traefik defaults to MaxInt-1 so redirect
+              # always wins over IngressRoute routes (npm-fallback-http has
+              # priority: 1; explicit values like 10 would unintentionally
+              # demote the redirect below normal route priorities).

@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: vscode
+  labels:
+    app: code-server
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      # code-server runs as root and needs privileged + extra caps so users
+      # can install distro packages, run sudo, attach docker etc. inside the
+      # editor environment. T-999.2-04 (drop privs) is intentionally NOT
+      # applied here — that would defeat the IDE's purpose.
+      securityContext:
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 1000
+        supplementalGroups:
+          - 1000
+      containers:
+        - name: code-server
+          image: lscr.io/linuxserver/code-server:4.117.0-ls334
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+            capabilities:
+              add:
+                - CHOWN
+                - SETUID
+                - SETGID
+          env:
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vscode-secret
+                  key: password
+            - name: SUDO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vscode-secret
+                  key: password
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+          ports:
+            - containerPort: 8443
+              protocol: TCP
+          volumeMounts:
+            - name: code-server-storage
+              mountPath: /config
+      volumes:
+        - name: code-server-storage
+          persistentVolumeClaim:
+            claimName: code-server-pvc

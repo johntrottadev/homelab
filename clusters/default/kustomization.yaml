@@ -118,6 +118,15 @@ resources:
   - freshrss/deployment.yaml
   - freshrss/service.yaml
   - freshrss/ingressroute.yaml
+
+  # Phase 999.2 plan-02 — vscode (deploy "code-server", IR "vs", host vs.__BASE-DOMAIN__,
+  # supersedes top-level vs.yaml). Privileged container intentional — IDE.
+  - vscode/namespace.yaml
+  - vscode/pv.yaml
+  - vscode/pvc.yaml
+  - vscode/deployment.yaml
+  - vscode/service.yaml
+  - vscode/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.
@@ -128,7 +137,7 @@ resources:
   - loki/promtail-helmrelease.yaml
   - loki/grafana-datasource-configmap.yaml
   - velero-ui.yaml
-  - vs.yaml
+  # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 
   # Wave 2 — external-IP-backend bundles (Pattern 5 — Service + EndpointSlice +
   # IngressRoute, all in kube-system; ServersTransport lan-self-signed for HTTPS)

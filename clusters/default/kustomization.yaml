@@ -187,6 +187,22 @@ resources:
   - guacamole/guacamole-db/pvc.yaml
   - guacamole/guacamole-db/deployment.yaml
   - guacamole/guacamole-db/service.yaml
+
+  # Phase 999.2 spinoff — monitoring exporters (4 deployments + services in
+  # the existing monitoring ns). ConfigMaps (blackbox-exporter-config,
+  # snmp-exporter-config), Secrets (backup-host-exporter-secrets, pihole-exporter-secrets),
+  # and ServiceMonitors (backup-host-exporter, pihole-exporter — release: prometheus
+  # label preserved) intentionally stay kubectl-managed: cm content is config
+  # detail, secrets are creds, ServiceMonitors are owned by kube-prometheus-stack
+  # adjacent tooling.
+  - monitoring/blackbox-exporter/deployment.yaml
+  - monitoring/blackbox-exporter/service.yaml
+  - monitoring/backup-host-exporter/deployment.yaml
+  - monitoring/backup-host-exporter/service.yaml
+  - monitoring/pihole-exporter/deployment.yaml
+  - monitoring/pihole-exporter/service.yaml
+  - monitoring/snmp-exporter/deployment.yaml
+  - monitoring/snmp-exporter/service.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

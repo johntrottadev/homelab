@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snmp-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: snmp-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: snmp-exporter
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        config-revision: '1'
+      labels:
+        app.kubernetes.io/name: snmp-exporter
+    spec:
+      containers:
+      - args:
+        - --config.file=/etc/snmp_exporter/snmp.yml
+        - --web.listen-address=:9116
+        image: quay.io/prometheus/snmp-exporter:v0.27.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: snmp-exporter
+        ports:
+        - containerPort: 9116
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 25m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /etc/snmp_exporter
+          name: rendered
+          readOnly: true
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - "set -e\napk add --no-cache --quiet gettext >/dev/null\nenvsubst '$$SYNO_SNMP_USER\
+          \ $$SYNO_SNMP_AUTH_PASS $$SYNO_SNMP_PRIV_PASS $$PA_SNMP_USER $$PA_SNMP_AUTH_PASS\
+          \ $$PA_SNMP_PRIV_PASS' \\\n  < /tmpl/snmp.yml > /rendered/snmp.yml\necho\
+          \ \"rendered $(wc -l < /rendered/snmp.yml) lines\"\n"
+        env:
+        - name: SYNO_SNMP_USER
+          valueFrom:
+            secretKeyRef:
+              key: synology-username
+              name: snmp-exporter-credentials
+        - name: SYNO_SNMP_AUTH_PASS
+          valueFrom:
+            secretKeyRef:
+              key: synology-auth-pass
+              name: snmp-exporter-credentials
+        - name: SYNO_SNMP_PRIV_PASS
+          valueFrom:
+            secretKeyRef:
+              key: synology-priv-pass
+              name: snmp-exporter-credentials
+        - name: PA_SNMP_USER
+          valueFrom:
+            secretKeyRef:
+              key: paloalto-username
+              name: snmp-exporter-credentials
+        - name: PA_SNMP_AUTH_PASS
+          valueFrom:
+            secretKeyRef:
+              key: paloalto-auth-pass
+              name: snmp-exporter-credentials
+        - name: PA_SNMP_PRIV_PASS
+          valueFrom:
+            secretKeyRef:
+              key: paloalto-priv-pass
+              name: snmp-exporter-credentials
+        image: alpine:3.21
+        imagePullPolicy: IfNotPresent
+        name: render-config
+        volumeMounts:
+        - mountPath: /tmpl
+          name: tmpl
+          readOnly: true
+        - mountPath: /rendered
+          name: rendered
+      securityContext: {}
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: snmp-exporter-config
+        name: tmpl
+      - emptyDir: {}
+        name: rendered
+

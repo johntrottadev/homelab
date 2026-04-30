@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: pihole-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pihole-exporter
+    spec:
+      containers:
+      - env:
+        - name: PIHOLE_HOSTNAME
+          value: __PIHOLE1-IP__,__PIHOLE2-IP__
+        - name: PIHOLE_PORT
+          value: 80,80
+        - name: PIHOLE_PROTOCOL
+          value: http,http
+        - name: PIHOLE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: passwords
+              name: pihole-exporter-credentials
+        - name: PORT
+          value: '9617'
+        - name: INTERVAL
+          value: 30s
+        image: ekofr/pihole-exporter:v1.2.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: metrics
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: pihole-exporter
+        ports:
+        - containerPort: 9617
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: metrics
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: 96Mi
+          requests:
+            cpu: 10m
+            memory: 32Mi
+      securityContext: {}
+

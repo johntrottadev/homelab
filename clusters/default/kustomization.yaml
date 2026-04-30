@@ -51,7 +51,7 @@ resources:
   # jellyfin.yaml superseded by jellyfin/ subdir below (Phase 999.2 plan-02)
   # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
   # n8n.yaml superseded by n8n/ subdir below (Phase 999.2 plan-02)
-  - paperless.yaml
+  # paperless.yaml superseded by paperless/ subdir below (Phase 999.2 plan-03)
   - prometheus.yaml
   # Workload + routing — preview of v1.2 GitOps migration scope.
   # Unlike the IngressRoute-only files above, this subdirectory holds the full
@@ -154,6 +154,24 @@ resources:
   - hoarder/meilisearch/pvc.yaml
   - hoarder/meilisearch/deployment.yaml
   - hoarder/meilisearch/service.yaml
+
+  # Phase 999.2 plan-03 — paperless (per-component subdirs; supersedes paperless.yaml).
+  # 3 components: paperless-ngx (web, port 8000), postgres (port 5432, fsGroup 999),
+  # redis (port 6379, in-memory cache, no PV). Admin/DB credentials are inline env
+  # values in the running spec (pre-existing security debt; out of scope here).
+  - paperless/namespace.yaml
+  - paperless/ingressroute.yaml
+  - paperless/paperless/pv.yaml
+  - paperless/paperless/pv-media.yaml
+  - paperless/paperless/pvc.yaml
+  - paperless/paperless/deployment.yaml
+  - paperless/paperless/service.yaml
+  - paperless/postgres/pv.yaml
+  - paperless/postgres/pvc.yaml
+  - paperless/postgres/deployment.yaml
+  - paperless/postgres/service.yaml
+  - paperless/redis/deployment.yaml
+  - paperless/redis/service.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

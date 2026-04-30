@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pgsql-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage-db
+  claimRef:
+    namespace: paperless
+    name: pgsql-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kubdbs/homelab/paperless
+    readOnly: false

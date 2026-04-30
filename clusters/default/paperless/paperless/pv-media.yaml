@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-media-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  claimRef:
+    namespace: paperless
+    name: paperless-media-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/homelab/paperless/media
+    readOnly: false

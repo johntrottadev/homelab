@@ -50,7 +50,7 @@ resources:
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   - jellyfin.yaml
   # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
-  - n8n.yaml
+  # n8n.yaml superseded by n8n/ subdir below (Phase 999.2 plan-02)
   - paperless.yaml
   - prometheus.yaml
   # Workload + routing — preview of v1.2 GitOps migration scope.
@@ -92,6 +92,15 @@ resources:
   - libre/deployment.yaml
   - libre/service.yaml
   - libre/ingressroute.yaml
+
+  # Phase 999.2 plan-02 — n8n (per-app subdir; supersedes top-level n8n.yaml).
+  # PV mirrors existing __NAS-HOST__ hostname (immutable once Bound).
+  - n8n/namespace.yaml
+  - n8n/pv.yaml
+  - n8n/pvc.yaml
+  - n8n/deployment.yaml
+  - n8n/service.yaml
+  - n8n/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

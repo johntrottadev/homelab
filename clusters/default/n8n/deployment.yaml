@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: n8n
+  labels:
+    app: n8n
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      # Pod-level fsGroup for PV ownership; the initContainer below also
+      # chowns the dir before the main container drops to UID 1000.
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        # Required: ensures /home/node/.n8n is owned 1000:1000 before the
+        # main container starts. Without this, n8n cannot write its config.
+        - name: init-chmod
+          image: busybox
+          imagePullPolicy: Always
+          command:
+            - sh
+            - -c
+            - chown -R 1000:1000 /home/node/.n8n
+          volumeMounts:
+            - name: n8n-data
+              mountPath: /home/node/.n8n
+      containers:
+        - name: n8n
+          # T-999.2-07: image already version-pinned.
+          image: docker.n8n.io/n8nio/n8n:1.123.34
+          imagePullPolicy: Always
+          # T-999.2-04: container-level non-root via runAsUser/runAsGroup.
+          # Safe here because the initContainer (running as root) chowns
+          # the data dir before this container starts.
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+          env:
+            - name: N8N_HOST
+              value: n8n.__BASE-DOMAIN__
+            - name: N8N_PROTOCOL
+              value: https
+            - name: NODE_ENV
+              value: production
+            - name: N8N_PORT
+              value: "5678"
+          ports:
+            - containerPort: 5678
+              protocol: TCP
+          volumeMounts:
+            - name: n8n-data
+              mountPath: /home/node/.n8n
+      volumes:
+        - name: n8n-data
+          persistentVolumeClaim:
+            claimName: n8n-pvc

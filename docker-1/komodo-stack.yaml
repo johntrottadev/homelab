@@ -1,0 +1,91 @@
+# Komodo Core + MongoDB + Periphery bootstrap. Run once on docker-1 (__LAN-IP__).
+# Phase 999.2 Wave 5 — docker-1 sub-deliverable.
+#
+# Source: adapted from upstream https://github.com/moghtech/komodo/blob/main/compose/mongo.compose.yaml
+# Pinned by image digest (T-999.2-07: no `:latest`, no semver tag drift).
+#
+# DEVIATION FROM PLAN 999.2-05 sketch:
+#   The plan called for Core+Periphery only with a `127.0.0.1:8120` host
+#   port and a manual `PERIPHERY_PASSKEYS` symmetric secret. The actual
+#   upstream install pattern uses:
+#     1. MongoDB as the durable backing store (Komodo has no built-in DB)
+#     2. Auto-generated keypair in a shared `keys` volume (asymmetric auth,
+#        no shared secret to rotate)
+#     3. NO host port for Periphery — it's only reachable on the docker
+#        bridge network from Core. Strictly stronger than localhost-bind.
+#
+# Files committed to git: this one (no secrets).
+# Files NOT committed (operator authors at install time):
+#   /opt/komodo/.env  — see "Operator setup" in docker-1/README.md
+#
+# DO NOT install Periphery on the k3s nodes (Pitfall 8 — cluster
+# destabilization risk; Periphery mounts /var/run/docker.sock + /proc).
+# Periphery on docker-1 manages docker-1's docker daemon; that's the design.
+
+services:
+  mongo:
+    image: mongo@sha256:43fddee7e532a920f3dfdee9e8f4834398c155c26bcb92d790cc1cd3c630fc40
+    # ^ resolves to mongo:7 captured 2026-04-30 on docker-1
+    labels:
+      komodo.skip: ""   # Prevent Komodo's "StopAllContainers" from killing the DB it depends on
+    command: --quiet --wiredTigerCacheSizeGB 0.25
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME:?set in /opt/komodo/.env}
+      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD:?set in /opt/komodo/.env}
+
+  core:
+    image: ghcr.io/moghtech/komodo-core@sha256:a1cceb4f971443b1e9f2a767788f663d0afb6244ee2135f7fe3fd1036af37ade
+    # ^ resolves to ghcr.io/moghtech/komodo-core:latest captured 2026-04-30 on docker-1
+    labels:
+      komodo.skip: ""
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      # LAN/tailnet only — DO NOT expose publicly. No DNS entry, no PA NAT.
+      - "9120:9120"
+    env_file: /opt/komodo/.env
+    environment:
+      # Override the env_file's default (compose.env ships KOMODO_DATABASE_ADDRESS=mongo:27017
+      # implicitly via the canonical compose). Set explicitly here to make the link unambiguous.
+      KOMODO_DATABASE_ADDRESS: mongo:27017
+    volumes:
+      # Keys volume is shared between Core and Periphery. Core auto-generates
+      # `periphery.pub` here on first start; Periphery auto-generates its
+      # private key here. Asymmetric auth, no shared symmetric secret.
+      - keys:/config/keys
+      # Dated DB backups on the host. https://komo.do/docs/setup/backup
+      - /var/lib/komodo/backups:/backups
+
+  periphery:
+    image: ghcr.io/moghtech/komodo-periphery@sha256:bd79cf960ed054fe8e02384322303e462448679b1149dde48bbef151417255b1
+    # ^ resolves to ghcr.io/moghtech/komodo-periphery:latest captured 2026-04-30 on docker-1
+    labels:
+      komodo.skip: ""
+    init: true
+    restart: unless-stopped
+    depends_on:
+      - core
+    # NO `ports:` mapping — Periphery is only reachable on the docker bridge
+    # from Core (via service name `periphery:8120`). T-999.2-05 mitigated by
+    # absence-of-port rather than localhost-bind.
+    env_file: /opt/komodo/.env
+    volumes:
+      - keys:/config/keys
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/proc
+      # Periphery's root directory MUST match inside and outside the
+      # container so docker compose stack file paths resolve identically
+      # for the daemon (which runs on the host).
+      # https://github.com/moghtech/komodo/discussions/180
+      - /etc/komodo:/etc/komodo
+
+volumes:
+  mongo-data:
+  mongo-config:
+  keys:

@@ -1,0 +1,17 @@
+# docker-1 secrets stay on the NAS (CIFS-mounted to docker-1), NEVER in git.
+# Convention: /mnt/kub/homelab/<svc>/.env (mode 0600 via CIFS auth + DSM share ACL).
+# Compose files in this tree must use ${VAR} interpolation only.
+*.env
+.env
+**/secrets/
+**/passwords.txt
+**/passwords.yml
+**/enroll_vars.yml
+
+# Komodo runtime data (if ever colocated under this tree)
+/var/lib/komodo-core/
+/var/lib/komodo-periphery/
+
+# OS / editor noise
+.DS_Store
+*.swp

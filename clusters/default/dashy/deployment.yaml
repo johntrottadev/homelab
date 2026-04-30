@@ -47,10 +47,14 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 128Mi
+              memory: 256Mi
             limits:
-              cpu: 500m
-              memory: 512Mi
+              # Bumped from 512Mi: dashy 3.3.1's startup vue-cli-service build
+              # OOMs at 512Mi. Old running pod survived because once built it
+              # sits well under, but a restart re-runs the build and trips OOM.
+              # 1Gi is the floor for a clean cold start.
+              cpu: 1000m
+              memory: 1Gi
           livenessProbe:
             httpGet:
               path: /

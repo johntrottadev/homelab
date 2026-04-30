@@ -64,6 +64,16 @@ resources:
   - uptime-kuma/deployment.yaml
   - uptime-kuma/service.yaml
   - uptime-kuma/ingressroute.yaml
+
+  # Phase 999.2 plan-01 — dashy (full per-app subdir; supersedes top-level dashy.yaml,
+  # which never existed; IR moves into the subdir). Manifest mirrors the working
+  # kubectl spec; only intentional diff is image pin :latest → :3.3.1.
+  - dashy/namespace.yaml
+  - dashy/pv.yaml
+  - dashy/pvc.yaml
+  - dashy/deployment.yaml
+  - dashy/service.yaml
+  - dashy/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

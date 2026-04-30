@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashy
+  namespace: dashy
+  labels:
+    app: dashy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: dashy
+  template:
+    metadata:
+      labels:
+        app: dashy
+    spec:
+      # IMPORTANT: dashy's image entrypoint requires root for first-run setup
+      # (build assets into /app/dist, chown). Setting runAsUser/runAsGroup
+      # at pod level breaks the image. Keep fsGroup-only for PVC ownership;
+      # the entrypoint drops privileges to UID/GID env values internally.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: dashy
+          # T-999.2-07: pin tag (3.1.1 from planner does not exist on Docker Hub;
+          # 3.3.1 is the latest 3.x release, matches version family the running
+          # :latest pod was on at cutover time).
+          image: lissy93/dashy:3.3.1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: UID
+              value: "1000"
+            - name: GID
+              value: "1000"
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /app/user-data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 1
+            failureThreshold: 3
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: dashy-pvc

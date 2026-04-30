@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dashy-pvc
+  namespace: dashy
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: storage
+  # Static binding: guarantees this PVC binds to OUR PV, not some other
+  # storage-class PV that happens to be Available.
+  volumeName: dashy-pv

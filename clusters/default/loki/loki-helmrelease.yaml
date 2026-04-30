@@ -2,12 +2,6 @@
 # Internal-only: ClusterIP only, no IngressRoute, no LoadBalancer.
 # Storage: filesystem on the loki-data PVC (NFS-backed via static PV).
 # Auth disabled (single-tenant homelab).
-#
-# Pinned to k3s-1 via nodeSelector — k3s-7's kubelet currently fails to mount
-# the loki NFS path ("Connection refused"/"No such file or directory" while
-# the same path mounts cleanly on k3s-1). NetAlertX uses the same pin (nodeName:k3s-1)
-# for a different reason (hostNetwork). Re-evaluate the pin once k3s-7's NFS
-# mount surface is fixed.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -81,10 +75,6 @@ spec:
         limits:
           cpu: "1"
           memory: 1.5Gi
-      # Avoid k3s-7's NFS-mount failure by pinning to k3s-1 (control-plane).
-      # The loki StatefulSet has 1 replica, so this is a hard constraint.
-      nodeSelector:
-        kubernetes.io/hostname: k3s-1
     # Disable everything that's not relevant for monolithic homelab use:
     gateway:
       enabled: false

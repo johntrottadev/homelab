@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fitjat
+  namespace: fitjat
+  labels:
+    app: fitjat
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: fitjat
+  template:
+    metadata:
+      labels:
+        app: fitjat
+    spec:
+      # Hardened security profile — fitjat image runs as UID 1001 cleanly.
+      # T-999.2-04 fully applied.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: fitjat
+          # T-999.2-07: image already pinned with both tag AND digest.
+          image: docker.io/blueboy8888/fitjat:0.1.0@sha256:e205d3251bee7c0ca2011bd888bebbfa6b79c5177342ec417c2792bbffa308b0
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            # ConfigMap and Secret stay kubectl-managed (the migration is
+            # intentionally limited to workload + service + PVC; secrets
+            # for fitjat are not in scope of this phase).
+            - configMapRef:
+                name: fitjat-config
+            - secretRef:
+                name: fitjat-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 1
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              scheme: HTTP
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: fitjat-pvc

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: fitjat-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    namespace: fitjat
+    name: fitjat-pvc
+  csi:
+    # CSI-driven NFS PV (nfs.csi.k8s.io). Server already uses NAS IP, not
+    # the broken __NAS-HOST__ hostname. The volumeHandle must remain the
+    # same to keep the existing binding intact.
+    driver: nfs.csi.k8s.io
+    volumeAttributes:
+      server: __NAS-IP__
+      share: /volume1/kub/homelab/fitjat
+    volumeHandle: fitjat-pv

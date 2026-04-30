@@ -127,6 +127,17 @@ resources:
   - vscode/deployment.yaml
   - vscode/service.yaml
   - vscode/ingressroute.yaml
+
+  # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC only).
+  # Cloudflared (2-replica tunnel deploy) and 3 CronJobs + their secrets/CMs +
+  # fitjat-mirror-pv stay kubectl-managed; deferred to a follow-up plan since
+  # they are independent surfaces (Cloudflare Tunnel + scheduled jobs).
+  # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.
+  - fitjat/namespace.yaml
+  - fitjat/pv.yaml
+  - fitjat/pvc.yaml
+  - fitjat/deployment.yaml
+  - fitjat/service.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

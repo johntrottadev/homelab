@@ -64,6 +64,14 @@ resources:
   - uptime-kuma/deployment.yaml
   - uptime-kuma/service.yaml
   - uptime-kuma/ingressroute.yaml
+
+  # Wave 2 (Phase 999.2) — dashy (workload + routing, full per-app subdir)
+  - dashy/namespace.yaml
+  - dashy/pv.yaml
+  - dashy/pvc.yaml
+  - dashy/deployment.yaml
+  - dashy/service.yaml
+  - dashy/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

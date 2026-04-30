@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dashy-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  # Pre-bind to defeat Pitfall 4 (PVC capture by wrong PV).
+  claimRef:
+    namespace: dashy
+    name: dashy-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/homelab/dashy
+    readOnly: false

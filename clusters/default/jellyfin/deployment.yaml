@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+      annotations:
+        # 5TB media volume is excluded from Velero backups (movies are
+        # backed up at the NAS layer; doubling them in cluster snapshots
+        # would blow out backup storage).
+        backup.velero.io/backup-volumes-excludes: movies
+    spec:
+      containers:
+        - name: jellyfin
+          image: jellyfin/jellyfin:10.11.8
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8096
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: movies
+              mountPath: /media/movies
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            # PVCs stay kubectl-managed: jellyfin-config is dynamically
+            # provisioned via nfs.csi.k8s.io (volumeName is a UUID we don't
+            # want in git); jellyfin-movies is bound to a static 5TB PV.
+            claimName: jellyfin-config
+        - name: movies
+          persistentVolumeClaim:
+            claimName: jellyfin-movies

@@ -48,7 +48,7 @@ resources:
   - hoarder.yaml
   - homarr.yaml
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
-  - jellyfin.yaml
+  # jellyfin.yaml superseded by jellyfin/ subdir below (Phase 999.2 plan-02)
   # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
   # n8n.yaml superseded by n8n/ subdir below (Phase 999.2 plan-02)
   - paperless.yaml
@@ -101,6 +101,15 @@ resources:
   - n8n/deployment.yaml
   - n8n/service.yaml
   - n8n/ingressroute.yaml
+
+  # Phase 999.2 plan-02 — jellyfin (supersedes top-level jellyfin.yaml).
+  # PVCs stay kubectl-managed: jellyfin-config is CSI-dynamic (nfs.csi.k8s.io,
+  # SC=jellyfin), jellyfin-movies is statically bound to a 5TB __NAS-HOST__
+  # NFS volume excluded from Velero backups.
+  - jellyfin/namespace.yaml
+  - jellyfin/deployment.yaml
+  - jellyfin/service.yaml
+  - jellyfin/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

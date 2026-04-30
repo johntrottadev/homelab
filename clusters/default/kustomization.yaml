@@ -46,7 +46,7 @@ resources:
   - grafana.yaml
   # guac.yaml superseded by guacamole/ subdir below (Phase 999.2 plan-03)
   # hoarder.yaml superseded by hoarder/ subdir below (Phase 999.2 plan-03)
-  - homarr.yaml
+  # homarr.yaml superseded by homarr/ subdir below (Phase 999.2 spinoff)
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   # jellyfin.yaml superseded by jellyfin/ subdir below (Phase 999.2 plan-02)
   # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
@@ -145,6 +145,18 @@ resources:
   - fitjat/backups/cronjob-backup.yaml
   - fitjat/backups/cronjob-backup-health.yaml
   - fitjat/backups/cronjob-rsync-storage.yaml
+
+  # Phase 999.2 spinoff — homarr (was Helm-managed via homarr-8.9.0 chart;
+  # superseded by flat manifests; supersedes top-level homarr.yaml).
+  # The 5 sh.helm.release.v1.homarr.* secrets remain in the namespace as
+  # historical record; harmless. db-secret (SECRET_ENCRYPTION_KEY) stays
+  # kubectl-managed (sensitive, scope-out).
+  - homarr/namespace.yaml
+  - homarr/pv.yaml
+  - homarr/pvc.yaml
+  - homarr/deployment.yaml
+  - homarr/service.yaml
+  - homarr/ingressroute.yaml
 
   # Phase 999.2 plan-03 — hoarder (per-component subdirs; supersedes hoarder.yaml).
   # 3 components: web (port 3000, svc 80), chrome (headless browser, port 3000,

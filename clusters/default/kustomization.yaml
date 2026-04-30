@@ -42,7 +42,7 @@ resources:
   - netalert/service.yaml
   - netalert/endpoints.yaml
   - netalert/ingressroute.yaml
-  - freshrss.yaml
+  # freshrss.yaml superseded by freshrss/ subdir below (Phase 999.2 plan-02)
   - grafana.yaml
   - guac.yaml
   - hoarder.yaml
@@ -110,6 +110,14 @@ resources:
   - jellyfin/deployment.yaml
   - jellyfin/service.yaml
   - jellyfin/ingressroute.yaml
+
+  # Phase 999.2 plan-02 — freshrss (in ns "rss", supersedes top-level freshrss.yaml).
+  - freshrss/namespace.yaml
+  - freshrss/pv.yaml
+  - freshrss/pvc.yaml
+  - freshrss/deployment.yaml
+  - freshrss/service.yaml
+  - freshrss/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

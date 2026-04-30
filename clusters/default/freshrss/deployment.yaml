@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: freshrss
+  namespace: rss
+  labels:
+    app: freshrss
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: freshrss
+  template:
+    metadata:
+      labels:
+        app: freshrss
+    spec:
+      containers:
+        - name: freshrss
+          image: freshrss/freshrss:1.28.1
+          imagePullPolicy: Always
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: UTC
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: freshrss-storage
+              mountPath: /var/www/FreshRSS/data
+      volumes:
+        - name: freshrss-storage
+          persistentVolumeClaim:
+            claimName: freshrss-pvc

@@ -1,0 +1,17 @@
+# Postgres data on local-path (node-local SSD). WaitForFirstConsumer binds
+# the PV to whichever node the postgres pod first lands on; subsequent
+# rescheduling stays pinned to that node. Node-death recovery is via the
+# pg_dump CronJob (postgres-backup-cronjob.yaml) which writes daily dumps
+# to NFS for Velero to pick up.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-postgres
+  namespace: nextcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi

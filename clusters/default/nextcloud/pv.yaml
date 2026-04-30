@@ -1,0 +1,25 @@
+# Static NFS PV for Nextcloud's /var/www/html (config + custom_apps + skeleton
+# data tree). User uploads do NOT live here — they go to Wasabi via the
+# OBJECTSTORE_S3_* env on the deployment. Footprint is small (config.php,
+# installed apps, themes), so NFS small-file IO is not a hot path.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nextcloud-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    namespace: nextcloud
+    name: nextcloud-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/homelab/nextcloud/config
+    readOnly: false

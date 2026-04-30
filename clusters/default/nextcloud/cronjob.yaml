@@ -1,0 +1,45 @@
+# Nextcloud's background job runner. The official guidance is to run
+# php cron.php every 5 minutes (the alternatives — AJAX and Webcron —
+# are unreliable for share/notification tasks).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-cron
+  namespace: nextcloud
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 240
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 33
+          containers:
+            - name: cron
+              image: nextcloud:30-apache
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  exec runuser -u www-data -- php -f /var/www/html/cron.php
+              volumeMounts:
+                - name: html
+                  mountPath: /var/www/html
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: html
+              persistentVolumeClaim:
+                claimName: nextcloud-pvc

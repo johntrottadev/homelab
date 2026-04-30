@@ -222,6 +222,26 @@ resources:
   - monitoring/pihole-exporter/service.yaml
   - monitoring/snmp-exporter/deployment.yaml
   - monitoring/snmp-exporter/service.yaml
+
+  # Nextcloud — fresh deploy with Wasabi S3 as primary object storage.
+  # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for safety.
+  # Redis ephemeral (file locking + memcache, REQUIRED for S3 primary).
+  # Secret applied out-of-band (paloarp pattern); see clusters/default/nextcloud/README.md.
+  - nextcloud/namespace.yaml
+  - nextcloud/postgres-pvc.yaml
+  - nextcloud/postgres-deployment.yaml
+  - nextcloud/postgres-service.yaml
+  - nextcloud/postgres-backup-pv.yaml
+  - nextcloud/postgres-backup-pvc.yaml
+  - nextcloud/postgres-backup-cronjob.yaml
+  - nextcloud/redis-deployment.yaml
+  - nextcloud/redis-service.yaml
+  - nextcloud/pv.yaml
+  - nextcloud/pvc.yaml
+  - nextcloud/deployment.yaml
+  - nextcloud/service.yaml
+  - nextcloud/ingressroute.yaml
+  - nextcloud/cronjob.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

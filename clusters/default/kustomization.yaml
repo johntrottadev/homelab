@@ -128,16 +128,23 @@ resources:
   - vscode/service.yaml
   - vscode/ingressroute.yaml
 
-  # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC only).
-  # Cloudflared (2-replica tunnel deploy) and 3 CronJobs + their secrets/CMs +
-  # fitjat-mirror-pv stay kubectl-managed; deferred to a follow-up plan since
-  # they are independent surfaces (Cloudflare Tunnel + scheduled jobs).
+  # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC).
   # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.
   - fitjat/namespace.yaml
   - fitjat/pv.yaml
   - fitjat/pvc.yaml
   - fitjat/deployment.yaml
   - fitjat/service.yaml
+
+  # Phase 999.2 spinoff — fitjat continuation (cloudflared tunnel + backups).
+  # cloudflared-token Secret and cloudflared-info ConfigMap stay kubectl-managed
+  # (token is sensitive; CM content is config detail).
+  - fitjat/cloudflared/deployment.yaml
+  - fitjat/backups/pv.yaml
+  - fitjat/backups/pvc.yaml
+  - fitjat/backups/cronjob-backup.yaml
+  - fitjat/backups/cronjob-backup-health.yaml
+  - fitjat/backups/cronjob-rsync-storage.yaml
 
   # Phase 999.2 plan-03 — hoarder (per-component subdirs; supersedes hoarder.yaml).
   # 3 components: web (port 3000, svc 80), chrome (headless browser, port 3000,

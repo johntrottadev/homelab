@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fitjat-rsync-storage
+  namespace: fitjat
+  labels:
+    app: fitjat-rsync-storage
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: fitjat-rsync-storage
+        spec:
+          containers:
+          - args:
+            - "set -euo pipefail\necho \"[rsync] mirror /data/backups/ -> /mirror/\"\
+              \nmkdir -p /mirror\n# --omit-dir-times: NFS root_squash means a non-root\
+              \ pod\n# cannot setmtime on a dest directory it didn't create.\n# File\
+              \ mtimes are still preserved.\n# --no-perms --no-owner --no-group: NFS\
+              \ managed perms/uid/gid\n# at the export level; preserving them in rsync\
+              \ is both\n# unnecessary (single-user homelab) and rejected by the\n\
+              # server when the dest dir is root-owned.\nrsync -rltv --delete --omit-dir-times\
+              \ --no-perms --no-owner --no-group \\\n  /data/backups/ /mirror/\necho\
+              \ \"[rsync] done; mirror contents:\"\nls -lh /mirror\n"
+            command:
+            - /bin/sh
+            - -c
+            image: instrumentisto/rsync-ssh:alpine3.23-r3
+            imagePullPolicy: IfNotPresent
+            name: rsync
+            resources:
+              limits:
+                memory: 128Mi
+              requests:
+                cpu: 25m
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - mountPath: /data/backups
+              name: backups
+              readOnly: true
+              subPath: backups
+            - mountPath: /mirror
+              name: mirror
+              subPath: _mirror
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 1001
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - name: backups
+            persistentVolumeClaim:
+              claimName: fitjat-pvc
+          - name: mirror
+            persistentVolumeClaim:
+              claimName: fitjat-mirror-pvc
+  schedule: 15 * * * *
+  successfulJobsHistoryLimit: 3
+  suspend: false
+

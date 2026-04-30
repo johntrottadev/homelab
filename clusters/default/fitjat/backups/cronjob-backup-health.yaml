@@ -1,0 +1,127 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fitjat-backup-health
+  namespace: fitjat
+  labels:
+    app: fitjat-backup-health
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: fitjat-backup-health
+        spec:
+          containers:
+          - args:
+            - "set -u\nALERTS=\"\"\nadd_alert() { ALERTS=\"${ALERTS}- $1\n\"; }\n\n\
+              # 1. /data/backups/ has at least one fresh fitjat-*.db (within 14d).\n\
+              echo \"[health] /data/backups listing:\"\nls -lh /data/backups/ 2>&1\
+              \ || add_alert \"backups dir missing\"\nfresh=$(find /data/backups -name\
+              \ 'fitjat-*.db' -mtime -14 2>/dev/null | wc -l | tr -d ' ')\necho \"\
+              [health] fresh backups (<= 14d): $fresh\"\nif [ \"$fresh\" -lt 1 ];\
+              \ then\n  add_alert \"0 fresh fitjat-*.db files in /data/backups (retention\
+              \ is 14d; expected >=1)\"\nfi\n\n# 2. mirror PVC has at least one matching\
+              \ backup file.\n# The rsync CronJob (per the plan-03 executor's subPath\n\
+              # separation deviation) writes into /mirror/_mirror/ inside\n# the mirror\
+              \ PVC \u2014 see .planning/phases/01-foundation/01-03-SUMMARY.md.\n\
+              MIRROR_TARGET=/mirror/_mirror\necho \"[health] $MIRROR_TARGET listing:\"\
+              \nls -lh \"$MIRROR_TARGET\" 2>&1 || add_alert \"mirror target $MIRROR_TARGET\
+              \ missing\"\nmirror_fresh=$(find \"$MIRROR_TARGET\" -name 'fitjat-*.db'\
+              \ -mtime -14 2>/dev/null | wc -l | tr -d ' ')\necho \"[health] fresh\
+              \ mirror backups (<= 14d): $mirror_fresh\"\nif [ \"$mirror_fresh\" -lt\
+              \ 1 ]; then\n  add_alert \"0 fresh fitjat-*.db files in $MIRROR_TARGET;\
+              \ rsync may have failed\"\nfi\n\n# 3. CronJob last-schedule freshness.\n\
+              # Use Python for ISO 8601 parsing \u2014 busybox `date -d` cannot parse\n\
+              # the RFC3339 timestamps Kubernetes emits in lastScheduleTime.\n# Empty\
+              \ lastScheduleTime can happen for ~24h after a cluster\n# apply that\
+              \ recreated the CronJob; treat it as a soft warn\n# (logged, not alerted)\
+              \ rather than a hard fail.\nfor cj in fitjat-backup fitjat-rsync-storage;\
+              \ do\n  last=$(kubectl -n fitjat get cronjob \"$cj\" -o jsonpath='{.status.lastScheduleTime}'\
+              \ 2>/dev/null || echo \"\")\n  if [ -z \"$last\" ]; then\n    echo \"\
+              [health] WARN: CronJob $cj has no lastScheduleTime yet (just (re)applied?)\"\
+              \n    continue\n  fi\n  age_h=$(python3 -c \"\nfrom datetime import\
+              \ datetime, timezone\nts = '$last'.replace('Z', '+00:00')\ndelta = datetime.now(timezone.utc)\
+              \ - datetime.fromisoformat(ts)\nprint(int(delta.total_seconds() // 3600))\n\
+              \" 2>/dev/null || echo \"\")\n  if [ -z \"$age_h\" ]; then\n    echo\
+              \ \"[health] WARN: could not parse $cj lastScheduleTime '$last'\"\n\
+              \    continue\n  fi\n  echo \"[health] cronjob $cj last ran ${age_h}h\
+              \ ago\"\n  case \"$cj\" in\n    fitjat-backup)\n      [ \"$age_h\" -gt\
+              \ 30 ] && add_alert \"$cj last ran ${age_h}h ago (expected <=30h)\"\
+              \ ;;\n    fitjat-rsync-storage)\n      [ \"$age_h\" -gt 2 ] && add_alert\
+              \ \"$cj last ran ${age_h}h ago (expected <=2h)\" ;;\n  esac\ndone\n\n\
+              # 4. Failed Jobs in the last 30 days (status.failed > 0).\nfailed=$(kubectl\
+              \ -n fitjat get jobs -o json 2>/dev/null | python3 -c \"\nimport json,\
+              \ sys\nfrom datetime import datetime, timezone, timedelta\nd = json.load(sys.stdin)\n\
+              cutoff = datetime.now(timezone.utc) - timedelta(days=30)\nbad = []\n\
+              for j in d.get('items', []):\n    ct = j.get('metadata', {}).get('creationTimestamp')\n\
+              \    if not ct:\n        continue\n    try:\n        when = datetime.fromisoformat(ct.replace('Z',\
+              \ '+00:00'))\n    except Exception:\n        continue\n    if when <\
+              \ cutoff:\n        continue\n    if (j.get('status', {}) or {}).get('failed'):\n\
+              \        bad.append(j['metadata']['name'])\nprint(','.join(bad))\" 2>/dev/null)\n\
+              if [ -n \"$failed\" ]; then\n  add_alert \"failed Jobs in last 30d:\
+              \ $failed\"\nfi\n\n# 5. Report.\nif [ -z \"$ALERTS\" ]; then\n  echo\
+              \ \"[health] OK \u2014 backups look healthy; no Pushover sent.\"\n \
+              \ exit 0\nfi\n\necho \"[health] ANOMALIES:\"\nprintf '%s' \"$ALERTS\"\
+              \ncount=$(printf '%s' \"$ALERTS\" | grep -c '^- ')\n\nUSER_KEY=$(kubectl\
+              \ -n monitoring get secret pushover-creds -o jsonpath='{.data.user_key}'\
+              \ | base64 -d)\nTOKEN=$(kubectl -n monitoring get secret pushover-creds\
+              \ -o jsonpath='{.data.token}' | base64 -d)\nif [ -z \"$USER_KEY\" ]\
+              \ || [ -z \"$TOKEN\" ]; then\n  echo \"[health] WARN: Pushover creds\
+              \ unreadable; cannot alert. Failing the Job so it surfaces in events.\"\
+              \n  exit 1\nfi\n\nmsg=\"fitjat backup health audit found ${count} issue(s):\n\
+              ${ALERTS}\"\ncurl -sS -X POST https://api.pushover.net/1/messages.json\
+              \ \\\n  -d token=\"$TOKEN\" -d user=\"$USER_KEY\" -d priority=0 \\\n\
+              \  -d title='fitjat backup health' -d message=\"$msg\"\necho\necho \"\
+              [health] Pushover alert sent ($count issue(s)).\"\n# exit 0 \u2014 alert\
+              \ was the deliverable; Job should not retry\nexit 0\n"
+            command:
+            - /bin/sh
+            - -c
+            image: alpine/k8s:1.35.4
+            imagePullPolicy: IfNotPresent
+            name: audit
+            resources:
+              limits:
+                memory: 256Mi
+              requests:
+                cpu: 25m
+                memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: false
+            volumeMounts:
+            - mountPath: /data
+              name: data
+              readOnly: true
+            - mountPath: /mirror
+              name: mirror
+              readOnly: true
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 1001
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: fitjat-pvc
+          - name: mirror
+            persistentVolumeClaim:
+              claimName: fitjat-mirror-pvc
+  schedule: 0 4 * * 0
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  suspend: false
+

@@ -1,0 +1,80 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fitjat-backup
+  namespace: fitjat
+  labels:
+    app: fitjat-backup
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: fitjat-backup
+        spec:
+          containers:
+          - args:
+            - 'set -euo pipefail
+
+              TS=$(date +%F-%H%M)
+
+              DEST=/data/backups/fitjat-$TS.db
+
+              mkdir -p /data/backups
+
+              echo "[backup] writing $DEST"
+
+              sqlite3 /data/fitjat.db ".backup $DEST"
+
+              # Retention: keep 14 days. Glob excludes the live fitjat.db (no dash).
+
+              find /data/backups -name ''fitjat-*.db'' -mtime +14 -delete -print
+
+              echo "[backup] done; current /data/backups:"
+
+              ls -lh /data/backups
+
+              '
+            command:
+            - /bin/sh
+            - -c
+            image: keinos/sqlite3:3.46.0
+            imagePullPolicy: IfNotPresent
+            name: backup
+            resources:
+              limits:
+                memory: 128Mi
+              requests:
+                cpu: 25m
+                memory: 32Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+            volumeMounts:
+            - mountPath: /data
+              name: data
+          restartPolicy: OnFailure
+          securityContext:
+            fsGroup: 1001
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: fitjat-pvc
+  schedule: 0 3 * * *
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  suspend: false
+

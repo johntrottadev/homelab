@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chrome
+  namespace: hoarder
+  labels:
+    app: chrome
+spec:
+  type: ClusterIP
+  selector:
+    app: chrome
+  ports:
+    - port: 9222
+      targetPort: 3000
+      protocol: TCP

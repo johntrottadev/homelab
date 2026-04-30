@@ -45,7 +45,7 @@ resources:
   # freshrss.yaml superseded by freshrss/ subdir below (Phase 999.2 plan-02)
   - grafana.yaml
   - guac.yaml
-  - hoarder.yaml
+  # hoarder.yaml superseded by hoarder/ subdir below (Phase 999.2 plan-03)
   - homarr.yaml
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   # jellyfin.yaml superseded by jellyfin/ subdir below (Phase 999.2 plan-02)
@@ -138,6 +138,22 @@ resources:
   - fitjat/pvc.yaml
   - fitjat/deployment.yaml
   - fitjat/service.yaml
+
+  # Phase 999.2 plan-03 — hoarder (per-component subdirs; supersedes hoarder.yaml).
+  # 3 components: web (port 3000, svc 80), chrome (headless browser, port 3000,
+  # svc 9222), meilisearch (port 7700). Secrets + ConfigMap stay kubectl-managed.
+  - hoarder/namespace.yaml
+  - hoarder/ingressroute.yaml
+  - hoarder/web/pv.yaml
+  - hoarder/web/pvc.yaml
+  - hoarder/web/deployment.yaml
+  - hoarder/web/service.yaml
+  - hoarder/chrome/deployment.yaml
+  - hoarder/chrome/service.yaml
+  - hoarder/meilisearch/pv.yaml
+  - hoarder/meilisearch/pvc.yaml
+  - hoarder/meilisearch/deployment.yaml
+  - hoarder/meilisearch/service.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

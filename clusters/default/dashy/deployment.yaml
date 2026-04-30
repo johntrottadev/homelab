@@ -49,12 +49,13 @@ spec:
               cpu: 50m
               memory: 256Mi
             limits:
-              # Bumped from 512Mi: dashy 3.3.1's startup vue-cli-service build
-              # OOMs at 512Mi. Old running pod survived because once built it
-              # sits well under, but a restart re-runs the build and trips OOM.
-              # 1Gi is the floor for a clean cold start.
-              cpu: 1000m
-              memory: 1Gi
+              # Cold-start vue-cli-service legacy build OOMs at 1Gi too.
+              # 2Gi is the empirical floor for dashy 3.3.1 fresh build.
+              # Steady-state runtime usage is ~200Mi after build completes.
+              # The old :latest pod never restarted so this limit was never
+              # binding for it.
+              cpu: 1500m
+              memory: 2Gi
           livenessProbe:
             httpGet:
               path: /

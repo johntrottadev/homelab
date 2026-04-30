@@ -49,7 +49,7 @@ resources:
   - homarr.yaml
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   - jellyfin.yaml
-  - libre.yaml
+  # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
   - n8n.yaml
   - paperless.yaml
   - prometheus.yaml
@@ -82,6 +82,16 @@ resources:
   - ittools/deployment.yaml
   - ittools/service.yaml
   - ittools/ingressroute.yaml
+
+  # Phase 999.2 plan-01 — libre / libreoffice (per-app subdir; supersedes top-level libre.yaml).
+  # linuxserver image — root entrypoint + PUID/PGID env. Multi-port service
+  # (80→3000 http, 443→3001 https). PV uses NAS IP, mountOptions preserved.
+  - libre/namespace.yaml
+  - libre/pv.yaml
+  - libre/pvc.yaml
+  - libre/deployment.yaml
+  - libre/service.yaml
+  - libre/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

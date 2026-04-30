@@ -1,0 +1,222 @@
+{
+  "code_name": "PALOARP",
+  "unique_prefix": "PALOARP",
+  "execution_order": "Layer_2",
+  "plugin_type": "device_scanner",
+  "enabled": true,
+  "data_source": "script",
+  "mapped_to_table": "CurrentScan",
+  "data_filters": [
+    {
+      "compare_column": "objectPrimaryId",
+      "compare_operator": "==",
+      "compare_field_id": "txtMacFilter",
+      "compare_js_template": "'{value}'.toString()",
+      "compare_use_quotes": true
+    }
+  ],
+  "show_ui": true,
+  "localized": ["display_name", "description", "icon"],
+  "display_name": [
+    { "language_code": "en_us", "string": "Palo Alto ARP" }
+  ],
+  "icon": [
+    { "language_code": "en_us", "string": "<i class=\"fa-solid fa-fire\"></i>" }
+  ],
+  "description": [
+    { "language_code": "en_us", "string": "Pulls ARP entries (and DHCP-lease hostnames) from a Palo Alto firewall via the PAN-OS XML API. Gives NetAlertX L2 visibility on every VLAN the PA has an SVI on." }
+  ],
+  "params": [],
+  "settings": [
+    {
+      "function": "RUN",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "select", "elementOptions": [], "transformers": [] }]
+      },
+      "default_value": "schedule",
+      "options": ["disabled", "once", "schedule", "always_after_scan", "on_new_device"],
+      "localized": ["name", "description"],
+      "events": ["run"],
+      "name": [{ "language_code": "en_us", "string": "When to run" }],
+      "description": [{ "language_code": "en_us", "string": "Use <code>schedule</code> and set <a href=\"#PALOARP_RUN_SCHD\"><code>PALOARP_RUN_SCHD</code></a>. ⚠ Use the same schedule across all device-scanner plugins." }]
+    },
+    {
+      "function": "CMD",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "readonly": "true" }], "transformers": [] }]
+      },
+      "default_value": "python3 /app/front/plugins/PALOARP/script.py",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Command" }],
+      "description": [{ "language_code": "en_us", "string": "Don't change. Reads PALOARP_HOST / PALOARP_API_KEY etc., or env vars PALO_HOST / PALO_API_KEY (env wins, recommended for the API key)." }]
+    },
+    {
+      "function": "RUN_TIMEOUT",
+      "type": {
+        "dataType": "integer",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "number" }], "transformers": [] }]
+      },
+      "default_value": 60,
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Run timeout (s)" }],
+      "description": [{ "language_code": "en_us", "string": "Abort the script after this many seconds." }]
+    },
+    {
+      "function": "RUN_SCHD",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [], "transformers": [] }]
+      },
+      "default_value": "*/5 * * * *",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Schedule" }],
+      "description": [{ "language_code": "en_us", "string": "cron-like. Recommend matching ARPSCAN_RUN_SCHD." }]
+    },
+    {
+      "function": "HOST",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "text" }], "transformers": [] }]
+      },
+      "default_value": "",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Palo Alto host" }],
+      "description": [{ "language_code": "en_us", "string": "Hostname or IP of the PA management interface. Overridden by env <code>PALO_HOST</code> if set." }]
+    },
+    {
+      "function": "API_KEY",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "password" }], "transformers": [] }]
+      },
+      "default_value": "",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "PAN-OS API key" }],
+      "description": [{ "language_code": "en_us", "string": "PAN-OS XML API key. Prefer setting env <code>PALO_API_KEY</code> via a k8s Secret so the value isn't persisted in app.conf (which is backed up)." }]
+    },
+    {
+      "function": "VERIFY_TLS",
+      "type": {
+        "dataType": "boolean",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "checkbox" }], "transformers": [] }]
+      },
+      "default_value": false,
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Verify TLS cert" }],
+      "description": [{ "language_code": "en_us", "string": "Disable for the default self-signed PA mgmt cert." }]
+    },
+    {
+      "function": "IFACE_INCLUDE",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "text" }], "transformers": [] }]
+      },
+      "default_value": "",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Interface include list" }],
+      "description": [{ "language_code": "en_us", "string": "Comma-separated PA interface names. If set, only ARP entries on these interfaces are emitted." }]
+    },
+    {
+      "function": "IFACE_EXCLUDE",
+      "type": {
+        "dataType": "string",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "text" }], "transformers": [] }]
+      },
+      "default_value": "",
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Interface exclude list" }],
+      "description": [{ "language_code": "en_us", "string": "Comma-separated PA interface names to drop (e.g. mgmt, tunnel.x)." }]
+    },
+    {
+      "function": "TIMEOUT",
+      "type": {
+        "dataType": "integer",
+        "elements": [{ "elementType": "input", "elementOptions": [{ "type": "number" }], "transformers": [] }]
+      },
+      "default_value": 20,
+      "options": [],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "HTTP timeout (s)" }],
+      "description": [{ "language_code": "en_us", "string": "Per-API-call timeout." }]
+    },
+    {
+      "function": "SET_ALWAYS",
+      "type": {
+        "dataType": "array",
+        "elements": [{ "elementType": "select", "elementOptions": [{ "multiple": "true", "orderable": "true" }], "transformers": [] }]
+      },
+      "default_value": ["devLastIP"],
+      "options": ["devMac", "devLastIP", "devVendor", "devSourcePlugin"],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Set always columns" }],
+      "description": [{ "language_code": "en_us", "string": "Authoritative columns: overwrite even other plugins' values (unless USER/LOCKED). Default keeps PA-observed IP authoritative." }]
+    },
+    {
+      "function": "SET_EMPTY",
+      "type": {
+        "dataType": "array",
+        "elements": [{ "elementType": "select", "elementOptions": [{ "multiple": "true", "orderable": "true" }], "transformers": [] }]
+      },
+      "default_value": ["devVendor"],
+      "options": ["devMac", "devLastIP", "devVendor", "devSourcePlugin"],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Set empty columns" }],
+      "description": [{ "language_code": "en_us", "string": "Only fill if currently empty." }]
+    },
+    {
+      "function": "WATCH",
+      "type": {
+        "dataType": "array",
+        "elements": [{ "elementType": "select", "elementOptions": [{ "multiple": "true", "orderable": "true" }], "transformers": [] }]
+      },
+      "default_value": ["watchedValue1"],
+      "options": ["watchedValue1", "watchedValue2", "watchedValue3", "watchedValue4"],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Watched" }],
+      "description": [{ "language_code": "en_us", "string": "<ul><li>w1 = IP</li><li>w2 = Vendor</li><li>w3 = PA interface</li><li>w4 = DHCP hostname</li></ul>" }]
+    },
+    {
+      "function": "REPORT_ON",
+      "type": {
+        "dataType": "array",
+        "elements": [{ "elementType": "select", "elementOptions": [{ "multiple": "true", "orderable": "true" }], "transformers": [] }]
+      },
+      "default_value": ["new"],
+      "options": ["new", "watched-changed", "watched-not-changed", "missing-in-last-scan"],
+      "localized": ["name", "description"],
+      "name": [{ "language_code": "en_us", "string": "Report on" }],
+      "description": [{ "language_code": "en_us", "string": "When to fire notifications." }]
+    }
+  ],
+  "database_column_definitions": [
+    { "column": "index", "css_classes": "col-sm-2", "show": true, "type": "none", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Index" }] },
+    { "column": "objectPrimaryId", "mapped_to_column": "scanMac", "css_classes": "col-sm-3", "show": true, "type": "device_name_mac", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "MAC (name)" }] },
+    { "column": "watchedValue1", "mapped_to_column": "scanLastIP", "css_classes": "col-sm-2", "show": true, "type": "device_ip", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "IP" }] },
+    { "column": "watchedValue2", "mapped_to_column": "scanVendor", "css_classes": "col-sm-2", "show": true, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Vendor" }] },
+    { "column": "watchedValue3", "css_classes": "col-sm-2", "show": true, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "PA interface / VLAN" }] },
+    { "column": "watchedValue4", "css_classes": "col-sm-2", "show": true, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "DHCP hostname" }] },
+    { "column": "Dummy", "mapped_to_column": "scanSourcePlugin", "mapped_to_column_data": { "value": "PALOARP" }, "css_classes": "col-sm-2", "show": false, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Scan method" }] },
+    { "column": "dateTimeCreated", "css_classes": "col-sm-2", "show": true, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Created" }] },
+    { "column": "dateTimeChanged", "css_classes": "col-sm-2", "show": true, "type": "label", "default_value": "", "options": [], "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Changed" }] },
+    {
+      "column": "status", "css_classes": "col-sm-1", "show": true, "type": "replace", "default_value": "",
+      "options": [
+        { "equals": "watched-not-changed", "replacement": "<div style='text-align:center'><i class='fa-solid fa-square-check'></i></div>" },
+        { "equals": "watched-changed", "replacement": "<div style='text-align:center'><i class='fa-solid fa-triangle-exclamation'></i></div>" },
+        { "equals": "new", "replacement": "<div style='text-align:center'><i class='fa-solid fa-circle-plus'></i></div>" },
+        { "equals": "missing-in-last-scan", "replacement": "<div style='text-align:center'><i class='fa-solid fa-question'></i></div>" }
+      ],
+      "localized": ["name"], "name": [{ "language_code": "en_us", "string": "Status" }]
+    }
+  ]
+}

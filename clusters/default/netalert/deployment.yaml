@@ -46,6 +46,13 @@ spec:
               value: "20211"
             - name: GRAPHQL_PORT
               value: "20212"
+          # PALOARP plugin reads PALO_HOST / PALO_API_KEY / PALO_VERIFY_TLS /
+          # PALO_IFACE_INCLUDE / PALO_IFACE_EXCLUDE from this Secret.
+          # Apply secret out-of-band from secret-paloarp.yaml.template (gitignored).
+          envFrom:
+            - secretRef:
+                name: paloarp-credentials
+                optional: true
           ports:
             - name: http
               containerPort: 20211
@@ -70,6 +77,13 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            # Custom Palo Alto ARP/DHCP discovery plugin. ConfigMap is generated
+            # by configMapGenerator in clusters/default/kustomization.yaml from
+            # plugin-PALOARP/. /app/front is marked readonly via READ_ONLY_FOLDERS
+            # but volumeMounts override that.
+            - name: paloarp-plugin
+              mountPath: /app/front/plugins/PALOARP
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /
@@ -90,3 +104,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: netalert-data
+        - name: paloarp-plugin
+          configMap:
+            name: paloarp-plugin
+            defaultMode: 0755

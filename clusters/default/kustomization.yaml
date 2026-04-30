@@ -156,3 +156,20 @@ resources:
   - wazuh-dashboard-ca-secret.yaml  # Wazuh internal root CA (public cert) trusted by wazuh-trusted ServersTransport
   - wazuh-serverstransport.yaml     # Wazuh-specific ServersTransport (rootCAs + serverName, no insecureSkipVerify)
   - wazuh.yaml            # docker-1:5601 (HTTPS upstream, wazuh-trusted) — first docker-1-backed external-IP HTTPS bundle with proper CA verification
+
+# ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
+# generated name stable so volume mounts in deployment.yaml reference a
+# predictable name.
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  # PALOARP plugin source for NetAlertX. Mounted into the netalert pod at
+  # /app/front/plugins/PALOARP. To force a re-roll on plugin code change,
+  # bump a label on the netalert Deployment.
+  - name: paloarp-plugin
+    namespace: netalert
+    files:
+      - netalert/plugin-PALOARP/script.py
+      - netalert/plugin-PALOARP/config.json
+      - netalert/plugin-PALOARP/README.md

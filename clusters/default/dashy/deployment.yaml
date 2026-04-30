@@ -26,7 +26,9 @@ spec:
         fsGroup: 1000
       containers:
         - name: dashy
-          image: lissy93/dashy:3.1.1
+          # T-999.2-07: pin to real Docker Hub tag — :3.1.1 (planner) does not exist.
+          # :3.3.1 is the latest 3.x release; matches the version family running pre-cutover.
+          image: lissy93/dashy:3.3.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

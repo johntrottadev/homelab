@@ -112,25 +112,28 @@ When migrating each next service:
 
 ## Komodo install on docker-1
 
-See `komodo-stack.yaml` (Komodo Core + MongoDB + Periphery bootstrap).
-Run once on docker-1 host:
+See `komodo-stack.yaml` (Postgres + FerretDB + Komodo Core + Periphery
+bootstrap). Run once on docker-1 host:
 
 ```bash
 ssh bastion@__LAN-IP__
 sudo mkdir -p /opt/komodo /var/lib/komodo/backups /etc/komodo
 sudo chown -R bastion:bastion /opt/komodo
+sudo mkdir -p /mnt/kub/homelab/komodo
 cd /opt/komodo
 
-# Fetch the bootstrap compose from this repo
-curl -sL https://raw.githubusercontent.com/johntrottadev/homelab/main/docker-1/komodo-stack.yaml \
-  -o komodo-stack.yaml
+# Fetch the bootstrap compose. The repo is private, so use scp from the
+# operator workstation (preferred) or `gh api ... contents/...` (works
+# while the operator is authenticated to gh):
+scp ~/projects/flux-source/docker-1/komodo-stack.yaml bastion@__LAN-IP__:/opt/komodo/
 
 # Author /opt/komodo/.env — operator generates random secrets here.
-# This file is NEVER committed. .env is gitignored at the docker-1/ tree
-# root and never copied into git anyway.
+# This file is NEVER committed. docker-1/.gitignore excludes *.env at the
+# docker-1/ tree root, but to be safe the file lives outside the git tree.
 umask 0077
+PK=$(openssl rand -hex 32)
 cat > .env <<EOF
-# Mongo root creds (only used internally by Komodo Core to talk to mongo)
+# Postgres / FerretDB DB credentials (internal only; no host port exposed)
 KOMODO_DATABASE_USERNAME=admin
 KOMODO_DATABASE_PASSWORD=$(openssl rand -base64 32 | tr -d '=+/' | head -c 32)
 
@@ -138,9 +141,6 @@ KOMODO_DATABASE_PASSWORD=$(openssl rand -base64 32 | tr -d '=+/' | head -c 32)
 # URL suggestion in the UI. Plain HTTP is fine for LAN-only.
 KOMODO_HOST=http://__LAN-IP__:9120
 KOMODO_TITLE=bastion-docker-1
-
-# Periphery key file — Core auto-generates this in the shared 'keys' volume
-KOMODO_PERIPHERY_PUBLIC_KEY=file:/config/keys/periphery.pub
 
 # Local-auth bootstrap admin (rotate via UI on first login)
 KOMODO_LOCAL_AUTH=true
@@ -152,6 +152,14 @@ KOMODO_FIRST_SERVER_NAME=docker-1
 KOMODO_JWT_SECRET=$(openssl rand -hex 32)
 KOMODO_WEBHOOK_SECRET=$(openssl rand -hex 32)
 
+# Shared passkey for Core <-> Periphery auth.
+# Both services read this from env_file. The auto-keypair flow with
+# KOMODO_PERIPHERY_PUBLIC_KEY=file:/config/keys/periphery.pub requires
+# manual seeding of the keys volume; passkey is the simpler equivalent
+# for a single-host setup.
+KOMODO_PASSKEY=$PK
+PERIPHERY_PASSKEYS=$PK
+
 # Sensible polling defaults
 KOMODO_MONITORING_INTERVAL=15-sec
 KOMODO_RESOURCE_POLL_INTERVAL=1-hr
@@ -161,15 +169,25 @@ KOMODO_DISABLE_USER_REGISTRATION=true
 TZ=America/New_York
 EOF
 chmod 0600 .env
+unset PK
 
-# Save admin creds to a place the operator can reach (NAS, mode 0600 via DSM ACL)
-# but NEVER paste cleartext in chat / commit messages.
+# Save admin creds to a place the operator can reach (NAS, mode 0600 via
+# DSM ACL) but NEVER paste cleartext in chat / commit messages.
 ADMIN_PW=$(grep '^KOMODO_INIT_ADMIN_PASSWORD=' .env | cut -d= -f2-)
 echo "$ADMIN_PW" | sudo tee /mnt/kub/homelab/komodo/admin_initial_password.txt > /dev/null
+sudo chmod 0600 /mnt/kub/homelab/komodo/admin_initial_password.txt
 unset ADMIN_PW
 
 sudo docker compose -f komodo-stack.yaml up -d
 ```
+
+> **AVX caveat:** docker-1 runs as a ProxMox VM with the default qemu64 CPU
+> model. `/proc/cpuinfo` shows "QEMU Virtual CPU version 2.5+" and no AVX
+> flag. MongoDB 5.0+ crashes with "Illegal instruction (core dumped)"
+> immediately under that CPU model. This is why the bootstrap uses
+> FerretDB (Postgres-backed Mongo-wire) per Komodo's official no-AVX path,
+> not MongoDB. Fixing the qemu64 → host CPU model is filed as a future
+> hardening item.
 
 Komodo Core UI: `http://__LAN-IP__:9120` (LAN/tailnet only — no DNS, no
 firewall NAT). Log in with `admin` / the value at

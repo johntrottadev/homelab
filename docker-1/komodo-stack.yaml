@@ -1,18 +1,28 @@
-# Komodo Core + MongoDB + Periphery bootstrap. Run once on docker-1 (__LAN-IP__).
-# Phase 999.2 Wave 5 — docker-1 sub-deliverable.
+# Komodo Core + FerretDB (Postgres-backed Mongo-wire) + Periphery bootstrap.
+# Run once on docker-1 (__LAN-IP__). Phase 999.2 Wave 5 — docker-1 sub-deliverable.
 #
-# Source: adapted from upstream https://github.com/moghtech/komodo/blob/main/compose/mongo.compose.yaml
+# Source: adapted from upstream
+#   https://github.com/moghtech/komodo/blob/main/compose/ferretdb.compose.yaml
 # Pinned by image digest (T-999.2-07: no `:latest`, no semver tag drift).
 #
 # DEVIATION FROM PLAN 999.2-05 sketch:
 #   The plan called for Core+Periphery only with a `127.0.0.1:8120` host
-#   port and a manual `PERIPHERY_PASSKEYS` symmetric secret. The actual
-#   upstream install pattern uses:
-#     1. MongoDB as the durable backing store (Komodo has no built-in DB)
+#   port and a manual `PERIPHERY_PASSKEYS` symmetric secret. Real upstream
+#   install pattern uses:
+#     1. A durable backing store (Komodo has no built-in DB)
 #     2. Auto-generated keypair in a shared `keys` volume (asymmetric auth,
 #        no shared secret to rotate)
-#     3. NO host port for Periphery — it's only reachable on the docker
-#        bridge network from Core. Strictly stronger than localhost-bind.
+#     3. NO host port for Periphery — only reachable on the docker bridge
+#        from Core. Strictly stronger than localhost-bind.
+#
+# WHY FERRETDB INSTEAD OF MONGODB:
+#   docker-1 is a ProxMox VM running with the default qemu64 CPU model
+#   (`/proc/cpuinfo` shows "QEMU Virtual CPU version 2.5+", no AVX flag).
+#   MongoDB 5.0+ requires AVX and crashes with "Illegal instruction (core
+#   dumped)" immediately on every start. FerretDB is the no-AVX-required
+#   path documented by Komodo upstream — Postgres backend with the
+#   DocumentDB extension and a Mongo-wire-protocol shim. Komodo Core sees
+#   it as `mongo:27017`-equivalent at `ferretdb:27017`.
 #
 # Files committed to git: this one (no secrets).
 # Files NOT committed (operator authors at install time):
@@ -23,37 +33,47 @@
 # Periphery on docker-1 manages docker-1's docker daemon; that's the design.
 
 services:
-  mongo:
-    image: mongo@sha256:43fddee7e532a920f3dfdee9e8f4834398c155c26bcb92d790cc1cd3c630fc40
-    # ^ resolves to mongo:7 captured 2026-04-30 on docker-1
+  postgres:
+    image: ghcr.io/ferretdb/postgres-documentdb@sha256:2386795ec2aa7ae559304361979f1dc5708d383ee9020ae63dadc2940dfe58f7
+    # ^ resolves to ghcr.io/ferretdb/postgres-documentdb:latest captured 2026-04-30 on docker-1
     labels:
-      komodo.skip: ""   # Prevent Komodo's "StopAllContainers" from killing the DB it depends on
-    command: --quiet --wiredTigerCacheSizeGB 0.25
+      komodo.skip: ""
     restart: unless-stopped
     volumes:
-      - mongo-data:/data/db
-      - mongo-config:/data/configdb
+      - postgres-data:/var/lib/postgresql/data
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${KOMODO_DATABASE_USERNAME:?set in /opt/komodo/.env}
-      MONGO_INITDB_ROOT_PASSWORD: ${KOMODO_DATABASE_PASSWORD:?set in /opt/komodo/.env}
+      POSTGRES_USER: ${KOMODO_DATABASE_USERNAME:?set in /opt/komodo/.env}
+      POSTGRES_PASSWORD: ${KOMODO_DATABASE_PASSWORD:?set in /opt/komodo/.env}
+      POSTGRES_DB: postgres
+
+  ferretdb:
+    image: ghcr.io/ferretdb/ferretdb@sha256:5706414241eb84f0515512c37b46db0f1b1eac9e5ceb7e4c2523211c184b1985
+    # ^ resolves to ghcr.io/ferretdb/ferretdb:latest captured 2026-04-30 on docker-1
+    labels:
+      komodo.skip: ""
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    volumes:
+      - ferretdb-state:/state
+    environment:
+      FERRETDB_POSTGRESQL_URL: postgres://${KOMODO_DATABASE_USERNAME}:${KOMODO_DATABASE_PASSWORD}@postgres:5432/postgres
 
   core:
     image: ghcr.io/moghtech/komodo-core@sha256:a1cceb4f971443b1e9f2a767788f663d0afb6244ee2135f7fe3fd1036af37ade
-    # ^ resolves to ghcr.io/moghtech/komodo-core:latest captured 2026-04-30 on docker-1
+    # ^ resolves to ghcr.io/moghtech/komodo-core:latest captured 2026-04-30 on docker-1 (v1.19.5)
     labels:
       komodo.skip: ""
     init: true
     restart: unless-stopped
     depends_on:
-      - mongo
+      - ferretdb
     ports:
       # LAN/tailnet only — DO NOT expose publicly. No DNS entry, no PA NAT.
       - "9120:9120"
     env_file: /opt/komodo/.env
     environment:
-      # Override the env_file's default (compose.env ships KOMODO_DATABASE_ADDRESS=mongo:27017
-      # implicitly via the canonical compose). Set explicitly here to make the link unambiguous.
-      KOMODO_DATABASE_ADDRESS: mongo:27017
+      KOMODO_DATABASE_ADDRESS: ferretdb:27017
     volumes:
       # Keys volume is shared between Core and Periphery. Core auto-generates
       # `periphery.pub` here on first start; Periphery auto-generates its
@@ -86,6 +106,6 @@ services:
       - /etc/komodo:/etc/komodo
 
 volumes:
-  mongo-data:
-  mongo-config:
+  postgres-data:
+  ferretdb-state:
   keys:

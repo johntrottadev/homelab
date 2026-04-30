@@ -1,0 +1,18 @@
+# Wazuh-specific ServersTransport: trusts the Wazuh internal root CA and
+# pins the upstream serverName to `wazuh.dashboard` (the SAN/CN on the
+# self-signed cert presented by the dashboard container on docker-1:5601).
+#
+# Replaces `lan-self-signed` (which uses insecureSkipVerify: true) for the
+# Wazuh route only — __PVE-NODE-1__/__PVE-NODE-2__/__PVE-NODE-3__/backup-host/synology continue to use
+# `lan-self-signed` because each has its own CA chain not yet wired up here.
+#
+# CA cert lives in Secret `wazuh-dashboard-ca` (same namespace).
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: wazuh-trusted
+  namespace: kube-system
+spec:
+  serverName: wazuh.dashboard
+  rootCAsSecrets:
+    - wazuh-dashboard-ca

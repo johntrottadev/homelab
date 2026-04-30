@@ -46,4 +46,4 @@ spec:
     - name: ext-wazuh
       port: 5601
       scheme: https
-      serversTransport: lan-self-signed
+      serversTransport: wazuh-trusted

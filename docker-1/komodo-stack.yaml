@@ -81,6 +81,24 @@ services:
       - keys:/config/keys
       # Dated DB backups on the host. https://komo.do/docs/setup/backup
       - /var/lib/komodo/backups:/backups
+      # SSH key + known_hosts for Komodo's git ops. Komodo Core's git clone
+      # falls back to system SSH (~/.ssh) — there is no SSH-key field in
+      # Komodo's [[git_provider]] TOML schema (only username+token). We
+      # bind a host-managed dir read-only so the key isn't bundled with
+      # Komodo's auto-generated comm keys in the `keys` volume.
+      #
+      # Operator setup (one time on docker-1):
+      #   sudo mkdir -p /etc/komodo/ssh
+      #   sudo ssh-keygen -t ed25519 -f /etc/komodo/ssh/id_ed25519 -N "" \
+      #     -C "komodo-docker-1-readonly@docker-1"
+      #   sudo ssh-keyscan -t rsa,ecdsa,ed25519 github.com \
+      #     > /etc/komodo/ssh/known_hosts
+      #   sudo chmod 0700 /etc/komodo/ssh
+      #   sudo chmod 0600 /etc/komodo/ssh/id_ed25519
+      #   sudo chmod 0644 /etc/komodo/ssh/id_ed25519.pub /etc/komodo/ssh/known_hosts
+      # Then: register id_ed25519.pub as a read-only deploy key on the
+      # GitHub repo Komodo will clone (NOT a PAT — scope-isolated per-tool).
+      - /etc/komodo/ssh:/root/.ssh:ro
 
   periphery:
     image: ghcr.io/moghtech/komodo-periphery@sha256:bd79cf960ed054fe8e02384322303e462448679b1149dde48bbef151417255b1
@@ -104,6 +122,15 @@ services:
       # for the daemon (which runs on the host).
       # https://github.com/moghtech/komodo/discussions/180
       - /etc/komodo:/etc/komodo
+      # NAS mount made visible to Periphery — required for compose
+      # `env_file:` and absolute-path bind mounts to /mnt/kub/homelab/<svc>/...
+      # to resolve. Without this, `docker compose up -d` from inside Periphery
+      # silently defaults env-file vars to empty strings and recreated
+      # containers come up with broken auth (lessons learned 2026-04-30
+      # during Wave 5 first-deploy of Wazuh: dashboard + manager containers
+      # got recreated with INDEXER_PASSWORD/API_PASSWORD = "" until this
+      # mount was added).
+      - /mnt/kub:/mnt/kub:ro
 
 volumes:
   postgres-data:

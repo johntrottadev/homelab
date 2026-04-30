@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacamole-db
+  namespace: homelab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guacamole-db
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: guacamole-db
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: guacamole
+        - name: POSTGRES_USER
+          value: guacadmin
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: guacamole-db-credentials
+        image: postgres:15
+        imagePullPolicy: IfNotPresent
+        name: postgres
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: db-storage
+      securityContext: {}
+      volumes:
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: guacamole-db-pvc
+

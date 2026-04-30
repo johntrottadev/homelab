@@ -44,7 +44,7 @@ resources:
   - netalert/ingressroute.yaml
   # freshrss.yaml superseded by freshrss/ subdir below (Phase 999.2 plan-02)
   - grafana.yaml
-  - guac.yaml
+  # guac.yaml superseded by guacamole/ subdir below (Phase 999.2 plan-03)
   # hoarder.yaml superseded by hoarder/ subdir below (Phase 999.2 plan-03)
   - homarr.yaml
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
@@ -172,6 +172,21 @@ resources:
   - paperless/postgres/service.yaml
   - paperless/redis/deployment.yaml
   - paperless/redis/service.yaml
+
+  # Phase 999.2 plan-03 — guacamole (per-component subdirs in homelab ns;
+  # supersedes guac.yaml). 3 components: guacamole (web, svc named
+  # "guacamole-service"), guacd (proxy, port 4822), guacamole-db (postgres,
+  # 5Gi PV at /volume1/kubdbs/homelab/guacamole). Stays in homelab ns so the
+  # existing guacamole-db-pv claimRef.namespace remains valid.
+  - guacamole/ingressroute.yaml
+  - guacamole/guacamole/deployment.yaml
+  - guacamole/guacamole/service.yaml
+  - guacamole/guacd/deployment.yaml
+  - guacamole/guacd/service.yaml
+  - guacamole/guacamole-db/pv.yaml
+  - guacamole/guacamole-db/pvc.yaml
+  - guacamole/guacamole-db/deployment.yaml
+  - guacamole/guacamole-db/service.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

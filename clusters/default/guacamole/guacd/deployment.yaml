@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guacd
+  namespace: homelab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guacd
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: guacd
+    spec:
+      containers:
+      - image: guacamole/guacd:1.6.0
+        imagePullPolicy: Always
+        name: guacd
+        ports:
+        - containerPort: 4822
+          protocol: TCP
+      securityContext: {}
+

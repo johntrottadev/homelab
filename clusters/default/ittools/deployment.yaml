@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: it-tools
+  namespace: it-tools-namespace
+  labels:
+    app: it-tools
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  selector:
+    matchLabels:
+      app: it-tools
+  template:
+    metadata:
+      labels:
+        app: it-tools
+    spec:
+      containers:
+        - name: it-tools
+          # T-999.2-07: image already digest-pinned (date+sha7 form).
+          image: corentinth/it-tools:2024.10.22-7ca5933
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: it-tools-storage
+              mountPath: /data
+      volumes:
+        - name: it-tools-storage
+          persistentVolumeClaim:
+            # PVC stays kubectl-managed (local-path dynamically-provisioned;
+            # taking flux ownership of the PVC would force us to commit the
+            # auto-generated PV UUID into git — needless coupling).
+            claimName: it-tools-pvc

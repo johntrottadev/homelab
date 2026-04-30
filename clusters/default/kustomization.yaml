@@ -47,7 +47,7 @@ resources:
   - guac.yaml
   - hoarder.yaml
   - homarr.yaml
-  - ittools.yaml
+  # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   - jellyfin.yaml
   - libre.yaml
   - n8n.yaml
@@ -74,6 +74,14 @@ resources:
   - dashy/deployment.yaml
   - dashy/service.yaml
   - dashy/ingressroute.yaml
+
+  # Phase 999.2 plan-01 — ittools (per-app subdir; supersedes top-level ittools.yaml).
+  # PVC kept kubectl-managed (local-path dynamically-provisioned, single-node pinned).
+  # Image already digest-pinned; no spec drift from running pod.
+  - ittools/namespace.yaml
+  - ittools/deployment.yaml
+  - ittools/service.yaml
+  - ittools/ingressroute.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

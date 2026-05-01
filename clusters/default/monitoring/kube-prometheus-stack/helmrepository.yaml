@@ -1,0 +1,12 @@
+# prometheus-community Helm chart repository — source for kube-prometheus-stack (JT-34 adoption).
+# Lives in flux-system ns alongside the `jetstack` (cert-manager), `grafana` (loki),
+# `velero` / `vui`, and `csi-driver-nfs` HelmRepositories so any future chart bump
+# is a single-line change in clusters/default/monitoring/kube-prometheus-stack/helmrelease.yaml.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: prometheus-community
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://prometheus-community.github.io/helm-charts

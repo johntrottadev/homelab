@@ -1,0 +1,462 @@
+# kube-prometheus-stack — adopting an existing kubectl-applied Helm release
+# (rev 24, chart kube-prometheus-stack-69.3.1, appVersion v0.80.0, JT-34).
+# Flux helm-controller adopts in place when releaseName + targetNamespace +
+# chart version + values match the existing release. Values mirror
+# `helm get values prometheus -n monitoring` exactly.
+#
+# In-scope: 6 chart-managed workloads picking up `helm.toolkit.fluxcd.io/name=prometheus`:
+#   - Deployment   monitoring/prometheus-operator
+#   - Deployment   monitoring/kube-state-metrics
+#   - StatefulSet  monitoring/grafana
+#   - StatefulSet  monitoring/prometheus-prometheus-prometheus
+#   - StatefulSet  monitoring/alertmanager-prometheus-alertmanager
+#   - DaemonSet    monitoring/node-exporter
+#
+# Out of scope (stays kubectl-managed):
+#   - Static PVs:   alertmanager-pv, grafana-pv, prometheus-pv (NFS-backed)
+#   - Secrets:      grafana-admin-credentials, pushover-creds (sensitive creds)
+#   - CRDs:         Prometheus/Alertmanager/ServiceMonitor/PrometheusRule
+#                   (CreateReplace policy — chart upgrades update them)
+#   - User-defined ServiceMonitors elsewhere (loki, velero, backup-host/pihole exporters)
+#     — they continue to work via `release: prometheus` selector.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: "69.3.1"  # pin EXACT — match running release rev 24 (appVersion v0.80.0)
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 24h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    alertmanager:
+      alertmanagerSpec:
+        secrets:
+        - pushover-creds
+        storage:
+          volumeClaimTemplate:
+            spec:
+              accessModes:
+              - ReadWriteMany
+              resources:
+                requests:
+                  storage: 5Gi
+              storageClassName: monitoring
+              volumeName: alertmanager-pv
+      config:
+        global:
+          resolve_timeout: 5m
+        inhibit_rules:
+        - equal:
+          - namespace
+          - alertname
+          source_matchers:
+          - severity = critical
+          target_matchers:
+          - severity =~ "warning|info"
+        - equal:
+          - namespace
+          - alertname
+          source_matchers:
+          - severity = warning
+          target_matchers:
+          - severity = info
+        - equal:
+          - namespace
+          source_matchers:
+          - alertname = InfoInhibitor
+          target_matchers:
+          - severity = info
+        - target_matchers:
+          - alertname = InfoInhibitor
+        receivers:
+        - name: "null"
+        - name: pushover-critical
+          pushover_configs:
+          - html: true
+            message: |-
+              {{ range .Alerts }}<b>severity:</b> {{ .Labels.severity }}
+              {{ if .Labels.namespace }}<b>namespace:</b> {{ .Labels.namespace }}
+              {{ end }}{{ if .Labels.instance }}<b>instance:</b> {{ .Labels.instance }}
+              {{ end }}{{ if .Labels.pod }}<b>pod:</b> {{ .Labels.pod }}
+              {{ end }}
+              <b>{{ .Annotations.summary }}</b>
+              {{ .Annotations.description }}
+              {{ if .Annotations.runbook_url }}
+              <a href="{{ .Annotations.runbook_url }}">[runbook]</a>{{ end }}
+              {{ end }}
+            priority: "1"
+            send_resolved: true
+            title: '[CRITICAL] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            token_file: /etc/alertmanager/secrets/pushover-creds/token
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else
+              }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+            url_title: Open dashboard
+            user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+        - name: pushover-warning
+          pushover_configs:
+          - html: true
+            message: |-
+              {{ range .Alerts }}<b>severity:</b> {{ .Labels.severity }}
+              {{ if .Labels.namespace }}<b>namespace:</b> {{ .Labels.namespace }}
+              {{ end }}{{ if .Labels.instance }}<b>instance:</b> {{ .Labels.instance }}
+              {{ end }}{{ if .Labels.pod }}<b>pod:</b> {{ .Labels.pod }}
+              {{ end }}
+              <b>{{ .Annotations.summary }}</b>
+              {{ if .Annotations.runbook_url }}
+              <a href="{{ .Annotations.runbook_url }}">[runbook]</a>{{ end }}
+              {{ end }}
+            priority: "0"
+            send_resolved: true
+            title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            token_file: /etc/alertmanager/secrets/pushover-creds/token
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else
+              }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+            url_title: Open dashboard
+            user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+        route:
+          group_by:
+          - namespace
+          - alertname
+          group_interval: 5m
+          group_wait: 30s
+          receiver: pushover-warning
+          repeat_interval: 4h
+          routes:
+          - matchers:
+            - alertname = "Watchdog"
+            receiver: "null"
+          - matchers:
+            - alertname = "InfoInhibitor"
+            receiver: "null"
+          - continue: false
+            group_wait: 10s
+            matchers:
+            - severity = "critical"
+            receiver: pushover-critical
+            repeat_interval: 1h
+          - matchers:
+            - severity = "warning"
+            receiver: pushover-warning
+            repeat_interval: 4h
+          - matchers:
+            - severity = "info"
+            receiver: "null"
+        templates:
+        - /etc/alertmanager/config/*.tmpl
+      enabled: true
+      fullnameOverride: alertmanager
+    coreDns:
+      enabled: true
+    defaultRules:
+      create: true
+      rules:
+        alertmanager: true
+        configReloaders: true
+        etcd: true
+        general: true
+        k8s: true
+        kubeApiserverAvailability: true
+        kubeApiserverBurnrate: true
+        kubeApiserverHistogram: true
+        kubeApiserverSlos: true
+        kubePrometheusGeneral: true
+        kubePrometheusNodeRecording: true
+        kubeProxy: true
+        kubeScheduler: true
+        kubeStateMetrics: true
+        kubelet: true
+        kubernetesApps: true
+        kubernetesResources: true
+        kubernetesStorage: true
+        kubernetesSystem: true
+        network: true
+        node: true
+        nodeExporterAlerting: true
+        nodeExporterRecording: true
+        prometheus: true
+        prometheusOperator: true
+    fullnameOverride: prometheus
+    grafana:
+      admin:
+        existingSecret: grafana-admin-credentials
+        passwordKey: admin-password
+        userKey: admin-user
+      defaultDashboardsEnabled: true
+      defaultDashboardsTimezone: utc
+      enabled: true
+      forceDeployDashboards: false
+      forceDeployDatasources: false
+      fullnameOverride: grafana
+      image:
+        tag: 12.4.3
+      persistence:
+        accessModes:
+        - ReadWriteMany
+        enabled: true
+        finalizers:
+        - kubernetes.io/pvc-protection
+        size: 10Gi
+        storageClassName: monitoring
+        type: sts
+        volumeName: grafana-pv
+      serviceMonitor:
+        enabled: true
+    kube-state-metrics:
+      customResourceState:
+        config:
+          kind: CustomResourceStateMetrics
+          spec:
+            resources:
+            - groupVersionKind:
+                group: velero.io
+                kind: PodVolumeBackup
+                version: v1
+              labelsFromPath:
+                backup_name:
+                - metadata
+                - labels
+                - velero.io/backup-name
+                name:
+                - metadata
+                - name
+                namespace:
+                - spec
+                - pod
+                - namespace
+                node:
+                - spec
+                - node
+                pod:
+                - spec
+                - pod
+                - name
+                uploader:
+                - spec
+                - uploaderType
+                volume:
+                - spec
+                - volume
+              metricNamePrefix: velero_podvolumebackup
+              metrics:
+              - each:
+                  info:
+                    labelsFromPath:
+                      phase:
+                      - status
+                      - phase
+                      snapshot_id:
+                      - status
+                      - snapshotID
+                      storage_location:
+                      - spec
+                      - backupStorageLocation
+                  type: Info
+                help: PodVolumeBackup metadata and current phase
+                name: info
+              - each:
+                  gauge:
+                    nilIsZero: true
+                    path:
+                    - status
+                    - progress
+                    - bytesDone
+                  type: Gauge
+                help: Bytes transferred so far for this PodVolumeBackup
+                name: bytes_done
+              - each:
+                  gauge:
+                    nilIsZero: true
+                    path:
+                    - status
+                    - progress
+                    - totalBytes
+                  type: Gauge
+                help: Total bytes to transfer for this PodVolumeBackup
+                name: bytes_total
+              - each:
+                  gauge:
+                    nilIsZero: true
+                    path:
+                    - status
+                    - incrementalBytes
+                  type: Gauge
+                help: Incremental bytes written by the uploader (Kopia/Restic)
+                name: incremental_bytes
+            - groupVersionKind:
+                group: velero.io
+                kind: Backup
+                version: v1
+              labelsFromPath:
+                name:
+                - metadata
+                - name
+                schedule:
+                - metadata
+                - labels
+                - velero.io/schedule-name
+                storage_location:
+                - spec
+                - storageLocation
+              metricNamePrefix: velero_backup_cr
+              metrics:
+              - each:
+                  info:
+                    labelsFromPath:
+                      phase:
+                      - status
+                      - phase
+                  type: Info
+                help: Backup metadata and current phase
+                name: info
+              - each:
+                  gauge:
+                    nilIsZero: true
+                    path:
+                    - status
+                    - progress
+                    - itemsBackedUp
+                  type: Gauge
+                help: Items successfully backed up in this Backup
+                name: items_backed_up
+              - each:
+                  gauge:
+                    nilIsZero: true
+                    path:
+                    - status
+                    - progress
+                    - totalItems
+                  type: Gauge
+                help: Total items targeted by this Backup
+                name: items_total
+        enabled: true
+      fullnameOverride: kube-state-metrics
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+          - action: replace
+            regex: (.*)
+            replacement: $1
+            sourceLabels:
+            - __meta_kubernetes_pod_node_name
+            targetLabel: kubernetes_node
+      rbac:
+        extraRules:
+        - apiGroups:
+          - velero.io
+          resources:
+          - backups
+          - podvolumebackups
+          - restores
+          - schedules
+          verbs:
+          - list
+          - watch
+      selfMonitor:
+        enabled: true
+    kubeApiServer:
+      enabled: true
+    kubeControllerManager:
+      enabled: false
+    kubeDns:
+      enabled: false
+    kubeEtcd:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeStateMetrics:
+      enabled: true
+    kubelet:
+      enabled: true
+      serviceMonitor:
+        metricRelabelings:
+        - action: replace
+          sourceLabels:
+          - node
+          targetLabel: instance
+    nodeExporter:
+      enabled: true
+      serviceMonitor:
+        relabelings:
+        - action: replace
+          regex: (.*)
+          replacement: $1
+          sourceLabels:
+          - __meta_kubernetes_pod_node_name
+          targetLabel: kubernetes_node
+    prometheus:
+      enabled: true
+      prometheusSpec:
+        additionalScrapeConfigs:
+        - job_name: proxmox
+          metrics_path: /pve
+          static_configs:
+          - targets:
+            - __PVE1-IP__:9221
+        replicas: 1
+        storageSpec:
+          volumeClaimTemplate:
+            metadata:
+              name: prometheus-pvc
+            spec:
+              accessModes:
+              - ReadWriteMany
+              resources:
+                requests:
+                  storage: 50Gi
+              storageClassName: monitoring
+              volumeName: prometheus-pv
+    prometheus-node-exporter:
+      extraArgs:
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+      - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+      fullnameOverride: node-exporter
+      podLabels:
+        jobLabel: node-exporter
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+          - action: replace
+            regex: (.*)
+            replacement: $1
+            sourceLabels:
+            - __meta_kubernetes_pod_node_name
+            targetLabel: kubernetes_node
+      resources:
+        limits:
+          memory: 2048Mi
+        requests:
+          cpu: 250m
+          memory: 512Mi
+      service:
+        portName: http-metrics
+    prometheusOperator:
+      enabled: true
+      prometheusConfigReloader:
+        resources:
+          limits:
+            memory: 100Mi
+          requests:
+            cpu: 200m
+            memory: 50Mi
+    thanosRuler:
+      enabled: false

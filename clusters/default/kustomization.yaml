@@ -319,6 +319,18 @@ resources:
   # the buildx driver's default; namespace move is a follow-up if desired.
   - k3s-builder/deployment.yaml
 
+  # JT-34 — adopt kube-prometheus-stack (monitoring ns) into Flux. Was kubectl-applied
+  # via `helm install` (rev 24, chart kube-prometheus-stack-69.3.1, appVersion v0.80.0).
+  # Adoption is in place: helm-controller takes ownership of the existing release
+  # because releaseName (`prometheus`) + targetNamespace (`monitoring`) + chart
+  # version + values all match. Values mirror `helm get values prometheus -n monitoring`
+  # verbatim — Alertmanager Pushover routing, Velero CR custom-resource-state metrics,
+  # Grafana persistence pinned to grafana-pv. Static PVs (alertmanager-pv, grafana-pv,
+  # prometheus-pv) and Secrets (grafana-admin-credentials, pushover-creds) stay
+  # kubectl-managed — out of scope. CRDs use CreateReplace policy (cert-manager pattern).
+  - monitoring/kube-prometheus-stack/helmrepository.yaml
+  - monitoring/kube-prometheus-stack/helmrelease.yaml
+
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 

@@ -237,6 +237,7 @@ resources:
   - monitoring/speedtest-exporter/deployment.yaml
   - monitoring/speedtest-exporter/service.yaml
   - monitoring/speedtest-exporter/servicemonitor.yaml
+  - monitoring/speedtest-exporter/grafana-dashboard-cm.yaml
 
   # MinIO — self-hosted S3-compatible store on NAS NFS PV. Backs Nextcloud
   # primary storage; will host buckets for other apps as needed. Synology

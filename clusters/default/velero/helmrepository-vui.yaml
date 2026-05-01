@@ -1,0 +1,11 @@
+# Seriohub Velero-UI Helm chart repository — source for the vui release
+# (JT-37 adoption). The base URL is https://seriohub.github.io/velero-helm
+# (NO trailing /index.yaml — Flux source-controller appends index.yaml itself).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: vui
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://seriohub.github.io/velero-helm

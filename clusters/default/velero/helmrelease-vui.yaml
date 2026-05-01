@@ -1,0 +1,85 @@
+# vui — adopting an existing kubectl-applied Helm release (rev 4, chart vui-1.0.6,
+# seriohub Velero-UI chart, JT-37). Flux helm-controller adopts in place when
+# releaseName + targetNamespace + chart version + values match. Values mirror
+# `helm get values vui -n velero` exactly. Notable details:
+#   - apiService.deployment carries inline volumes/volumeMounts that reference
+#     ConfigMap `vui-api-repo-schema-patch` (kubectl-managed schema bug workaround
+#     — NOT created here, NOT touched).
+#   - watchdogService.enabled: false  -> chart does not render the watchdog Deployment.
+#   - coreService / natsService disabled -> only api + ui run.
+#   - exposure.clusterIP.localAddress: velero-ui.__BASE-DOMAIN__  -> the chart's
+#     internal config tells the UI/API what host it's reachable as. The actual
+#     IngressRoute that publishes velero-ui.__BASE-DOMAIN__ is independent (Flux-managed
+#     elsewhere as `velero-ui.yaml` already in clusters/default/kustomization.yaml).
+# vui chart ships NO CRDs -> install/upgrade omit `crds: CreateReplace`.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: vui
+  namespace: velero
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: vui
+      version: "1.0.6"  # pin EXACT — match running release rev 4 (appVersion 0.4.1)
+      sourceRef:
+        kind: HelmRepository
+        name: vui
+        namespace: flux-system
+      interval: 24h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    apiService:
+      deployment:
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        volumeMounts:
+          - mountPath: /app/models/k8s/repo.py
+            name: repo-schema-patch
+            readOnly: true
+            subPath: repo.py
+        volumes:
+          - configMap:
+              items:
+                - key: repo.py
+                  path: repo.py
+              name: vui-api-repo-schema-patch
+            name: repo-schema-patch
+    coreService:
+      enabled: false
+    exposure:
+      clusterIP:
+        localAddress: velero-ui.__BASE-DOMAIN__
+        protocol: https
+        wsProtocol: wss
+      mode: clusterIP
+    global:
+      agentMode: false
+      clusterName: homelab
+      core: false
+      k8SInclusterMode: true
+      veleroNamespace: velero
+    natsService:
+      enabled: false
+    uiService:
+      deployment:
+        resources:
+          limits:
+            cpu: 300m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+    watchdogService:
+      enabled: false

@@ -1,0 +1,11 @@
+# VMware Tanzu Velero Helm chart repository — source for the velero release
+# (JT-37 adoption). Lives in flux-system ns alongside jetstack / grafana /
+# csi-driver-nfs / vui so chart bumps stay one-line edits in helmrelease-velero.yaml.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: velero
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://vmware-tanzu.github.io/helm-charts

@@ -279,6 +279,20 @@ resources:
   - csi-nfs-driver/helmrepository.yaml
   - csi-nfs-driver/helmrelease.yaml
 
+  # JT-37 — adopt velero + vui (velero ns) into Flux. Two HelmRepositories +
+  # two HelmReleases. Adoption is in place: helm-controller takes ownership of
+  # the existing releases (velero rev 2 chart velero-12.0.0; vui rev 4 chart
+  # vui-1.0.6) because releaseName + targetNamespace + chart version + values
+  # all match. External dependencies stay kubectl-managed — out of scope:
+  #   - Secret  velero/velero-wasabi-creds         (Wasabi cloud creds)
+  #   - CM      velero/vui-api-repo-schema-patch   (vui-api schema bug workaround)
+  # BSL `wasabi` (CR-based, Available), Schedules, Backups, Restores, kopia
+  # maintenance Jobs all stay as-is.
+  - velero/helmrepository-velero.yaml
+  - velero/helmrepository-vui.yaml
+  - velero/helmrelease-velero.yaml
+  - velero/helmrelease-vui.yaml
+
   # JT-39 — adopt kube-vip (kube-system) into Flux. Was kubectl-applied as plain
   # manifests (Deployment kube-vip-cloud-provider + DaemonSet kube-vip-ds + RBAC
   # + ConfigMap kubevip). Adoption is byte-faithful capture of the running spec

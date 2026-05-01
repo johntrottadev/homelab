@@ -1,0 +1,97 @@
+# velero — adopting an existing kubectl-applied Helm release (rev 2, chart velero-12.0.0,
+# vmware-tanzu chart, JT-37). Flux helm-controller adopts in place when releaseName +
+# targetNamespace + chart version + values match the existing release. Values mirror
+# `helm get values velero -n velero` exactly — type-sensitive entries:
+#   - configuration.backupStorageLocation[0].config.s3ForcePathStyle: "true"   (STRING)
+#   - configuration.volumeSnapshotLocation: []                                  (empty list)
+#   - schedules: {}                                                             (empty map)
+# External dependencies (NOT created here, NOT touched):
+#   - Secret  velero/velero-wasabi-creds       (Wasabi cloud credentials)
+#   - BSL     velero/wasabi                    (already CR-based, Available)
+# Schedules / Backups / Restores stay kubectl-managed — out of scope for JT-37.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: velero
+  namespace: velero
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: velero
+      version: "12.0.0"  # pin EXACT — match running release rev 2 (appVersion 1.18.0)
+      sourceRef:
+        kind: HelmRepository
+        name: velero
+        namespace: flux-system
+      interval: 24h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    cleanUpCRDs: false
+    configuration:
+      backupStorageLocation:
+        - bucket: __WASABI-BUCKET__
+          config:
+            region: us-east-1
+            s3ForcePathStyle: "true"
+            s3Url: https://__WASABI-ENDPOINT__
+          default: true
+          name: wasabi
+          prefix: velero
+          provider: aws
+      defaultBackupTTL: 720h
+      defaultVolumesToFsBackup: true
+      uploaderType: kopia
+      volumeSnapshotLocation: []
+    credentials:
+      existingSecret: velero-wasabi-creds
+      useSecret: true
+    deployNodeAgent: true
+    image:
+      pullPolicy: IfNotPresent
+      repository: velero/velero
+    initContainers:
+      - image: velero/velero-plugin-for-aws:v1.12.0
+        imagePullPolicy: IfNotPresent
+        name: velero-plugin-for-aws
+        volumeMounts:
+          - mountPath: /target
+            name: plugins
+    metrics:
+      enabled: true
+      scrapeInterval: 30s
+      serviceMonitor:
+        additionalLabels:
+          release: prometheus
+        enabled: true
+        namespace: monitoring
+    nodeAgent:
+      podVolumePath: /var/lib/kubelet/pods
+      privileged: false
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 256Mi
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 200m
+        memory: 256Mi
+    schedules: {}
+    upgradeCRDs: false

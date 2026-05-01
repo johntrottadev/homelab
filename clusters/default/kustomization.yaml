@@ -230,6 +230,14 @@ resources:
   - monitoring/snmp-exporter/deployment.yaml
   - monitoring/snmp-exporter/service.yaml
 
+  # speedtest-exporter — Ookla CLI Prometheus exporter. Hourly scrape via
+  # ServiceMonitor (Flux-managed unlike the older backup-host/pihole exporters,
+  # because there's no historical kubectl-applied SM to preserve).
+  # Pairs with grafana.com dashboard 13665.
+  - monitoring/speedtest-exporter/deployment.yaml
+  - monitoring/speedtest-exporter/service.yaml
+  - monitoring/speedtest-exporter/servicemonitor.yaml
+
   # MinIO — self-hosted S3-compatible store on NAS NFS PV. Backs Nextcloud
   # primary storage; will host buckets for other apps as needed. Synology
   # Hyper Backup catches /volume1/kub/minio nightly to Wasabi for DR.

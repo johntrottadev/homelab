@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: speedtest-exporter
+  namespace: monitoring
+  labels:
+    # `release: prometheus` is what kube-prometheus-stack's ServiceMonitor
+    # selector matches; keeps the same convention as backup-host/pihole exporters.
+    release: prometheus
+spec:
+  endpoints:
+    # Speedtests saturate the WAN — scrape hourly, generous timeout for the
+    # ~30s Ookla CLI run + cache miss path.
+    - interval: 1h
+      scrapeTimeout: 90s
+      path: /metrics
+      port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: speedtest-exporter

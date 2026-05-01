@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speedtest-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: speedtest-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: speedtest-exporter
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: speedtest-exporter
+    spec:
+      containers:
+        - name: speedtest-exporter
+          image: miguelndecarvalho/speedtest-exporter:3.5.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 9798
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              # Ookla CLI peaks during the ~30s test window.
+              cpu: 1000m
+              memory: 512Mi

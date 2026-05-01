@@ -272,6 +272,24 @@ resources:
   - csi-nfs-driver/helmrepository.yaml
   - csi-nfs-driver/helmrelease.yaml
 
+  # JT-39 — adopt kube-vip (kube-system) into Flux. Was kubectl-applied as plain
+  # manifests (Deployment kube-vip-cloud-provider + DaemonSet kube-vip-ds + RBAC
+  # + ConfigMap kubevip). Adoption is byte-faithful capture of the running spec
+  # so that on first reconcile, kustomize-controller takes ownership via SSA
+  # without mutating the spec — zero pod churn, no VIP flap on __K3S-VIP__.
+  # K3s does NOT auto-re-apply kube-vip (no kube-vip*.yaml in /var/lib/rancher/k3s/server/manifests/),
+  # so adoption is safe with parent Kustomization prune=false.
+  # StorageClasses on the cluster stay kubectl-managed — out of scope.
+  - kube-vip/serviceaccount-kube-vip.yaml
+  - kube-vip/serviceaccount-kube-vip-cloud-controller.yaml
+  - kube-vip/clusterrole-kube-vip.yaml
+  - kube-vip/clusterrole-kube-vip-cloud-controller.yaml
+  - kube-vip/clusterrolebinding-kube-vip.yaml
+  - kube-vip/clusterrolebinding-kube-vip-cloud-controller.yaml
+  - kube-vip/configmap-kubevip.yaml
+  - kube-vip/deployment-cloud-provider.yaml
+  - kube-vip/daemonset.yaml
+
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 

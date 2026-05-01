@@ -1,0 +1,13 @@
+# Captured 2026-04-30 from live cluster (kube-system) — JT-39 flux adoption.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kube-vip-cloud-controller-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-vip-cloud-controller-role
+subjects:
+- kind: ServiceAccount
+  name: kube-vip-cloud-controller
+  namespace: kube-system

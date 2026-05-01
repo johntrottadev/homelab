@@ -1,0 +1,62 @@
+# Captured 2026-04-30 from live cluster (kube-system) — JT-39 flux adoption.
+# Deployment kube-vip-cloud-provider runs the IPAM controller for kube-vip;
+# reads CIDR pool from ConfigMap kubevip.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-vip-cloud-provider
+  namespace: kube-system
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kube-vip
+      component: kube-vip-cloud-provider
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: kube-vip
+        component: kube-vip-cloud-provider
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+            weight: 10
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+            weight: 10
+      containers:
+      - command:
+        - /kube-vip-cloud-provider
+        - --leader-elect-resource-name=kube-vip-cloud-controller
+        image: ghcr.io/kube-vip/kube-vip-cloud-provider:v0.0.12
+        imagePullPolicy: Always
+        name: kube-vip-cloud-provider
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: kube-vip-cloud-controller
+      serviceAccountName: kube-vip-cloud-controller
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane

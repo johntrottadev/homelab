@@ -1,0 +1,8 @@
+# Captured 2026-04-30 from live cluster (kube-system) — JT-39 flux adoption.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubevip
+  namespace: kube-system
+data:
+  range-global: __K3S-VIP__-__LAN-IP__

@@ -13,14 +13,14 @@
 
 services:
   maltrail-sensor:
-    image: stamparm/maltrail:latest
+    image: tomdesinto/maltrail:latest
     container_name: maltrail-sensor
     restart: unless-stopped
     network_mode: host
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    command: python3 sensor.py
+    command: python /maltrail/sensor.py
     volumes:
       # Shared log dir written by sensor, read by server.
       - /var/lib/maltrail:/var/log/maltrail
@@ -28,14 +28,14 @@ services:
       - /mnt/kub/homelab/maltrail/maltrail.conf:/opt/maltrail/maltrail.conf:ro
 
   maltrail-server:
-    image: stamparm/maltrail:latest
+    image: tomdesinto/maltrail:latest
     container_name: maltrail-server
     restart: unless-stopped
     depends_on:
       - maltrail-sensor
     ports:
       - "8338:8338"
-    command: python3 server.py
+    command: python /maltrail/server.py
     volumes:
       - /var/lib/maltrail:/var/log/maltrail
       - /mnt/kub/homelab/maltrail/maltrail.conf:/opt/maltrail/maltrail.conf:ro

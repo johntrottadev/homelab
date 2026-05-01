@@ -53,6 +53,12 @@ endpoints:
       serving: true
       terminating: false
   - addresses:
+      - __LAN-IP__   # k3s-7
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  - addresses:
       - __LAN-IP__   # docker-1 (its own Netdata via docker-1/netdata/compose.yaml)
     conditions:
       ready: true

@@ -20,9 +20,20 @@ services:
     container_name: cryptpad
     hostname: cryptpad
     restart: unless-stopped
+    # CIFS mount on docker-1 forceuid/forcegid to 1000:1000 with mode 0755 —
+    # the image's default user (uid 4001) can't write to the data tree.
+    # Run as 1000:1000 to match the bind-mount's effective ownership.
+    user: "1000:1000"
     ports:
       - "3000:3000"
     environment:
+      # CPAD_CONF is REQUIRED — the docker-entrypoint.sh `[ ! -f "$CPAD_CONF" ]`
+      # check uses this var, and an empty value makes the test always-true,
+      # entering the broken `cp ... "$CPAD_CONF"` branch. Setting it to the
+      # bind-mounted path makes the test fail-fast (file exists) and skip
+      # the auto-generation entirely. CPAD_MAIN_DOMAIN/SANDBOX_DOMAIN are
+      # only consulted in that disabled branch but kept for clarity.
+      - CPAD_CONF=/cryptpad/config/config.js
       - CPAD_MAIN_DOMAIN=https://cryptpad.__BASE-DOMAIN__
       - CPAD_SANDBOX_DOMAIN=https://cryptpad-sandbox.__BASE-DOMAIN__
       - TZ=America/New_York

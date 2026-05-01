@@ -28,10 +28,13 @@ services:
     volumes:
       # Live site data — docker-1 local SSD (fast, no NFS quirks).
       - /var/lib/checkmk-data/sites:/omd/sites
+    # NO `tmpfs: /run` — replacing /run with empty tmpfs wipes the image's
+    # pre-baked /run/lock/mkbackup that omd's first-run setup expects to
+    # exist (FileNotFoundError otherwise). Default Docker /run from the
+    # image works fine. Only /tmp gets tmpfs.
     tmpfs:
-      - /run
       - /tmp
-    # The image embeds systemd; needs privileged + tmpfs above.
+    # The image embeds systemd; needs privileged.
     privileged: true
     ulimits:
       nofile:

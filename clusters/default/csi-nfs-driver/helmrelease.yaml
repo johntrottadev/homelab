@@ -1,0 +1,32 @@
+# csi-driver-nfs — adopting an existing kubectl-applied Helm release (rev 1, chart 4.11.0).
+# Flux helm-controller adopts in place when releaseName + targetNamespace + chart
+# version + values match the existing release. The single user-supplied value
+# (controller.replicas: 1) is mirrored exactly; all other settings are chart defaults.
+# StorageClasses (jellyfin, monitoring, storage, storage-db) stay kubectl-managed — out of scope for JT-38.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: csi-driver-nfs
+  namespace: kube-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: csi-driver-nfs
+      version: "4.11.0"  # pin EXACT for reproducibility — match running release
+      sourceRef:
+        kind: HelmRepository
+        name: csi-driver-nfs
+        namespace: flux-system
+      interval: 24h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    controller:
+      replicas: 1

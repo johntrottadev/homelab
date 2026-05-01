@@ -1,0 +1,11 @@
+# CSI NFS driver Helm chart repository (raw GitHub charts dir, upstream-canonical).
+# Lives in flux-system ns alongside the `grafana` HelmRepository so any future
+# csi-driver-nfs version bump is a single-line change in the HelmRelease.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: csi-driver-nfs
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/charts

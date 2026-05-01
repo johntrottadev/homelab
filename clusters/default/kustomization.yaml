@@ -262,6 +262,15 @@ resources:
   - loki/loki-helmrelease.yaml
   - loki/promtail-helmrelease.yaml
   - loki/grafana-datasource-configmap.yaml
+
+  # JT-38 — adopt csi-driver-nfs (kube-system) into Flux. Was kubectl-applied via
+  # `helm install` (rev 1, chart 4.11.0, single override controller.replicas: 1).
+  # Adoption is in place: helm-controller takes ownership of the existing release
+  # because releaseName + targetNamespace + chart version + values all match.
+  # StorageClasses (jellyfin, monitoring, storage, storage-db) stay kubectl-managed — out of scope.
+  - csi-nfs-driver/helmrepository.yaml
+  - csi-nfs-driver/helmrelease.yaml
+
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 

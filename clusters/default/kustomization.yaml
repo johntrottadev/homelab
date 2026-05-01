@@ -233,6 +233,7 @@ resources:
   - minio/deployment.yaml
   - minio/service.yaml
   - minio/ingressroute.yaml
+  - minio/replicate-cronjob.yaml
 
   # Nextcloud — primary object storage migrated from Wasabi to MinIO above.
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for safety.

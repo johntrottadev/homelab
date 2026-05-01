@@ -179,12 +179,15 @@ services:
   nginx:
     image: registry.community.greenbone.net/community/nginx:latest
     ports:
-      # jt-lab customization: upstream binds localhost-only on docker-1; we
-      # need the LAN-facing port so the Traefik EndpointSlice
-      # (clusters/default/openvas.yaml → __LAN-IP__:9392) can reach it.
-      # 443 stays localhost-only — Traefik does TLS at the edge.
-      - 127.0.0.1:443:443
-      - "9392:9392"
+      # jt-lab customization: upstream binds 443+9392 to localhost only.
+      # 9392 is just a 301-redirector that returns Location: https://$host:443/,
+      # so proxying through it from Traefik creates an infinite redirect.
+      # Real app lives on 443 (TLS, self-signed). Expose that as :9443 on
+      # docker-1's LAN interface; the Traefik bundle (clusters/default/
+      # openvas.yaml) proxies it as scheme: https + lan-self-signed.
+      # 9392 stays localhost-only.
+      - 127.0.0.1:9392:9392
+      - "9443:443"
     volumes:
       - nginx_config_vol:/etc/nginx/conf.d:ro
       - nginx_certificates_vol:/etc/nginx/certs:ro

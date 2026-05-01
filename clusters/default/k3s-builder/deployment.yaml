@@ -1,0 +1,61 @@
+# JT-41 — k3s-builder0 BuildKit pool for `docker buildx --driver kubernetes`.
+# Originally created out-of-band by `docker buildx create --driver kubernetes --name k3s-builder`
+# (default ns is the buildx-driver default, not chosen here). Adopted into Flux via
+# byte-faithful SSA — same pattern as JT-39 kube-vip. Future builds can target the
+# same pod via `docker buildx use k3s-builder` (no-op for ongoing buildx sessions).
+#
+# Privileged: required by buildkitd to mount overlayfs / mknod for the build sandbox.
+# `--allow-insecure-entitlement=network.host` lets builds use host-network for fetching
+# private registries / network-restricted RUN commands during image build.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k3s-builder0
+  namespace: default
+  labels:
+    app: k3s-builder0
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: k3s-builder0
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: k3s-builder0
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      securityContext: {}
+      containers:
+        - name: buildkitd
+          image: moby/buildkit:buildx-stable-1
+          imagePullPolicy: IfNotPresent
+          args:
+            - --allow-insecure-entitlement=network.host
+          securityContext:
+            privileged: true
+          readinessProbe:
+            exec:
+              command:
+                - buildctl
+                - debug
+                - workers
+            failureThreshold: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File

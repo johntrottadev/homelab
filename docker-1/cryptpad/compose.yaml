@@ -1,0 +1,37 @@
+# CryptPad single-container stack on docker-1.
+# Komodo polls this file (see /Volumes/code/homelab/docker-1/README.md);
+# stack name in Komodo: `cryptpad` with project_name: `cryptpad`.
+#
+# Why docker-1 vs k3s: the entrypoint's auto-config check
+# (`[ ! -e $CRYPTPAD_CONFIG/config.js ]`) failed on every k8s mount shape
+# I tried — ConfigMap-subPath, ConfigMap-full-dir, init-container-to-PVC.
+# Plain Docker bind-mounts the file straight from disk and the entrypoint
+# is happy. Same reasoning as Wazuh and CheckMk.
+#
+# Two-origin model:
+#   https://cryptpad.__BASE-DOMAIN__          — main / "unsafe" origin
+#   https://cryptpad-sandbox.__BASE-DOMAIN__  — sandboxed iframe origin
+# Both Host() matches in clusters/default/cryptpad.yaml route to the same
+# backend Service which points at this docker-1:3000 endpoint.
+
+services:
+  cryptpad:
+    image: cryptpad/cryptpad:version-2026.2.2
+    container_name: cryptpad
+    hostname: cryptpad
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - CPAD_MAIN_DOMAIN=https://cryptpad.__BASE-DOMAIN__
+      - CPAD_SANDBOX_DOMAIN=https://cryptpad-sandbox.__BASE-DOMAIN__
+      - TZ=America/New_York
+    volumes:
+      # Hand-written config.js seeded by the operator (see
+      # /mnt/kub/homelab/cryptpad/config/config.js on the NAS).
+      - /mnt/kub/homelab/cryptpad/config/config.js:/cryptpad/config/config.js:ro
+      # Persistent state on NAS (small writes, ok for NFS/CIFS).
+      - /mnt/kub/homelab/cryptpad/data:/cryptpad/data
+      - /mnt/kub/homelab/cryptpad/blob:/cryptpad/blob
+      - /mnt/kub/homelab/cryptpad/block:/cryptpad/block
+      - /mnt/kub/homelab/cryptpad/customize:/cryptpad/customize

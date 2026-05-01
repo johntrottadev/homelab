@@ -1,0 +1,39 @@
+# CheckMk Raw Edition single-container stack on docker-1.
+# Komodo polls this file (see /Volumes/code/homelab/docker-1/README.md);
+# stack name in Komodo: `checkmk` with project_name: `checkmk`.
+#
+# Why docker-1 vs k3s: image embeds systemd + does sed on internal config
+# files at first run. The sed expressions reference paths that get tripped
+# by k8s NFS PV ownership (Errno 13 on /omd/sites/cmk/etc/environment) and
+# by an emptyDir tmpfs missing /run/lock at startup. Plain Docker's
+# `--tmpfs /run` and local SSD avoid both classes of pain. Same reasoning
+# as Wazuh.
+#
+# State: live site data on docker-1 SSD at /var/lib/checkmk-data/sites for
+#        write throughput; cold config on the NAS at
+#        /mnt/kub/homelab/checkmk/. (Mirrors the wazuh hot/cold split.)
+
+services:
+  checkmk:
+    image: checkmk/check-mk-raw:2.3.0p20
+    container_name: checkmk
+    hostname: checkmk
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - CMK_SITE_ID=cmk
+      - CMK_PASSWORD=cmkadmin
+      - TZ=America/New_York
+    volumes:
+      # Live site data — docker-1 local SSD (fast, no NFS quirks).
+      - /var/lib/checkmk-data/sites:/omd/sites
+    tmpfs:
+      - /run
+      - /tmp
+    # The image embeds systemd; needs privileged + tmpfs above.
+    privileged: true
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535

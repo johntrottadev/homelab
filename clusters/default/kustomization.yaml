@@ -343,27 +343,15 @@ resources:
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 
-  # Wave 1 of new-app deploy (drawio / checkmk / cryptpad / firefly).
-  # All k8s-native; firefly's Secret is paloarp (kubectl-applied out-of-band).
+  # Wave 1 of new-app deploy.
+  #   - drawio + firefly run as native k3s deployments
+  #   - checkmk + cryptpad run as docker-compose stacks on docker-1 (Komodo
+  #     polls docker-1/<svc>/compose.yaml). Their cluster footprint is just
+  #     the external-IP-backend bundle in checkmk.yaml / cryptpad.yaml.
   - drawio/namespace.yaml
   - drawio/deployment.yaml
   - drawio/service.yaml
   - drawio/ingressroute.yaml
-
-  - checkmk/namespace.yaml
-  - checkmk/pv.yaml
-  - checkmk/pvc.yaml
-  - checkmk/deployment.yaml
-  - checkmk/service.yaml
-  - checkmk/ingressroute.yaml
-
-  - cryptpad/namespace.yaml
-  - cryptpad/pv.yaml
-  - cryptpad/pvc.yaml
-  - cryptpad/configmap.yaml
-  - cryptpad/deployment.yaml
-  - cryptpad/service.yaml
-  - cryptpad/ingressroute.yaml
 
   - firefly/namespace.yaml
   - firefly/postgres-pv.yaml
@@ -394,6 +382,8 @@ resources:
   - wazuh-dashboard-ca-secret.yaml  # Wazuh internal root CA (public cert) trusted by wazuh-trusted ServersTransport
   - wazuh-serverstransport.yaml     # Wazuh-specific ServersTransport (rootCAs + serverName, no insecureSkipVerify)
   - wazuh.yaml            # docker-1:5601 (HTTPS upstream, wazuh-trusted) — first docker-1-backed external-IP HTTPS bundle with proper CA verification
+  - checkmk.yaml          # docker-1:5000 — checkmk Raw via Komodo (docker-1/checkmk/compose.yaml)
+  - cryptpad.yaml         # docker-1:3000 — cryptpad via Komodo (docker-1/cryptpad/compose.yaml); main + sandbox hosts to same Service
 
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a

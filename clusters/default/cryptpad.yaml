@@ -1,0 +1,51 @@
+# External-IP-backend bundle for cryptpad on docker-1:3000.
+# Single Service backs both hostnames per CryptPad's two-origin security
+# model (main + sandbox MUST be different DNS names but share one backend).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-cryptpad
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-cryptpad-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-cryptpad
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 3000
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cryptpad-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`cryptpad.__BASE-DOMAIN__`) || Host(`cryptpad-sandbox.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-cryptpad
+          port: 3000
+          scheme: http

@@ -25,6 +25,13 @@ resources:
   - cert-manager/cluster-issuer-staging.yaml
   - cert-manager/wildcard-jt-lab-net.yaml
   - cert-manager/wildcard-jt-lab-net-staging.yaml
+  # JT-36 — adopt cert-manager (cert-manager ns) into Flux. Was kubectl-applied via
+  # `helm install` (rev 1, chart cert-manager-v1.20.2). Adoption is in place:
+  # helm-controller takes ownership of the existing release because releaseName +
+  # targetNamespace + chart version + values all match. ClusterIssuers and wildcard
+  # Certificates above are already Flux-managed — out of scope.
+  - cert-manager/helmrepository.yaml
+  - cert-manager/helmrelease.yaml
   - traefik/tlsstore-default.yaml
   - traefik/serverstransport-lan-self-signed.yaml
 

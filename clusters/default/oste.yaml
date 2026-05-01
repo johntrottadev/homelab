@@ -8,10 +8,10 @@ metadata:
   namespace: kube-system
 spec:
   ports:
-    - name: http
+    - name: https
       protocol: TCP
-      port: 3010
-      targetPort: 3010
+      port: 6901
+      targetPort: 6901
 ---
 apiVersion: discovery.k8s.io/v1
 kind: EndpointSlice
@@ -23,9 +23,9 @@ metadata:
     endpointslice.kubernetes.io/managed-by: bastion-static
 addressType: IPv4
 ports:
-  - name: http
+  - name: https
     protocol: TCP
-    port: 3010
+    port: 6901
 endpoints:
   - addresses:
       - __LAN-IP__
@@ -47,5 +47,8 @@ spec:
       kind: Rule
       services:
         - name: ext-legacy-vm
-          port: 3010
-          scheme: http
+          port: 6901
+          # KasmVNC self-signed HTTPS upstream; reuse the cluster-wide
+          # ServersTransport that already skips verify for LAN endpoints.
+          scheme: https
+          serversTransport: lan-self-signed

@@ -1,16 +1,19 @@
-# OSTE-Meta-Scan packaged as a webtop desktop. The upstream OSTE is a
-# Tkinter GUI app (no web UI), so we wrap it in linuxserver.io's webtop
-# image (Debian XFCE + noVNC) and pre-install the scanner toolchain
-# (ZAP / Wapiti / Skipfish / Nikto / Nuclei) plus OSTE itself.
+# OSTE-Meta-Scan packaged as a Kali browser-desktop. The upstream OSTE is
+# a Tkinter GUI app (no web UI), so we wrap it in kasmweb's
+# kali-rolling-desktop (Kali Linux + KasmVNC + XFCE) and pre-install the
+# scanner toolchain (ZAP / Wapiti / Skipfish / Nikto / Nuclei) plus OSTE
+# itself.
 #
-# Browser → :3000 (noVNC HTTP) → desktop → Application Menu → OSTE.
+# Browser → :6901 HTTPS (KasmVNC self-signed) → desktop → menu →
+# OSTE Meta Scan. Traefik bundle (clusters/default/legacy-vm.yaml) uses
+# scheme: https + serversTransport: lan-self-signed to skip cert verify.
 #
 # Build context: docker-1/legacy-vm/  (Komodo runs `docker compose up -d` here).
-FROM lscr.io/linuxserver/webtop:debian-xfce
+FROM kasmweb/kali-rolling-desktop:1.16.0
 
 USER root
 
-# Scanner toolchain that OSTE wraps.
+# Kali repos already have all of these.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -22,28 +25,19 @@ RUN apt-get update \
         wapiti \
         skipfish \
         nikto \
+        nuclei \
     && rm -rf /var/lib/apt/lists/*
 
-# Nuclei is provided by ProjectDiscovery as a static binary on Debian
-# stable (apt nuclei lags). Pin to a recent release.
-RUN cd /tmp \
-    && curl -fsSLO https://github.com/projectdiscovery/nuclei/releases/download/v3.3.7/nuclei_3.3.7_linux_amd64.zip \
-    && unzip -o nuclei_3.3.7_linux_amd64.zip nuclei -d /usr/local/bin \
-    && chmod +x /usr/local/bin/nuclei \
-    && rm /tmp/nuclei_3.3.7_linux_amd64.zip
-
-# OSTE source — clone into the linuxserver /config tree so it persists
-# in the bind-mounted volume across container restarts.
+# OSTE source.
 RUN git clone --depth=1 https://github.com/OSTEsayed/OSTE-Meta-Scan.git /opt/legacy-vm \
-    && chown -R abc:abc /opt/legacy-vm
+    && chown -R 1000:1000 /opt/legacy-vm
 
-# Python deps for OSTE's GUI + scanner orchestration.
+# Python deps.
 RUN pip3 install --no-cache-dir --break-system-packages \
         -r /opt/legacy-vm/OSTEscaner/requirements.txt
 
-# Drop a desktop shortcut so the user finds it from XFCE's menu.
-RUN install -d /usr/share/applications \
-    && cat > /usr/share/applications/legacy-vm-meta-scan.desktop <<'EOF'
+# Desktop shortcut.
+RUN cat > /usr/share/applications/legacy-vm-meta-scan.desktop <<'EOF'
 [Desktop Entry]
 Name=OSTE Meta Scan
 Comment=Web vulnerability meta-scanner (ZAP / Wapiti / Skipfish / Nikto / Nuclei)
@@ -54,4 +48,4 @@ Type=Application
 Categories=Security;
 EOF
 
-USER abc
+USER 1000

@@ -1,30 +1,26 @@
-# OSTE-Meta-Scan via webtop. See Dockerfile for the OSTE story.
-# Komodo poll path: docker-1/legacy-vm/compose.yaml (project_name: legacy-vm).
+# OSTE-Meta-Scan via kasmweb/kali-rolling-desktop. See Dockerfile for the
+# OSTE story. Komodo poll path: docker-1/legacy-vm/compose.yaml (project_name: legacy-vm).
 #
-# Default access (LAN-only behind Traefik): no password, but the
-# IngressRoute terminates TLS at Traefik. Set CUSTOM_USER + PASSWORD
-# in /mnt/kub/homelab/legacy-vm/.env to force browser-side basic auth.
+# Default access: VNC_PW=changeme (rotate). KasmVNC serves HTTPS on 6901
+# with a self-signed cert; Traefik bundle uses lan-self-signed to skip
+# verify. Browser → https://legacy-vm.__BASE-DOMAIN__ → KasmVNC login → password
+# from VNC_PW.
 
 services:
   legacy-vm:
     build: .
-    image: jt-lab/legacy-vm-webtop:1.0
+    image: jt-lab/legacy-vm-kasm:1.0
     container_name: legacy-vm
     hostname: legacy-vm
     restart: unless-stopped
     ports:
-      # cryptpad already binds docker-1:3000; map OSTE webtop to 3010 instead.
-      - "3010:3000"
+      # cryptpad has docker-1:3000; map kasm 6901 to docker-1:6901 (no conflict).
+      - "6901:6901"
     environment:
-      - PUID=1000
-      - PGID=1000
+      - VNC_PW=changeme
       - TZ=America/New_York
-      - TITLE=OSTE Meta Scan
-    env_file:
-      - /mnt/kub/homelab/legacy-vm/.env
     volumes:
-      # /config is webtop's persistent home (settings, scan results, downloads).
-      - /mnt/kub/homelab/legacy-vm/config:/config
+      - /mnt/kub/homelab/legacy-vm/config:/home/kasm-user
     shm_size: "1gb"
     security_opt:
       - seccomp:unconfined

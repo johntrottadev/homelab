@@ -18,7 +18,7 @@ spec:
         app: dashy
       annotations:
         # Bump to force a rolling restart that reloads conf.yml from the NFS PV.
-        dashy.__BASE-DOMAIN__/conf-revision: "2026-05-01-1"
+        dashy.__BASE-DOMAIN__/conf-revision: "2026-05-01-2"
     spec:
       # IMPORTANT: dashy's image entrypoint requires root for first-run setup
       # (build assets into /app/dist, chown). Setting runAsUser/runAsGroup

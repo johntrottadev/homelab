@@ -19,6 +19,30 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
+      initContainers:
+        # The cryptpad image's entrypoint inspects $CRYPTPAD_CONFIG/config.js
+        # and falls back to a `cp $DEFAULT_CONFIG_OVERRIDE ...` whose source
+        # is unset by default — this fails with `cp: can't create ''`. The
+        # ConfigMap-subPath mount approach didn't satisfy the path check on
+        # 2024.6.1 / 2026.2.2 either. So we write config.js into the data
+        # PVC (under `config/`) before the main container starts and bind
+        # /cryptpad/config to that subPath. The entrypoint then sees an
+        # existing config.js and skips its broken cp branch entirely.
+        - name: bootstrap-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/config
+              cp /cm/config.js /data/config/config.js
+              chmod 644 /data/config/config.js
+              echo "wrote $(wc -c < /data/config/config.js) bytes to /data/config/config.js"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: cm
+              mountPath: /cm
       containers:
         - name: cryptpad
           image: cryptpad/cryptpad:version-2026.2.2
@@ -31,10 +55,9 @@ spec:
               containerPort: 3000
               protocol: TCP
           volumeMounts:
-            - name: config
-              mountPath: /cryptpad/config/config.js
-              subPath: config.js
-              readOnly: true
+            - name: data
+              mountPath: /cryptpad/config
+              subPath: config
             - name: data
               mountPath: /cryptpad/data
               subPath: data
@@ -70,6 +93,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: cryptpad-pvc
-        - name: config
+        - name: cm
           configMap:
             name: cryptpad-config

@@ -86,25 +86,27 @@ spec:
             # Nextcloud trust X-Forwarded-* from Traefik.
             - name: TRUSTED_PROXIES
               value: "10.42.0.0/16 10.43.0.0/16"
-            # --- Wasabi S3 as PRIMARY object storage ---
-            # Only consumed during initial install — config.php takes
-            # over after first run. Do NOT change these post-install
-            # without a deliberate migration; primary storage moves are
-            # one-way without manual data shuffling.
+            # --- MinIO (in-cluster) as PRIMARY object storage ---
+            # Migrated from Wasabi 2026-04-30: see clusters/default/minio/.
+            # Wasabi nextcloud-jt-lab bucket retained until the next
+            # confirmed Hyper Backup run, then it can be deleted.
+            # The docker-entrypoint regenerates objectstore.config.php
+            # from these env vars on every start, so changes apply on pod
+            # restart (no manual occ commands needed).
             - name: OBJECTSTORE_S3_BUCKET
-              value: nextcloud-jt-lab
+              value: nextcloud
             - name: OBJECTSTORE_S3_REGION
               value: us-east-1
             - name: OBJECTSTORE_S3_HOST
-              value: __WASABI-ENDPOINT__
+              value: minio.minio.svc.cluster.local
             - name: OBJECTSTORE_S3_PORT
-              value: "443"
+              value: "9000"
             - name: OBJECTSTORE_S3_SSL
-              value: "true"
+              value: "false"
             - name: OBJECTSTORE_S3_USEPATH_STYLE
               value: "true"
             - name: OBJECTSTORE_S3_AUTOCREATE
-              value: "true"
+              value: "false"
             - name: OBJECTSTORE_S3_KEY
               valueFrom:
                 secretKeyRef:

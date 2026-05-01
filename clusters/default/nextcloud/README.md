@@ -12,7 +12,9 @@ Flux-managed Nextcloud deployment with Wasabi S3 as primary object storage.
 | `nextcloud-postgres-backup` | `postgres:16-alpine` | NFS PV (10Gi) | Daily 02:15 UTC, 7-day retention |
 | `nextcloud-cron` | `nextcloud:30-apache` | shares `nextcloud-pvc` | `php cron.php` every 5min |
 
-User-file storage: Wasabi S3 bucket `nextcloud-jt-lab` (auto-created on first start, region `us-east-1`).
+User-file storage: in-cluster MinIO bucket `nextcloud` at `minio.minio.svc.cluster.local:9000` (plain HTTP, in-cluster only). MinIO data lives on a NAS-backed PVC; Synology Hyper Backup catches it nightly to Wasabi for offsite DR. See `clusters/default/minio/README.md` for the storage backend.
+
+Original deploy used Wasabi `nextcloud-jt-lab` directly as primary; cutover to MinIO happened on 2026-04-30 (commit `b824964`). Wasabi bucket is retained for failback until the next confirmed Hyper Backup run.
 
 Routing: `https://nextcloud.__BASE-DOMAIN__` via Traefik IngressRoute.
 

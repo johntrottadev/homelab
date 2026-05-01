@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkmk
+  namespace: checkmk
+  labels:
+    app: checkmk
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: checkmk
+  template:
+    metadata:
+      labels:
+        app: checkmk
+    spec:
+      # The official checkmk Raw image runs systemd inside the container —
+      # needs privileged + tmpfs at /run + /tmp + /sys/fs/cgroup. This is
+      # the documented Docker run shape translated to a Pod.
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: checkmk
+          image: checkmk/check-mk-raw:2.3.0-latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: CMK_SITE_ID
+              value: cmk
+            - name: CMK_LIVESTATUS_TCP
+              value: "off"
+            - name: CMK_PASSWORD
+              value: cmkadmin
+            - name: TZ
+              value: America/New_York
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          volumeMounts:
+            - name: data
+              mountPath: /omd/sites
+            - name: run
+              mountPath: /run
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /cmk/check_mk/login.py
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /cmk/check_mk/login.py
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: checkmk-pvc
+        - name: run
+          emptyDir:
+            medium: Memory
+        - name: tmp
+          emptyDir:
+            medium: Memory

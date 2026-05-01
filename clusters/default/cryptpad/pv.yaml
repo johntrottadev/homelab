@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cryptpad-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    namespace: cryptpad
+    name: cryptpad-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/homelab/cryptpad
+    readOnly: false

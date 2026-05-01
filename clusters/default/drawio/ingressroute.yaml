@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: drawio
+  namespace: drawio
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`drawio.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: drawio
+          port: 80

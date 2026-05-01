@@ -343,6 +343,38 @@ resources:
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 
+  # Wave 1 of new-app deploy (drawio / checkmk / cryptpad / firefly).
+  # All k8s-native; firefly's Secret is paloarp (kubectl-applied out-of-band).
+  - drawio/namespace.yaml
+  - drawio/deployment.yaml
+  - drawio/service.yaml
+  - drawio/ingressroute.yaml
+
+  - checkmk/namespace.yaml
+  - checkmk/pv.yaml
+  - checkmk/pvc.yaml
+  - checkmk/deployment.yaml
+  - checkmk/service.yaml
+  - checkmk/ingressroute.yaml
+
+  - cryptpad/namespace.yaml
+  - cryptpad/pv.yaml
+  - cryptpad/pvc.yaml
+  - cryptpad/deployment.yaml
+  - cryptpad/service.yaml
+  - cryptpad/ingressroute.yaml
+
+  - firefly/namespace.yaml
+  - firefly/postgres-pv.yaml
+  - firefly/postgres-pvc.yaml
+  - firefly/postgres-deployment.yaml
+  - firefly/postgres-service.yaml
+  - firefly/pv.yaml
+  - firefly/pvc.yaml
+  - firefly/deployment.yaml
+  - firefly/service.yaml
+  - firefly/ingressroute.yaml
+
   # Wave 2 — external-IP-backend bundles (Pattern 5 — Service + EndpointSlice +
   # IngressRoute, all in kube-system; ServersTransport lan-self-signed for HTTPS)
   - dns.yaml

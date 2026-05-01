@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: firefly-pv
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    namespace: firefly
+    name: firefly-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/homelab/firefly
+    readOnly: false

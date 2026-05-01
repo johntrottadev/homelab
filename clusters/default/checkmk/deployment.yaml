@@ -20,8 +20,8 @@ spec:
       # The official checkmk Raw image runs systemd inside the container —
       # needs privileged + tmpfs at /run + /tmp + /sys/fs/cgroup. This is
       # the documented Docker run shape translated to a Pod.
-      securityContext:
-        fsGroup: 1000
+      # No fsGroup — the checkmk entrypoint chowns /omd at runtime and
+      # fsGroup interferes with that on NFS-backed PVs.
       initContainers:
         # The Raw image expects /run/lock and /run/shm to exist (its embedded
         # systemd creates files inside them). Our /run emptyDir tmpfs starts
@@ -38,15 +38,13 @@ spec:
               mountPath: /run
       containers:
         - name: checkmk
-          image: checkmk/check-mk-raw:2.3.0-latest
+          image: checkmk/check-mk-raw:2.3.0p20
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
           env:
             - name: CMK_SITE_ID
               value: cmk
-            - name: CMK_LIVESTATUS_TCP
-              value: "off"
             - name: CMK_PASSWORD
               value: cmkadmin
             - name: TZ

@@ -99,9 +99,8 @@ git push origin main
 
 ## Migration of additional docker-1 services
 
-This phase delivers Wazuh + Komodo bootstrap only. Other docker-1
-containers visible at cutover (qbittorrent + gluetun) are intentionally
-deferred to a future 999.4-or-later phase per Pitfall 7 (scope creep).
+Wazuh + Komodo bootstrap landed in Phase 999.2 Wave 5.
+qbittorrent + gluetun adopted under Komodo in JT-40 (2026-04-30).
 
 When migrating each next service:
 1. Move state under `/mnt/kub/homelab/<svc>/` if not already
@@ -109,6 +108,13 @@ When migrating each next service:
    path convention" above)
 3. Add a Stack resource in Komodo UI with `project_name` matching the
    existing container set so adoption is in-place (no parallel containers)
+
+### Adopted Stacks
+
+| Stack | project_name | compose | env_file |
+|---|---|---|---|
+| `wazuh-single-node` | `single-node` | `docker-1/wazuh/compose.yaml` | `/mnt/kub/homelab/wazuh/single-node/.env` |
+| `qbittorrent` | `docker` | `docker-1/qbittorrent/compose.yaml` | `/mnt/kub/homelab/qbittorrent/.env` |
 
 ## Komodo install on docker-1
 

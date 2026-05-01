@@ -1,0 +1,66 @@
+# JT-40 — qbittorrent + gluetun stack on docker-1, Komodo-managed.
+#
+# Reconstructed from `docker inspect` of the running containers (their original
+# /code/archive/qbittorrent-stack/docker/docker-compose.yml was deleted before
+# adoption — the containers had been running for ~30h with no on-disk source).
+#
+# State already lives on NAS at /mnt/kub/homelab/qbittorrent/{gluetun,qbittorrent}/
+# from the original install — no state migration needed for adoption.
+#
+# Komodo invokes `docker compose --project-name docker --env-file ... up -d` from
+# its workspace clone. project_name MUST stay `docker` (the original directory
+# name) so Komodo adopts the existing containers in place — gluetun's container
+# ID is referenced by qbittorrent's `network_mode: container:gluetun`, so any
+# recreation must keep gluetun stable.
+#
+# Bind paths are absolute per docker-1/README.md "Bind-mount path convention".
+# Secrets (WireGuard private key + addresses) come from the NAS .env file at
+# /mnt/kub/homelab/qbittorrent/.env (mode 0600 by intent; CIFS reports 0755).
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      # qBittorrent peer ports (TCP + UDP for DHT/peer exchange).
+      - "6881:6881/tcp"
+      - "6881:6881/udp"
+      # qBittorrent Web UI — qbittorrent itself listens on this port inside
+      # gluetun's network namespace (network_mode: container:gluetun below).
+      - "8085:8085/tcp"
+    volumes:
+      - /mnt/kub/homelab/qbittorrent/gluetun:/gluetun
+    environment:
+      VPN_SERVICE_PROVIDER: ${VPN_SERVICE_PROVIDER}
+      VPN_TYPE: ${VPN_TYPE}
+      WIREGUARD_PRIVATE_KEY: ${WIREGUARD_PRIVATE_KEY}
+      WIREGUARD_ADDRESSES: ${WIREGUARD_ADDRESSES}
+      SERVER_CITIES: ${SERVER_CITIES}
+      DNS_ADDRESS: ${DNS_ADDRESS}
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    # All network traffic (peer + Web UI) routes through gluetun's network
+    # namespace. qbittorrent has no ports of its own — they're published on
+    # gluetun above. depends_on ensures gluetun starts first; without it,
+    # qbittorrent fails immediately because the container network isn't ready.
+    network_mode: "container:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      WEBUI_PORT: ${WEBUI_PORT}
+    volumes:
+      - /mnt/kub/homelab/qbittorrent/qbittorrent:/config
+      # Downloads directory — currently a host bind on docker-1 (not NAS-backed
+      # for performance; movies share lives at /mnt/storage/media/movies, which is
+      # a separate mount on docker-1, NOT the same as the homelab NAS share).
+      - /mnt/storage/media/movies:/downloads
+    restart: unless-stopped

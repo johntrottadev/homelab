@@ -326,6 +326,7 @@ resources:
   # IngressRoute, all in kube-system; ServersTransport lan-self-signed for HTTPS)
   - dns.yaml
   - dns2.yaml
+  - komodo.yaml           # docker-1:9120 Komodo Core UI (HTTP upstream, JT-40 follow-up)
   - pa.yaml
   - backup-host.yaml
   - __PVE-NODE-1__.yaml

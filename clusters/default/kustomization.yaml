@@ -360,6 +360,7 @@ resources:
   - cryptpad/namespace.yaml
   - cryptpad/pv.yaml
   - cryptpad/pvc.yaml
+  - cryptpad/configmap.yaml
   - cryptpad/deployment.yaml
   - cryptpad/service.yaml
   - cryptpad/ingressroute.yaml

@@ -22,6 +22,20 @@ spec:
       # the documented Docker run shape translated to a Pod.
       securityContext:
         fsGroup: 1000
+      initContainers:
+        # The Raw image expects /run/lock and /run/shm to exist (its embedded
+        # systemd creates files inside them). Our /run emptyDir tmpfs starts
+        # empty, so omd's first-run setup explodes on FileNotFoundError. Pre-
+        # create them with sticky+world-write to mirror a normal /run/lock.
+        - name: prep-run
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - mkdir -p /run/lock /run/shm && chmod 1777 /run/lock /run/shm
+          volumeMounts:
+            - name: run
+              mountPath: /run
       containers:
         - name: checkmk
           image: checkmk/check-mk-raw:2.3.0-latest

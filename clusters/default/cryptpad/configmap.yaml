@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cryptpad-config
+  namespace: cryptpad
+data:
+  # Minimal CryptPad config.js. The image's auto-render from CPAD_* env vars
+  # was unreliable on version-2024.6.1 (cp errored on empty target path), so
+  # we mount a hand-written config and skip the env-var path entirely.
+  config.js: |
+    module.exports = {
+      httpUnsafeOrigin: 'https://cryptpad.__BASE-DOMAIN__',
+      httpSafeOrigin: 'https://cryptpad-sandbox.__BASE-DOMAIN__',
+      httpAddress: '0.0.0.0',
+      httpPort: 3000,
+      websocketPath: '/cryptpad_websocket',
+      maxWorkers: 2,
+      adminEmail: '__ACME-EMAIL__',
+      adminKeys: [],
+      logToStdout: true,
+      logLevel: 'info',
+      blockDailyCheck: true,
+      filePath: './data/',
+      archivePath: './data/archive',
+      pinPath: './data/pins',
+      taskPath: './data/tasks',
+      blockPath: './block',
+      blobPath: './blob',
+      blobStagingPath: './data/blobstage',
+      decreePath: './data/decrees',
+      logPath: false,
+    };

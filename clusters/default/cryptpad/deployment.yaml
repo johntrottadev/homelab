@@ -21,21 +21,9 @@ spec:
         fsGroup: 1000
       containers:
         - name: cryptpad
-          # Pinned to a 2024.x release. The container's entrypoint renders
-          # config.js from these env vars on first start.
           image: cryptpad/cryptpad:version-2024.6.1
           imagePullPolicy: IfNotPresent
           env:
-            - name: CPAD_MAIN_DOMAIN
-              value: https://cryptpad.__BASE-DOMAIN__
-            - name: CPAD_SANDBOX_DOMAIN
-              value: https://cryptpad-sandbox.__BASE-DOMAIN__
-            - name: CPAD_CONF_HTTP_PORT
-              value: "3000"
-            - name: CPAD_CONF_HTTP_ADDRESS
-              value: 0.0.0.0
-            - name: CPAD_CONF_ADMIN_EMAIL
-              value: __ACME-EMAIL__
             - name: TZ
               value: America/New_York
           ports:
@@ -43,6 +31,10 @@ spec:
               containerPort: 3000
               protocol: TCP
           volumeMounts:
+            - name: config
+              mountPath: /cryptpad/config/config.js
+              subPath: config.js
+              readOnly: true
             - name: data
               mountPath: /cryptpad/data
               subPath: data
@@ -78,3 +70,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: cryptpad-pvc
+        - name: config
+          configMap:
+            name: cryptpad-config

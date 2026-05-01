@@ -1,0 +1,29 @@
+# Static NFS PV for MinIO data. NAS path /volume1/kub/minio holds every
+# S3 object MinIO writes (each object becomes a file under
+# /data/<bucket>/<keyhash>). Synology Hyper Backup catches this share
+# nightly to Wasabi (separate offsite layer; not Velero's concern).
+#
+# Capacity is metadata only on a static-bind PV — actual headroom is
+# whatever the NAS volume has. 500Gi is a sensible "doesn't trip
+# allocation alarms" number.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: minio-pv
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: storage
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  claimRef:
+    namespace: minio
+    name: minio-pvc
+  nfs:
+    server: __NAS-HOST__
+    path: /volume1/kub/minio
+    readOnly: false

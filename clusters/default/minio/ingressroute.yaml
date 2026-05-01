@@ -1,0 +1,19 @@
+# Browser console at https://minio.__BASE-DOMAIN__ (wildcard cert covers it).
+# The S3 API on port 9000 is intentionally NOT exposed via Traefik —
+# Nextcloud talks directly to the in-cluster Service over plain HTTP.
+# If you ever need external S3 access (e.g., rclone from a laptop),
+# add a second IngressRoute pointing at the s3 port.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: minio-console
+  namespace: minio
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`minio.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: minio
+          port: 9001

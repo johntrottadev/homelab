@@ -223,7 +223,18 @@ resources:
   - monitoring/snmp-exporter/deployment.yaml
   - monitoring/snmp-exporter/service.yaml
 
-  # Nextcloud — fresh deploy with Wasabi S3 as primary object storage.
+  # MinIO — self-hosted S3-compatible store on NAS NFS PV. Backs Nextcloud
+  # primary storage; will host buckets for other apps as needed. Synology
+  # Hyper Backup catches /volume1/kub/minio nightly to Wasabi for DR.
+  # Root creds applied out-of-band (paloarp pattern); see clusters/default/minio/README.md.
+  - minio/namespace.yaml
+  - minio/pv.yaml
+  - minio/pvc.yaml
+  - minio/deployment.yaml
+  - minio/service.yaml
+  - minio/ingressroute.yaml
+
+  # Nextcloud — primary object storage migrated from Wasabi to MinIO above.
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for safety.
   # Redis ephemeral (file locking + memcache, REQUIRED for S3 primary).
   # Secret applied out-of-band (paloarp pattern); see clusters/default/nextcloud/README.md.

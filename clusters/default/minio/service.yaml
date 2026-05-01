@@ -1,0 +1,24 @@
+# Two named ports on one Service so the cluster-internal DNS
+# minio.minio.svc.cluster.local maps cleanly to both endpoints.
+# In-cluster Nextcloud talks to port 9000 (S3 API); external browsers
+# go via the IngressRoute on host minio.__BASE-DOMAIN__ to port 9001 (console).
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: minio
+  labels:
+    app: minio
+spec:
+  type: ClusterIP
+  selector:
+    app: minio
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: 9000
+      protocol: TCP
+    - name: console
+      port: 9001
+      targetPort: 9001
+      protocol: TCP

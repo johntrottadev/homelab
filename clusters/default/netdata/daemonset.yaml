@@ -36,8 +36,6 @@ spec:
           env:
             - name: NETDATA_DISABLE_CLOUD
               value: "1"
-            - name: DOCKER_HOST
-              value: /var/run/docker.sock
             - name: NETDATA_CLAIM_TOKEN
               value: ""
             - name: TZ
@@ -68,9 +66,6 @@ spec:
               readOnly: true
             - name: var-run-dbus
               mountPath: /host/var/run/dbus
-            - name: docker-sock
-              mountPath: /var/run/docker.sock
-              readOnly: true
             - name: netdata-config
               mountPath: /etc/netdata
             - name: netdata-lib
@@ -120,10 +115,6 @@ spec:
           hostPath:
             path: /var/run/dbus
             type: DirectoryOrCreate
-        - name: docker-sock
-          hostPath:
-            path: /var/run/docker.sock
-            type: SocketOrCreate
         # Per-node config + state on local-path so each agent persists
         # independently across pod restarts (DaemonSet, one pod per node).
         - name: netdata-config

@@ -1,0 +1,36 @@
+# Netdata agent on docker-1. Mirrors the k3s DaemonSet's per-node coverage:
+# every node in the homelab gets its own local Netdata, listed in the
+# same EndpointSlice (clusters/default/netdata.yaml) so all of them are
+# reachable through netdata.__BASE-DOMAIN__ via Netdata's node picker.
+#
+# Komodo poll path: docker-1/netdata/compose.yaml (project_name: netdata).
+
+services:
+  netdata:
+    image: netdata/netdata:v2.4.0
+    container_name: netdata
+    hostname: docker-1
+    restart: unless-stopped
+    pid: host
+    network_mode: host
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - NETDATA_DISABLE_CLOUD=1
+      - DOCKER_HOST=/var/run/docker.sock
+      - TZ=America/New_York
+    volumes:
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/log:/host/var/log:ro
+      - /var/run/dbus:/host/var/run/dbus
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/netdata-config:/etc/netdata
+      - /var/lib/netdata:/var/lib/netdata
+      - /var/cache/netdata:/var/cache/netdata

@@ -1,0 +1,30 @@
+# OSTE-Meta-Scan via webtop. See Dockerfile for the OSTE story.
+# Komodo poll path: docker-1/legacy-vm/compose.yaml (project_name: legacy-vm).
+#
+# Default access (LAN-only behind Traefik): no password, but the
+# IngressRoute terminates TLS at Traefik. Set CUSTOM_USER + PASSWORD
+# in /mnt/kub/homelab/legacy-vm/.env to force browser-side basic auth.
+
+services:
+  legacy-vm:
+    build: .
+    image: jt-lab/legacy-vm-webtop:1.0
+    container_name: legacy-vm
+    hostname: legacy-vm
+    restart: unless-stopped
+    ports:
+      # cryptpad already binds docker-1:3000; map OSTE webtop to 3010 instead.
+      - "3010:3000"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - TITLE=OSTE Meta Scan
+    env_file:
+      - /mnt/kub/homelab/legacy-vm/.env
+    volumes:
+      # /config is webtop's persistent home (settings, scan results, downloads).
+      - /mnt/kub/homelab/legacy-vm/config:/config
+    shm_size: "1gb"
+    security_opt:
+      - seccomp:unconfined

@@ -1,0 +1,53 @@
+# IngressRoute bundle for OpenVAS / Greenbone CE on docker-1:9392.
+# The upstream nginx serves the GSA web UI + GMP/HTTP API over plain HTTP
+# (127.0.0.1:9392 originally, modified to 0.0.0.0:9392 in
+# docker-1/openvas/compose.yaml so Traefik can reach it). TLS terminates at
+# Traefik with the wildcard *.__BASE-DOMAIN__ cert.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-openvas
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9392
+      targetPort: 9392
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-openvas-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-openvas
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 9392
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: openvas-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`openvas.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-openvas
+          port: 9392
+          scheme: http

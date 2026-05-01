@@ -1,0 +1,76 @@
+# IngressRoute bundle for netdata. The DaemonSet runs hostNetwork:true on
+# every node — every node listens on :19999. Pointing the bundle at k3s-1
+# as the canonical entrypoint; the Netdata UI's node picker reaches the
+# others (it discovers them via Netdata's own protocol).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-netdata
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 19999
+      targetPort: 19999
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-netdata-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-netdata
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 19999
+endpoints:
+  - addresses:
+      - __K3S-API-IP__   # k3s-1
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  - addresses:
+      - __LAN-IP__   # k3s-2
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  - addresses:
+      - __LAN-IP__   # k3s-5
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  - addresses:
+      - __LAN-IP__   # k3s-6
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  - addresses:
+      - __LAN-IP__   # docker-1 (its own Netdata via docker-1/netdata/compose.yaml)
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: netdata-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`netdata.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-netdata
+          port: 19999
+          scheme: http

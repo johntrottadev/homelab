@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: netdata
+  namespace: netdata
+  labels:
+    app: netdata
+spec:
+  selector:
+    matchLabels:
+      app: netdata
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: netdata
+    spec:
+      # Run on every node including the control-plane (k3s-1).
+      tolerations:
+        - operator: Exists
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: netdata
+          image: netdata/netdata:v2.4.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_PTRACE
+                - SYS_ADMIN
+          env:
+            - name: NETDATA_DISABLE_CLOUD
+              value: "1"
+            - name: DOCKER_HOST
+              value: /var/run/docker.sock
+            - name: NETDATA_CLAIM_TOKEN
+              value: ""
+            - name: TZ
+              value: America/New_York
+          ports:
+            - name: http
+              containerPort: 19999
+              hostPort: 19999
+              protocol: TCP
+          volumeMounts:
+            - name: etc-passwd
+              mountPath: /host/etc/passwd
+              readOnly: true
+            - name: etc-group
+              mountPath: /host/etc/group
+              readOnly: true
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            - name: etc-os-release
+              mountPath: /host/etc/os-release
+              readOnly: true
+            - name: var-log
+              mountPath: /host/var/log
+              readOnly: true
+            - name: var-run-dbus
+              mountPath: /host/var/run/dbus
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+              readOnly: true
+            - name: netdata-config
+              mountPath: /etc/netdata
+            - name: netdata-lib
+              mountPath: /var/lib/netdata
+            - name: netdata-cache
+              mountPath: /var/cache/netdata
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/info
+              port: 19999
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v1/info
+              port: 19999
+            initialDelaySeconds: 20
+            periodSeconds: 15
+      volumes:
+        - name: etc-passwd
+          hostPath:
+            path: /etc/passwd
+        - name: etc-group
+          hostPath:
+            path: /etc/group
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: etc-os-release
+          hostPath:
+            path: /etc/os-release
+        - name: var-log
+          hostPath:
+            path: /var/log
+        - name: var-run-dbus
+          hostPath:
+            path: /var/run/dbus
+            type: DirectoryOrCreate
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: SocketOrCreate
+        # Per-node config + state on local-path so each agent persists
+        # independently across pod restarts (DaemonSet, one pod per node).
+        - name: netdata-config
+          hostPath:
+            path: /var/lib/netdata-config
+            type: DirectoryOrCreate
+        - name: netdata-lib
+          hostPath:
+            path: /var/lib/netdata
+            type: DirectoryOrCreate
+        - name: netdata-cache
+          hostPath:
+            path: /var/cache/netdata
+            type: DirectoryOrCreate

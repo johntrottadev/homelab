@@ -78,10 +78,10 @@ resource "proxmox_vm_qemu" "dock" {
   nameserver   = var.lan_dns
   searchdomain = var.search_domain
 
-  # Custom cloud-init user-data — installs docker.io, docker-compose-v2,
-  # cifs-utils, and the /etc/hosts override for __NAS-HOST__ (load-bearing
-  # per access_paths memory: cluster DNS topology forces this on every fresh
-  # node). Snippet must be on the PVE node's `local` snippets storage at the
-  # path below before apply. See cloud-init/README.md.
-  cicustom = "user=local:snippets/dock-node-user-data.yaml"
+  # NB: no cicustom. PVE's snippet distribution API doesn't support uploading
+  # to `snippets` content type via API token (only iso/vztmpl/import). Rather
+  # than chase a shared snippets storage workaround, the equivalent bootstrap
+  # work — apt installs (docker, cifs-utils), NAS hosts pin, fstab CIFS line,
+  # bastion docker group — runs as a post-apply `bootstrap.sh` over SSH after
+  # the VM is up. See cloud-init/bootstrap.sh and README.md "Post-clone runbook".
 }

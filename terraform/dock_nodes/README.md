@@ -9,7 +9,62 @@ Plan source-of-truth: [`/Volumes/code/homelab/docker-1/MIRROR-PLAN.md`](../../do
 
 - **docker-1 is NOT TF-managed** — predates this module, manually built. Don't
   try to import; Telmate's efidisk handling forces replacement on import.
-- This module is for **net-new dock nodes only** (docker-2, docker-3, ...).
+- **docker-2 was provisioned 2026-05-02 via direct PVE API calls, NOT this
+  module** — see "Reality check" below for why. The module captures the
+  *intent* (sizing, networking, bootstrap script) but cannot run end-to-end
+  against current cluster storage. Still useful as documentation + dry-run.
+- This module is for **net-new dock nodes only** (docker-3, ...).
+
+## Reality check — what bites you (learned the hard way on docker-2)
+
+1. **PVE blocks cross-node clones on non-shared storage.** `ubuntu-tmp`
+   lives on __PVE-NODE-1__'s `local-zfs`. With no shared+images storage in this
+   cluster (`zfs1` is per-node despite `nodes=all`; `storage-synology` doesn't
+   accept image content), `terraform apply` fails with `can't clone to
+   non-shared storage 'zfs1'`. Workaround: clone in-node on __PVE-NODE-1__ first,
+   then offline-migrate the resulting VM to the target node. Telmate
+   provider 3.0.1-rc6 doesn't expose a clone-time storage redirect.
+2. **The `ubuntu-tmp` template ignores PVE cloud-init.** ide2 is correctly
+   attached and the ISO content (sshkeys/ipconfig0/ciuser) is correct, but
+   the guest never applies it. SSH keys aren't authorized; netplan still
+   runs DHCP. **Manual fix path**: SSH in as the template's hard-coded
+   user (__NAS-USER__ / Tr00tr@sh), `sudo` to write a static netplan, append
+   the operator pubkey to `bastion`'s `authorized_keys`, then proceed.
+3. **`ubuntu-tmp` ships with `vcpus=2`** — a hot-plug cap. With sockets=1
+   cores=8 vcpus=2, QEMU boots 2 online + 6 offline. Delete the vcpus
+   key (PVE API: `delete=vcpus`) before stop+start.
+4. **A guest reboot doesn't apply hot-add core changes** — the QEMU
+   process needs a full PVE-level stop+start to pick up new cores.
+   `systemctl reboot` is not enough.
+5. **Telmate provider treats `target_node` change as a force-replace** —
+   don't try to import the API-provisioned docker-2 into TF state and
+   reconfigure it later; it'll plan a destroy+recreate.
+
+## Pragmatic provisioning path (until ubuntu-tmp / shared storage are fixed)
+
+Use direct PVE API calls. Sequence used for docker-2:
+
+```text
+1. POST .../qemu/107/clone   newid=N name=dockN full=1                   (in-node on __PVE-NODE-1__)
+2. PUT  .../qemu/N/config    cores=... memory=... ipconfig0=... ciuser=bastion
+                             sshkeys=<double-url-encoded> agent=enabled=1
+3. PUT  .../qemu/N/resize    disk=scsi0 size=100G
+4. POST .../qemu/N/migrate   target=pveX targetstorage=zfs1              (offline migrate)
+5. PUT  .../qemu/N/config    delete=vcpus                                (let all cores boot)
+6. PUT  .../qemu/N/config    ide2=zfs1:cloudinit                         (only if template lacks it)
+7. POST .../qemu/N/status/start
+8. <after boot> SSH as __NAS-USER__/Tr00tr@sh and:
+     - install bastion pubkey to /home/bastion/.ssh/authorized_keys
+     - write /etc/netplan/01-static.yaml with static IP (see "Manual netplan" below)
+     - echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+     - netplan apply
+9. ssh bastion@<new-ip> 'sudo bash -s' < cloud-init/bootstrap.sh
+10. scp CIFS creds + Komodo .env from docker-1, install Periphery
+```
+
+Steps 8-9 are the manual hop forced by issue #2 above. Until ubuntu-tmp
+is rebuilt with cloud-init properly enabled (or replaced with a template
+that honors NoCloud), every dock node clone needs this.
 
 ## Add a node
 
@@ -44,22 +99,20 @@ TF-managed resources so cleaner blast separation).
 Default sizing per `variables.tf` (4 vCPU / 16 GiB / 100 GiB) matches the
 mirror plan; override per-node only if a workload demands more.
 
-## One-time per PVE node: deploy cloud-init snippet
+## Bootstrap is post-apply, not cicustom
 
-Cross-node clones in Proxmox apply `cicustom` from the **target node's**
-local snippets storage. Copy to each pve node ahead of any apply that may
-target it:
+Earlier versions referenced `cicustom`. Dropped because PVE's API token only
+permits iso/vztmpl/import uploads to storage — not snippets. Rather than
+chase a per-PVE-node SSH workaround, the equivalent bootstrap (apt installs,
+/etc/hosts NAS pin, fstab CIFS line, bastion docker group) runs as a
+post-apply shell script over SSH. Idempotent and re-runnable.
 
 ```bash
-for h in __PVE-NODE-1__ __PVE-NODE-2__ __PVE-NODE-3__; do
-  scp cloud-init/dock-node-user-data.yaml root@$h:/var/lib/vz/snippets/
-done
+# After terraform apply finishes and the new VM has SSH up:
+ssh bastion@<new-ip> 'sudo bash -s' < cloud-init/bootstrap.sh
 ```
 
-Without the snippet present, the clone boots fine but cloud-init logs an
-error and the node lacks docker / cifs-utils / the NAS hosts override.
-
-## Apply
+## Apply (will currently fail — see "Reality check")
 
 ```bash
 cd terraform/dock_nodes
@@ -68,8 +121,46 @@ terraform plan -out=docker-2.tfplan
 terraform apply docker-2.tfplan
 ```
 
-Terraform creates the VM stopped, then writes cloud-init config, then starts
-it. Boot-to-SSH-ready is ~90s (template-dependent).
+Expected failure on cross-node clone with current storage layout. Use the
+"Pragmatic provisioning path" above instead.
+
+## Manual netplan (Reality check #2 workaround)
+
+Drop this at `/etc/netplan/01-dockN-static.yaml` (mode 0600):
+
+```yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens18:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - <IP>/24
+      routes:
+        - to: default
+          via: __LAN-IP__
+      nameservers:
+        addresses: [__PIHOLE1-IP__]
+        search: [__BASE-DOMAIN__]
+```
+
+Then on the box (as root via PVE console or sudo'd from the template's
+default user):
+
+```bash
+sudo install -m 0600 /dev/stdin /etc/netplan/01-dockN-static.yaml <<'EOF'
+[paste yaml]
+EOF
+sudo mv /etc/netplan/50-cloud-init.yaml /etc/netplan/50-cloud-init.yaml.bak 2>/dev/null
+echo 'network: {config: disabled}' | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+sudo netplan apply
+```
+
+Iface name is `ens18` on i440fx (match docker-1). If the image was built with
+q35 it would be `enp1s0` / `enp6s18` — see `../k3s_nodes/README.md`'s iface
+naming section.
 
 ## Post-clone runbook
 

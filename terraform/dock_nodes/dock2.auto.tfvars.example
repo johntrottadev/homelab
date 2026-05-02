@@ -1,0 +1,16 @@
+# Copy to docker-2.auto.tfvars (gitignored) and adjust if/when adding more dock nodes.
+#
+# The docker-2 spec mirrors docker-1/MIRROR-PLAN.md as of 2026-05-01:
+#   target_node = __PVE-NODE-3__   (auto-picked: not docker-1's host __PVE-NODE-1__; __PVE-NODE-2__ has k3s-5)
+#   ip          = __LAN-IP__
+#   sizing      = 4 vCPU / 16 GiB / 100 GiB (defaults, can be omitted)
+#
+# Adding docker-3 later: append another map entry; pick the lightest-loaded host
+# that's not already running a dock node, and grab the next free IP.
+
+nodes = {
+  docker-2 = {
+    target_node = "__PVE-NODE-3__"
+    ip          = "__LAN-IP__"
+  }
+}

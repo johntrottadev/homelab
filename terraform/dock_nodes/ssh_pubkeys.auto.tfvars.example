@@ -1,0 +1,8 @@
+# Copy to ssh_pubkeys.auto.tfvars (gitignored) and fill in real pubkeys.
+# Keys are placed on each dock node's bastion user via cloud-init.
+# Reuse the same set you put in terraform/k3s_nodes/ssh_pubkeys.auto.tfvars.
+
+ssh_pubkeys = <<-EOT
+ssh-ed25519 AAAA...replace-with-operator-key operator@workstation
+ssh-ed25519 AAAA...replace-with-bastion-key bastion@bastion-lxc
+EOT

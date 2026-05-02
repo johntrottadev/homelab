@@ -40,9 +40,9 @@ shared block storage) that are out of scope for a homelab mirror.
 | Field | Value |
 |---|---|
 | name | `docker-2` |
-| host | auto-pick — query `pvesh get /cluster/resources --type vm` for the lightest-loaded host that is NOT running docker-1 |
+| host | `__PVE-NODE-3__` — auto-picked 2026-05-01 (__PVE-NODE-1__ hosts docker-1; __PVE-NODE-2__/__PVE-NODE-3__ tied on running load 68GiB/20cpu, __PVE-NODE-3__ has no TF-managed resources so cleaner blast separation). Re-evaluate `pvesh get /cluster/resources --type vm` if __PVE-NODE-3__ becomes loaded. |
 | ip | `__LAN-IP__` (immediately below docker-1's `.40`) |
-| os | Debian 12 (matches docker-1) |
+| os | Ubuntu 24.04 LTS (matches docker-1; cloned from `ubuntu-tmp` template on __PVE-NODE-1__) |
 | cpu | 4 vCPU (docker-1 is 8; mirror runs lighter set) |
 | ram | 16 GiB |
 | disk | 100 GiB |
@@ -52,12 +52,13 @@ Terraform path: extend `terraform/k3s_nodes/` pattern → new module `terraform/
 ### 2. Bootstrap on docker-2
 
 ```bash
-# As root on the new VM:
-apt-get update && apt-get install -y docker.io docker-compose-v2 curl jq
+# As root on the new VM (cloud-init also installs these, but here for reference):
+apt-get update && apt-get install -y docker.io docker-compose-v2 curl jq cifs-utils
 
-# CIFS mount of /mnt/kub (mirrors docker-1 systemd unit at mnt-kub.mount)
-# — copy /etc/systemd/system/mnt-kub.mount from docker-1 to docker-2
-# and `systemctl enable --now mnt-kub.mount`.
+# CIFS mount of /mnt/kub (docker-1 uses fstab, not a systemd .mount unit):
+# Cloud-init leaves the fstab line commented; uncomment it after scp'ing
+# /etc/samba/credentials from docker-1.
+# See terraform/dock_nodes/README.md for the full operator runbook.
 
 # Install Komodo Periphery (one Periphery per host).
 # Same compose.yaml the docker-1 README documents under "Komodo install on

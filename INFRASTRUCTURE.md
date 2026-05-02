@@ -137,7 +137,7 @@ to skip cert verification on internal self-signed certs.
 | dns.__BASE-DOMAIN__ / dns2.__BASE-DOMAIN__ | __LAN-IP__/31:443 | Pi-hole 1 / 2 admin     | HTTPS + lan-self-signed |
 | sw.__BASE-DOMAIN__ / sw10.__BASE-DOMAIN__  | (switch IPs)        | Network switch admin    | HTTPS + lan-self-signed |
 | **wazuh.__BASE-DOMAIN__**    | **__LAN-IP__:5601** | **docker-1 docker compose (Wazuh)** | **First docker-1-backed external-IP HTTPS bundle (260429-qyu).** Single-node Wazuh stack from upstream `wazuh/wazuh-docker@v4.14.5`. Vendored compose copy at `bastion/services/wazuh/`. |
-| torrents.__BASE-DOMAIN__     | __LAN-IP__:8080   | docker-1 qbittorrent              | Plain HTTP upstream |
+| torrents.__BASE-DOMAIN__     | __LAN-IP__:8085   | docker-1 qbittorrent              | Plain HTTP upstream — gluetun publishes :8085 |
 
 Other docker-1-backed routes (`guac`, `hoarder`, `libre`, `n8n`,
 `paperless`, `pa`) all use plain HTTP upstream because the underlying

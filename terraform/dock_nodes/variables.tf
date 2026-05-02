@@ -33,9 +33,9 @@ variable "lan_gateway" {
 }
 
 variable "lan_dns" {
-  description = "DNS server (pihole)"
+  description = "DNS servers (pihole1 + pihole2). Proxmox accepts a space-separated list."
   type        = string
-  default     = "__PIHOLE1-IP__"
+  default     = "__PIHOLE1-IP__ __PIHOLE2-IP__"
 }
 
 variable "search_domain" {

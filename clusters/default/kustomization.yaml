@@ -392,7 +392,8 @@ resources:
   - __PVE-NODE-2__.yaml
   - __PVE-NODE-3__.yaml
   - sw.yaml
-  - sw10.yaml
+  # sw10.yaml retired 2026-05-02 (quick-260502-juw) — switch __LAN-IP__ offline,
+  # operator confirmed drop per 14-NPM-INVENTORY.md OUT-OF-SCOPE classification.
   - synology.yaml         # consolidated synology.__BASE-DOMAIN__ + __NAS-HOST__
   - torrents.yaml
   - wazuh-dashboard-ca-secret.yaml  # Wazuh internal root CA (public cert) trusted by wazuh-trusted ServersTransport

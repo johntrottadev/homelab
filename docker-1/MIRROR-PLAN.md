@@ -40,8 +40,8 @@ shared block storage) that are out of scope for a homelab mirror.
 | Field | Value |
 |---|---|
 | name | `docker-2` |
-| host | __PVE-NODE-2__ or __PVE-NODE-3__ (NOT same as docker-1) |
-| ip | `__K3S-API-IP__` is taken by k3s-1 — pick `__LAN-IP__` (k3s-3-was) or `__LAN-IP__` |
+| host | auto-pick — query `pvesh get /cluster/resources --type vm` for the lightest-loaded host that is NOT running docker-1 |
+| ip | `__LAN-IP__` (immediately below docker-1's `.40`) |
 | os | Debian 12 (matches docker-1) |
 | cpu | 4 vCPU (docker-1 is 8; mirror runs lighter set) |
 | ram | 16 GiB |

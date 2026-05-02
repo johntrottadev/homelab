@@ -27,6 +27,17 @@ ports:
     protocol: TCP
     port: 6901
 endpoints:
+  # docker-1 — original singleton (still primary)
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+  # docker-2 — active/active mirror (added 2026-05-02). Traefik round-robins.
+  # OSTE Stack must be deployed on BOTH hosts via Komodo "server list" — if
+  # the docker-2 container isn't actually serving, traffic still hits its IP and
+  # gets ECONNREFUSED. Validate with `for i in {1..10}; do curl -ksSL ... ; done`.
   - addresses:
       - __LAN-IP__
     conditions:

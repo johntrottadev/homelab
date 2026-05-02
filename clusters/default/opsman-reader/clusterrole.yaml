@@ -1,0 +1,31 @@
+# bastion-reader ClusterRole -- READ-ONLY verbs (get/list/watch) across exactly the kinds
+# the K8s scanner + audit_drift agent task touch. Secrets are EXCLUDED -- bastion never
+# reads Secret data; audit_exposed_ports (which would need metadata-only listing) is
+# out of scope for this round.
+# Adding a new kind to bastion's scanner code in the future REQUIRES a follow-up edit here.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bastion-reader
+  labels:
+    app.kubernetes.io/name: bastion-reader
+    app.kubernetes.io/managed-by: flux
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "nodes", "pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]

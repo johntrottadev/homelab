@@ -369,6 +369,17 @@ resources:
   - firefly/service.yaml
   - firefly/ingressroute.yaml
 
+  # quick-260501-ln4 — bastion-reader SA + ClusterRole + Binding for the dedicated
+  # bastion LXC (__PVE-NODE-3__ / __LAN-IP__). READ-ONLY (get/list/watch) on the kinds the
+  # K8s scanner + audit_drift agent task touch. Secrets EXCLUDED.
+  # Token minted out-of-band via `kubectl -n kube-system create token bastion-reader
+  # --duration=8760h`, written to /etc/bastion/kube/bastion-reader.yaml on the LXC,
+  # renewed annually. Adding a new kind to bastion scanner requires editing
+  # bastion-reader/clusterrole.yaml.
+  - bastion-reader/serviceaccount.yaml
+  - bastion-reader/clusterrole.yaml
+  - bastion-reader/clusterrolebinding.yaml
+
   # Wave 2 — external-IP-backend bundles (Pattern 5 — Service + EndpointSlice +
   # IngressRoute, all in kube-system; ServersTransport lan-self-signed for HTTPS)
   - dns.yaml

@@ -1,0 +1,17 @@
+# Binds bastion-reader SA -> bastion-reader ClusterRole. Cluster-scoped because the
+# scanner needs to enumerate Namespaces and Nodes (cluster-level resources).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bastion-reader
+  labels:
+    app.kubernetes.io/name: bastion-reader
+    app.kubernetes.io/managed-by: flux
+subjects:
+  - kind: ServiceAccount
+    name: bastion-reader
+    namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bastion-reader

@@ -20,7 +20,14 @@ services:
       - VNC_PW=changeme
       - TZ=America/New_York
     volumes:
-      - /mnt/kub/homelab/legacy-vm/config:/home/kasm-user
+      # NB: don't mount on /home/kasm-user — the kasmweb entrypoint tries to
+      # symlink Desktop/Uploads -> Uploads, and CIFS rejects symlink creation
+      # without `mfsymlinks` (which our /mnt/kub mount intentionally lacks).
+      # Mount only the persistence-worthy subdir; the rest of /home/kasm-user
+      # stays on the container's overlay (rebuilt on every restart, fine for
+      # KasmVNC's profile state). OSTE scan outputs land in Uploads/ so
+      # this preserves what we actually care about.
+      - /mnt/kub/homelab/legacy-vm/uploads:/home/kasm-user/Uploads
     shm_size: "1gb"
     security_opt:
       - seccomp:unconfined

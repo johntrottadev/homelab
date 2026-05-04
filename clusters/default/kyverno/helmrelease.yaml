@@ -1,0 +1,103 @@
+# Kyverno — policy-as-code admission engine for the homelab. quick-260504-oee.
+#
+# WHY failurePolicy: Ignore is non-negotiable
+# ------------------------------------------
+# Single-cluster homelab — there is no fleet of redundant operators waiting in
+# the wings. If the Kyverno admission webhook is unreachable (pod restart,
+# OOMKill, cert rotation lockout, network blip), every kube-apiserver write
+# would stall until the webhook comes back. By forcing failurePolicy: Ignore
+# on every webhook the chart creates, cluster admission survives Kyverno
+# being down — at the cost that no policies are evaluated during the outage.
+# That cost is the right trade for a homelab: better to skip policy checks
+# than to break unrelated workloads (cert-manager renewals, flux reconciles,
+# kube-vip elections).
+# Reference: https://kyverno.io/docs/installation/customization/#ignore-failurepolicy
+#
+# Chart values key shape
+# ----------------------
+# As of chart 3.7.1 the canonical way to force Ignore on every webhook is
+# `features.forceFailurePolicyIgnore.enabled: true` (NOT
+# `admissionController.failurePolicy: Ignore` — that key does not exist in
+# this chart version; older Kyverno docs from the v3.0 era show outdated
+# names). Verified against `helm show values kyverno/kyverno --version 3.7.1`
+# 2026-05-04. Re-verify when bumping the chart version.
+#
+# WHY this is audit-mode bootstrap
+# --------------------------------
+# Policies live in clusters/default/kyverno-policies/ (separate Kustomization
+# entries so the controller and the policies can be paused independently).
+# The first policy ships with `validationFailureAction: Audit` — violations
+# show up in PolicyReports + the Prometheus metric
+# `kyverno_policy_results_total{rule_result="fail"}`, but nothing is actually
+# blocked. Flip-to-Enforce is a separate follow-up after 24h of clean reports.
+#
+# WHY replicas pinned to 1
+# ------------------------
+# Five-node homelab cluster, single operator, no external SLAs. Chart default
+# is 3 replicas per controller (admission/background/cleanup/reports = 12
+# pods). One replica each (4 pods total) keeps the resource footprint
+# trivial. failurePolicy: Ignore covers the high-availability gap.
+#
+# Chart version pinning
+# ---------------------
+# Pinned to 3.7.1 (app v1.17.1, chart published 2026-02-19) — most current
+# release that satisfies the 14-day chart-aging rule (today 2026-05-04).
+# 3.7.2 (2026-04-23) and 3.8.0 (2026-04-29) are too new. Plan originally
+# called for 3.5.2 — selected 3.7.1 for the bumped k8s API support and
+# stable JMESPath time helpers (release-1.17 line, see clusterpolicy yaml).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kyverno
+  namespace: kyverno
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kyverno
+      version: "3.7.1"  # pin EXACT — see chart version pinning rationale above
+      sourceRef:
+        kind: HelmRepository
+        name: kyverno
+        namespace: flux-system
+      interval: 24h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    # Force every webhook the chart creates to use failurePolicy: Ignore —
+    # see header comment. This is the canonical 3.x chart key (verified against
+    # `helm show values kyverno/kyverno --version 3.7.1`); it rewrites every
+    # ValidatingWebhookConfiguration / MutatingWebhookConfiguration the chart
+    # produces to set failurePolicy: Ignore.
+    features:
+      forceFailurePolicyIgnore:
+        enabled: true
+
+    # Single-replica per controller — see header comment.
+    # `metricsService.create: true` is the chart default; restated here so it
+    # is grep-able as a contract this manifest depends on (the ServiceMonitor
+    # in clusters/default/kyverno-policies/servicemonitor.yaml selects
+    # the kyverno-svc-metrics + per-controller metrics services on
+    # port 8000 / name metrics-port).
+    admissionController:
+      replicas: 1
+      metricsService:
+        create: true
+    backgroundController:
+      replicas: 1
+      metricsService:
+        create: true
+    reportsController:
+      replicas: 1
+      metricsService:
+        create: true
+    cleanupController:
+      replicas: 1
+      metricsService:
+        create: true

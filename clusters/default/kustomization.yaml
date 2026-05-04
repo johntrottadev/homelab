@@ -343,6 +343,25 @@ resources:
   - monitoring/kube-prometheus-stack/helmrepository.yaml
   - monitoring/kube-prometheus-stack/helmrelease.yaml
 
+  # quick-260504-oee — Kyverno policy engine.
+  # Two separate Kustomizations conceptually (controller vs. policies) so the
+  # ClusterPolicy can be paused/edited without touching the HelmRelease.
+  # AUDIT MODE for the initial rollout — violations land in PolicyReports + the
+  # KyvernoPolicyViolation Prometheus alert; nothing is blocked yet.
+  # Flip to Enforce is a separate follow-up after 24h of clean policy reports.
+  # failurePolicy: Ignore on the admission webhook (via
+  # features.forceFailurePolicyIgnore.enabled = true) so cluster admission
+  # survives Kyverno being down (homelab — no fleet of redundant operators).
+  # Listed AFTER kube-prometheus-stack because the ServiceMonitor +
+  # PrometheusRule + Grafana dashboard CM require Prometheus to be present.
+  - kyverno/namespace.yaml
+  - kyverno/helmrepository.yaml
+  - kyverno/helmrelease.yaml
+  - kyverno-policies/clusterpolicy-velero-business-hours.yaml
+  - kyverno-policies/servicemonitor.yaml
+  - kyverno-policies/prometheusrule.yaml
+  - kyverno-policies/grafana-dashboard-cm.yaml
+
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 

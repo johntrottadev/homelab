@@ -1,0 +1,94 @@
+# Object-level mirror of Nextcloud's per-user file tree to Wasabi every
+# 15 min. Replaces the prior MinIO -> Wasabi `mc mirror` cronjob — the
+# distinction is what the destination bucket actually contains:
+#
+#   OLD (MinIO -> Wasabi):  one S3 object per Nextcloud file, named
+#                           `urn:oid:N`. Restorable only with the
+#                           Postgres oc_filecache to map oid -> path.
+#                           Wasabi was useless without the cluster.
+#   NEW (NFS -> Wasabi):    one S3 object per Nextcloud file, keyed by
+#                           the real path (e.g. admin/files/Documents/
+#                           photo.jpg). Browsable in any S3 client;
+#                           `rclone copy wasabi:nextcloud-mirror ./`
+#                           reconstitutes the data dir on its own.
+#
+# Filter scope: only `<uid>/files/**`. We deliberately skip
+#   - files_versions/   (Nextcloud-internal revision history)
+#   - files_trashbin/   (Nextcloud trash; restored via UI)
+#   - cache/, uploads/  (transient)
+#   - appdata_*/        (server-internal: previews, theming, etc.)
+#   - *.log             (nextcloud.log, audit.log, ...)
+# These would bloat Wasabi without giving the user anything restorable.
+#
+# RPO: 15 min. Tighten cron if you ever need closer.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nextcloud-rclone-wasabi
+  namespace: nextcloud
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          # Read-only mount means we can't accidentally corrupt user
+          # data from this pod, only push it outward.
+          containers:
+            - name: rclone
+              image: rclone/rclone:1.69
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: RCLONE_CONFIG_WASABI_TYPE
+                  value: s3
+                - name: RCLONE_CONFIG_WASABI_PROVIDER
+                  value: Wasabi
+                - name: RCLONE_CONFIG_WASABI_ENDPOINT
+                  value: __WASABI-ENDPOINT__
+                - name: RCLONE_CONFIG_WASABI_REGION
+                  value: us-east-1
+                - name: RCLONE_CONFIG_WASABI_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextcloud-rclone-wasabi
+                      key: ACCESS_KEY_ID
+                - name: RCLONE_CONFIG_WASABI_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: nextcloud-rclone-wasabi
+                      key: SECRET_ACCESS_KEY
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -e
+                  echo "[rclone] $(date -u +%FT%TZ) sync starting"
+                  rclone sync /data wasabi:nextcloud-mirror \
+                      --include "/*/files/**" \
+                      --use-server-modtime \
+                      --fast-list \
+                      --transfers 4 \
+                      --checkers 8 \
+                      --stats 30s \
+                      --stats-one-line
+                  echo "[rclone] $(date -u +%FT%TZ) sync done"
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: nextcloud-data-pvc

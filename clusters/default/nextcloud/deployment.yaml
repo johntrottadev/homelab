@@ -25,18 +25,23 @@ spec:
       securityContext:
         fsGroup: 33
       initContainers:
-        # Ensure the NFS-mounted /var/www/html is writable by www-data
-        # before the main container's entrypoint copies the upstream
-        # web root in. Mirrors the n8n init-chmod pattern.
+        # Ensure both NFS mounts are writable by www-data before the
+        # main container's entrypoint copies the upstream web root in.
+        # Mirrors the n8n init-chmod pattern.
         - name: init-chown
           image: busybox:1.36
           command:
             - sh
             - -c
-            - chown -R 33:33 /var/www/html && chmod 750 /var/www/html
+            - |
+              set -e
+              chown -R 33:33 /var/www/html && chmod 750 /var/www/html
+              chown -R 33:33 /var/www/html/data && chmod 770 /var/www/html/data
           volumeMounts:
             - name: html
               mountPath: /var/www/html
+            - name: data
+              mountPath: /var/www/html/data
       containers:
         - name: nextcloud
           image: nextcloud:30-apache
@@ -86,37 +91,20 @@ spec:
             # Nextcloud trust X-Forwarded-* from Traefik.
             - name: TRUSTED_PROXIES
               value: "10.42.0.0/16 10.43.0.0/16"
-            # --- MinIO (in-cluster) as PRIMARY object storage ---
-            # Migrated from Wasabi 2026-04-30: see clusters/default/minio/.
-            # Wasabi nextcloud-jt-lab bucket retained until the next
-            # confirmed Hyper Backup run, then it can be deleted.
-            # The docker-entrypoint regenerates objectstore.config.php
-            # from these env vars on every start, so changes apply on pod
-            # restart (no manual occ commands needed).
-            - name: OBJECTSTORE_S3_BUCKET
-              value: nextcloud
-            - name: OBJECTSTORE_S3_REGION
-              value: us-east-1
-            - name: OBJECTSTORE_S3_HOST
-              value: minio.minio.svc.cluster.local
-            - name: OBJECTSTORE_S3_PORT
-              value: "9000"
-            - name: OBJECTSTORE_S3_SSL
-              value: "false"
-            - name: OBJECTSTORE_S3_USEPATH_STYLE
-              value: "true"
-            - name: OBJECTSTORE_S3_AUTOCREATE
-              value: "false"
-            - name: OBJECTSTORE_S3_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-secrets
-                  key: OBJECTSTORE_S3_KEY
-            - name: OBJECTSTORE_S3_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: nextcloud-secrets
-                  key: OBJECTSTORE_S3_SECRET
+            # --- Filesystem-primary storage ---
+            # User uploads land at /var/www/html/data/<user>/files/<path>
+            # on the nextcloud-data PVC (NFS, 500Gi). Per-user files are
+            # mirrored to Wasabi at object level by the
+            # nextcloud-rclone-wasabi CronJob — each file becomes one
+            # S3 object with its real path as the key, so Wasabi is
+            # standalone-restorable without Postgres.
+            #
+            # Migration history:
+            #   2026-04-30  cutover Wasabi-primary → MinIO-primary (commit b824964)
+            #   2026-05-04  cutover MinIO-primary → filesystem-primary (this commit);
+            #               MinIO decommissioned, replicate-cronjob removed.
+            - name: NEXTCLOUD_DATA_DIR
+              value: /var/www/html/data
             # --- PHP runtime tuning ---
             - name: PHP_MEMORY_LIMIT
               value: 1024M
@@ -125,6 +113,8 @@ spec:
           volumeMounts:
             - name: html
               mountPath: /var/www/html
+            - name: data
+              mountPath: /var/www/html/data
           resources:
             requests:
               cpu: 200m
@@ -167,3 +157,6 @@ spec:
         - name: html
           persistentVolumeClaim:
             claimName: nextcloud-pvc
+        - name: data
+          persistentVolumeClaim:
+            claimName: nextcloud-data-pvc

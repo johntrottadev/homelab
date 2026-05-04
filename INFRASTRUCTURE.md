@@ -62,6 +62,14 @@ Every k3s PVC is backed by an NFS path on the NAS, so this layer catches all app
 
 Enables per-app point-in-time restore through `velero restore create`. Replaces Kasten K10 (removed due to GSB license gate in v7.x).
 
+### Layer 4 — App-level object mirror (rclone)
+
+| What | Covers | Target | Status |
+|---|---|---|---|
+| `nextcloud-rclone-wasabi` CronJob | Per-user file tree at `data/<user>/files/**` | `wasabi:nextcloud-mirror` (real path keys, browsable) | ✓ Every 15 min |
+
+Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is **standalone-restorable**: pull from Wasabi to any disk and the file tree is usable as-is. Added 2026-05-04 with the filesystem-primary cutover (replaced MinIO + the prior `mc mirror` cronjob, which mirrored opaque `urn:oid` blobs).
+
 ## Component Inventory
 
 ### Hypervisors

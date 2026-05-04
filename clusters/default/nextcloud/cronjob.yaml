@@ -32,6 +32,8 @@ spec:
               volumeMounts:
                 - name: html
                   mountPath: /var/www/html
+                - name: data
+                  mountPath: /var/www/html/data
               resources:
                 requests:
                   cpu: 50m
@@ -43,3 +45,6 @@ spec:
             - name: html
               persistentVolumeClaim:
                 claimName: nextcloud-pvc
+            - name: data
+              persistentVolumeClaim:
+                claimName: nextcloud-data-pvc

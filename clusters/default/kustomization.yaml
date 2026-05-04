@@ -246,22 +246,15 @@ resources:
   # drift+gitops, task runs, approval gate, audit catalog, subsystem health.
   - monitoring/bastion-dashboard/grafana-dashboard-cm.yaml
 
-  # MinIO — self-hosted S3-compatible store on NAS NFS PV. Backs Nextcloud
-  # primary storage; will host buckets for other apps as needed. Synology
-  # Hyper Backup catches /volume1/kub/minio nightly to Wasabi for DR.
-  # Root creds applied out-of-band (paloarp pattern); see clusters/default/minio/README.md.
-  - minio/namespace.yaml
-  - minio/pv.yaml
-  - minio/pvc.yaml
-  - minio/deployment.yaml
-  - minio/service.yaml
-  - minio/ingressroute.yaml
-  - minio/replicate-cronjob.yaml
-
-  # Nextcloud — primary object storage migrated from Wasabi to MinIO above.
-  # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for safety.
-  # Redis ephemeral (file locking + memcache, REQUIRED for S3 primary).
-  # Secret applied out-of-band (paloarp pattern); see clusters/default/nextcloud/README.md.
+  # Nextcloud — filesystem-primary on NFS (cutover 2026-05-04 from MinIO-
+  # primary, which itself replaced Wasabi-primary on 2026-04-30; the MinIO
+  # ns + replicate-cronjob were removed in this same change). User uploads
+  # land at /var/www/html/data/<user>/files/ on nextcloud-data-pv; the
+  # nextcloud-rclone-wasabi CronJob mirrors that tree to Wasabi every
+  # 15 min as real-named S3 objects (Wasabi is standalone-restorable).
+  # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for
+  # safety. Redis ephemeral (file locking + memcache).
+  # Secrets applied out-of-band (paloarp pattern); see clusters/default/nextcloud/README.md.
   - nextcloud/namespace.yaml
   - nextcloud/postgres-pvc.yaml
   - nextcloud/postgres-deployment.yaml
@@ -273,10 +266,13 @@ resources:
   - nextcloud/redis-service.yaml
   - nextcloud/pv.yaml
   - nextcloud/pvc.yaml
+  - nextcloud/data-pv.yaml
+  - nextcloud/data-pvc.yaml
   - nextcloud/deployment.yaml
   - nextcloud/service.yaml
   - nextcloud/ingressroute.yaml
   - nextcloud/cronjob.yaml
+  - nextcloud/rclone-cronjob.yaml
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

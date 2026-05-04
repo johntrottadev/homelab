@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio-pvc
-  namespace: minio
+  name: nextcloud-data-pvc
+  namespace: nextcloud
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 500Gi
   storageClassName: storage
-  volumeName: minio-pv
+  volumeName: nextcloud-data-pv

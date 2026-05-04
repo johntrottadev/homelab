@@ -1,0 +1,153 @@
+# quick-260504-oee — Velero business-hours guard ClusterPolicy.
+#
+# WHAT THIS DOES
+# --------------
+# Flags creation of three Velero-related resources during America/New_York
+# business hours (07:00 to 22:00 local). The three matched kinds are all
+# manifestations of the same protected window — "no daytime kopia uploads to
+# Wasabi" — so they share one ClusterPolicy. Keeping them together keeps the
+# resulting PolicyReport coherent (one policy → one set of violations to
+# review), and lets the flip-to-Enforce follow-up flip all three simultaneously.
+#
+# Matched kinds:
+#   1. velero.io/v1/Backup                  — `velero backup create ...`
+#   2. velero.io/v1/PodVolumeBackup         — Velero subresource per Pod volume
+#   3. batch/v1/Job in ns velero, name      — Velero kopia repository
+#      pattern *-wasabi-kopia-maintain-job-*  maintenance Job (own clock,
+#                                              independent of Schedule)
+#
+# AUDIT MODE — LOCKED FOR THIS PR
+# -------------------------------
+# `validationFailureAction: Audit` means violations land in a PolicyReport +
+# the kyverno_policy_results_total Prometheus counter, but the offending
+# resource is NOT blocked from creation. This is deliberate for the bootstrap.
+#
+# Flip-to-Enforce procedure (separate follow-up, NOT this PR):
+#   1. Wait 24 hours after this policy goes Ready.
+#   2. Run: kubectl get policyreport -A -o yaml | grep -i velero-business-hours-block
+#      Expect zero `result: fail` entries except for any deliberate operator
+#      tests (the smoke test in Task 8 of this quick task is one such entry —
+#      filter it out by name).
+#   3. Confirm docker-1's host-level kopia cron has been retimed to fall outside
+#      07:00-22:00 ET (separate follow-up — Kyverno does NOT reach docker-1).
+#   4. Change `validationFailureAction: Audit` -> `Enforce` in this file,
+#      commit, push, wait for flux reconcile.
+#   5. Re-run the smoke test from quick-260504-oee Task 8 — the fake Backup CR
+#      should now be blocked at admission, not just flagged.
+#
+# TIME-WINDOW EXPRESSION RATIONALE
+# --------------------------------
+# Kyverno chart 3.7.1 (app v1.17.1) JMESPath time helpers (verified at
+# https://raw.githubusercontent.com/kyverno/kyverno/release-1.17/pkg/engine/jmespath/time.go
+# 2026-05-04) include `time_now_utc`, `time_to_cron`, `time_parse`, `time_utc`,
+# but NO TZ-aware helper. `time_to_cron` returns a STRING ("MM HH DD MM DOW"),
+# not an object; the `.hour` accessor in the original plan does not exist.
+#
+# Implementation: extract the UTC hour from `time_now_utc()` via `split` and
+# `to_number`, then test against an inclusive integer set covering the EDT
+# business-hours window mapped to UTC.
+#
+#   07:00 ET (EDT, UTC-4) = 11:00 UTC
+#   22:00 ET (EDT, UTC-4) = 02:00 UTC (next day)
+#
+# So the EDT business window in UTC hours is:  11..23  OR  0..1
+#
+# This file pins to EDT only because today (2026-05-04) is in DST and DST
+# remains active through early November 2026. The flip-to-Enforce window
+# opens 24h from now (well within EDT). Pre-November, this file MUST be
+# updated to add EST coverage (12..23 OR 0..2 in EST). See TODO below.
+#
+# TODO(quick-260504-oee follow-up, before 2026-11-02):
+#   When DST ends in November 2026, expand the precondition `any:` block to
+#   cover EST too (UTC hours 12..23 OR 0..2). Cleaner long-term: when Kyverno
+#   ships TZ-aware JMESPath helpers (track https://github.com/kyverno/kyverno/issues
+#   for "TZ-aware time" feature requests), switch to a single
+#   `time_now('America/New_York')` based expression and remove the manual UTC
+#   conversion + DST-region bias.
+#
+# BACKGROUND SCAN OFF
+# -------------------
+# `background: false` — this is an admission-time policy. Running it as a
+# background scan would rewrite PolicyReports for already-existing Backup CRs
+# every 1h; the resulting churn is noise, not signal. Admission-only matches
+# the operational intent: flag NEW backup attempts during business hours.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: velero-business-hours-block
+  annotations:
+    policies.kyverno.io/title: "Velero business-hours block"
+    policies.kyverno.io/category: "Backup / Operations"
+    policies.kyverno.io/severity: "medium"
+    policies.kyverno.io/description: >-
+      Flags creation of Velero Backup, PodVolumeBackup, and kopia-maintain Job
+      resources during America/New_York business hours (07:00-22:00 local).
+      Currently in Audit mode; flip to Enforce after 24h of clean reports.
+spec:
+  # AUDIT MODE — see header. Do NOT flip to Enforce in this PR.
+  validationFailureAction: Audit
+  # Match the controller-level failurePolicy from features.forceFailurePolicyIgnore
+  # — if Kyverno is unavailable, admission proceeds without policy evaluation.
+  failurePolicy: Ignore
+  # Admission-time only; see "BACKGROUND SCAN OFF" header.
+  background: false
+  rules:
+    - name: block-velero-backups-during-business-hours
+      match:
+        any:
+          - resources:
+              kinds:
+                - velero.io/v1/Backup
+                - velero.io/v1/PodVolumeBackup
+              operations:
+                - CREATE
+      preconditions:
+        any:
+          # UTC hour ∈ {11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23}
+          # = 07:00..18:59 ET on EDT side of business hours.
+          - key: "{{ to_number(split(split(time_now_utc(), 'T')[1], ':')[0]) }}"
+            operator: AnyIn
+            value: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+          # UTC hour ∈ {0, 1}
+          # = 19:00..21:59 ET on EDT side of business hours (window crosses
+          # midnight UTC). 22:00 ET (= 02:00 UTC) is the cutoff — excluded.
+          - key: "{{ to_number(split(split(time_now_utc(), 'T')[1], ':')[0]) }}"
+            operator: AnyIn
+            value: [0, 1]
+      validate:
+        message: >-
+          Velero Backup/PodVolumeBackup creation is restricted to overnight
+          (22:00-07:00 America/New_York) to avoid contention with the
+          kopia-maintain pipeline and to keep the WAN upload bottleneck clear
+          during waking hours. Currently in business hours — operation
+          flagged (Audit mode; will be blocked once policy is flipped to
+          Enforce after 24h of clean reports). See:
+          /Users/johntrotta/.claude/projects/.../feedback_homelab_no_daytime_kopia_uploads.md
+        deny: {}
+    - name: block-velero-kopia-maintain-jobs-during-business-hours
+      match:
+        any:
+          - resources:
+              kinds:
+                - batch/v1/Job
+              namespaces:
+                - velero
+              names:
+                - "*-wasabi-kopia-maintain-job-*"
+              operations:
+                - CREATE
+      preconditions:
+        any:
+          - key: "{{ to_number(split(split(time_now_utc(), 'T')[1], ':')[0]) }}"
+            operator: AnyIn
+            value: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+          - key: "{{ to_number(split(split(time_now_utc(), 'T')[1], ':')[0]) }}"
+            operator: AnyIn
+            value: [0, 1]
+      validate:
+        message: >-
+          Velero kopia-maintain Job creation is restricted to overnight
+          (22:00-07:00 America/New_York). Currently in business hours —
+          operation flagged (Audit mode; will be blocked once policy is
+          flipped to Enforce).
+        deny: {}

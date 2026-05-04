@@ -412,6 +412,8 @@ resources:
   - maltrail.yaml         # docker-1:8338 — maltrail server (sensor host-net for libpcap)
   - legacy-vm.yaml             # docker-1:3010 — OSTE-Meta-Scan webtop (Tkinter GUI in noVNC; cryptpad has 3000)
   - openvas.yaml          # docker-1:9392 — Greenbone CE GSA web UI
+  - kopia-docker-1.yaml      # docker-1:51515 — read-only Kopia web UI for the docker-1 backup repo
+  - kopia-docker-2.yaml      # docker-2:51515 — read-only Kopia web UI for the docker-2 backup repo
 
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a

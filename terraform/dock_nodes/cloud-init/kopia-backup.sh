@@ -22,6 +22,10 @@
 #   KOPIA_PASSWORD          repository password — REQUIRED FOR RESTORES
 #   KOPIA_S3_ACCESS_KEY     Wasabi access key (matches velero-wasabi-creds)
 #   KOPIA_S3_SECRET_KEY     Wasabi secret key (matches velero-wasabi-creds)
+#   KOPIA_SERVER_PASSWORD   basic-auth password for the read-only kopia server
+#                           web UI (user is fixed to "kopia"; kept the same
+#                           across the dock fleet so one credential unlocks any
+#                           kopia-dock<N>.__BASE-DOMAIN__ Traefik route)
 #
 # Optional overrides (defaults in []):
 #   KOPIA_S3_BUCKET         [__WASABI-BUCKET__]
@@ -61,6 +65,7 @@ fi
 : "${KOPIA_PASSWORD:?must be set — see header}"
 : "${KOPIA_S3_ACCESS_KEY:?must be set — see header}"
 : "${KOPIA_S3_SECRET_KEY:?must be set — see header}"
+: "${KOPIA_SERVER_PASSWORD:?must be set — see header}"
 
 KOPIA_S3_BUCKET="${KOPIA_S3_BUCKET:-__WASABI-BUCKET__}"
 KOPIA_S3_ENDPOINT="${KOPIA_S3_ENDPOINT:-__WASABI-ENDPOINT__}"
@@ -124,6 +129,7 @@ KOPIA_S3_PREFIX=${KOPIA_S3_PREFIX}
 KOPIA_S3_ACCESS_KEY=${KOPIA_S3_ACCESS_KEY}
 KOPIA_S3_SECRET_KEY=${KOPIA_S3_SECRET_KEY}
 KOPIA_PASSWORD=${KOPIA_PASSWORD}
+KOPIA_SERVER_PASSWORD=${KOPIA_SERVER_PASSWORD}
 EOF
 umask 0022
 chmod 0600 /etc/kopia/env
@@ -320,8 +326,37 @@ Persistent=true
 WantedBy=timers.target
 EOF
 
+cat > /etc/systemd/system/kopia-server.service <<'EOF'
+[Unit]
+Description=Kopia repository server (read-only web UI for browse + restore)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/kopia/env
+# --readonly: server cannot mutate the repo (snapshot create/delete, policy
+# changes, maintenance) — those go through the kopia-backup.service runner.
+# Restores are reads from the repo's perspective and still work.
+# Plain HTTP behind Traefik, which terminates TLS at the LAN edge.
+ExecStart=/usr/bin/kopia server start \
+  --readonly \
+  --address=0.0.0.0:51515 \
+  --insecure \
+  --server-username=kopia \
+  --server-password=${KOPIA_SERVER_PASSWORD}
+Restart=on-failure
+RestartSec=10
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 systemctl daemon-reload
 systemctl enable --now kopia-backup.timer
+systemctl enable --now kopia-server.service
+systemctl restart kopia-server.service
 
 echo
 echo "==== kopia-backup.sh complete ===="
@@ -332,3 +367,5 @@ echo "Verify now:    sudo systemctl start kopia-backup.service"
 echo "Tail run:      sudo journalctl -u kopia-backup.service -f"
 echo "Next fire:     systemctl list-timers kopia-backup.timer"
 echo "List snaps:    sudo kopia snapshot list"
+echo "UI:            http://$(hostname):51515 (basic auth user=kopia)"
+echo "UI status:     systemctl status kopia-server.service"

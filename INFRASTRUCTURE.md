@@ -169,6 +169,8 @@ host port — usable for emergency access via `https://__LAN-IP__:<port>`
 | checkmk.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `checkmk` | 5000 http |
 | cryptpad.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `cryptpad` | 3000 http |
 | komodo.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `komodo-core-1` | 9120 http |
+| kopia-docker-1.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) systemd `kopia-server.service` | 51515 http (basic auth) |
+| kopia-docker-2.__BASE-DOMAIN__ | docker-2 (__LAN-IP__) systemd `kopia-server.service` | 51515 http (basic auth) |
 | maltrail.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `maltrail-server` | 8338 http |
 | openvas.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `greenbone-...-nginx-1` | 9443 https (lan-self-signed) |
 | torrents.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `qbittorrent` via `gluetun` | 8085 http |

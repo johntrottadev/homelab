@@ -135,12 +135,15 @@ own Kopia repo in Wasabi (`s3://__WASABI-BUCKET__/dock/<hostname>/`). Same bucke
 and credentials as Velero (which backs up the k8s side); separate prefix.
 
 ```bash
-# Inputs (need all three):
+# Inputs (need four):
 #   - KOPIA_PASSWORD: the shared dock-fleet repo password (lookup in pw mgr;
 #     same value used on docker-1 and docker-2 — required to read existing repos
 #     from any host).
+#   - KOPIA_SERVER_PASSWORD: basic-auth password for the read-only Kopia
+#     web UI (user is fixed to `kopia`). Shared across the dock fleet.
 #   - Wasabi creds: pull from the velero-wasabi-creds secret.
 KOPIA_PASSWORD='<paste from password manager>'
+KOPIA_SERVER_PASSWORD='<paste from password manager>'
 read -r KOPIA_S3_ACCESS_KEY KOPIA_S3_SECRET_KEY < <(
   kubectl get secret velero-wasabi-creds -n velero -o jsonpath='{.data.cloud}' \
     | base64 -d \
@@ -149,9 +152,10 @@ read -r KOPIA_S3_ACCESS_KEY KOPIA_S3_SECRET_KEY < <(
 
 ssh bastion@<new-ip> \
   "export KOPIA_PASSWORD='$KOPIA_PASSWORD'; \
+   export KOPIA_SERVER_PASSWORD='$KOPIA_SERVER_PASSWORD'; \
    export KOPIA_S3_ACCESS_KEY='$KOPIA_S3_ACCESS_KEY'; \
    export KOPIA_S3_SECRET_KEY='$KOPIA_S3_SECRET_KEY'; \
-   sudo --preserve-env=KOPIA_PASSWORD,KOPIA_S3_ACCESS_KEY,KOPIA_S3_SECRET_KEY bash -s" \
+   sudo --preserve-env=KOPIA_PASSWORD,KOPIA_SERVER_PASSWORD,KOPIA_S3_ACCESS_KEY,KOPIA_S3_SECRET_KEY bash -s" \
   < cloud-init/kopia-backup.sh
 
 # Verify the timer is armed and run once on demand:
@@ -159,6 +163,11 @@ ssh bastion@<new-ip> 'systemctl list-timers kopia-backup.timer; sudo systemctl s
 
 # List snapshots in the new repo:
 ssh bastion@<new-ip> 'sudo kopia snapshot list'
+
+# The kopia-server.service comes up at the same time, listening on
+# 0.0.0.0:51515 (read-only mode). Add a Traefik IngressRoute for the new
+# host modeled on clusters/default/kopia-docker-1.yaml so it's reachable at
+# https://kopia-<dockN>.__BASE-DOMAIN__ (basic auth user=kopia).
 ```
 
 Default backup paths: `/var/lib/docker/volumes`, `/opt/stacks`,

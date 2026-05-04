@@ -411,6 +411,13 @@ spec:
           static_configs:
           - targets:
             - __PVE1-IP__:9221
+        - job_name: bastion
+          scrape_interval: 30s
+          static_configs:
+          - targets:
+            - __LAN-IP__:9090
+            labels:
+              instance: bastion
         replicas: 1
         storageSpec:
           volumeClaimTemplate:

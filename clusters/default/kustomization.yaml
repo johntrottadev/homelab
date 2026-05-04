@@ -239,6 +239,13 @@ resources:
   - monitoring/speedtest-exporter/servicemonitor.yaml
   - monitoring/speedtest-exporter/grafana-dashboard-cm.yaml
 
+  # bastion dashboard — Grafana visualization for the 34 opsman_* metrics
+  # exposed by the LXC at __LAN-IP__:9090 (scraped via additionalScrapeConfigs
+  # in the kube-prometheus-stack helmrelease). Sidecar auto-imports via
+  # `grafana_dashboard: '1'` label. 6 rows / 24 panels covering overview,
+  # drift+gitops, task runs, approval gate, audit catalog, subsystem health.
+  - monitoring/bastion-dashboard/grafana-dashboard-cm.yaml
+
   # MinIO — self-hosted S3-compatible store on NAS NFS PV. Backs Nextcloud
   # primary storage; will host buckets for other apps as needed. Synology
   # Hyper Backup catches /volume1/kub/minio nightly to Wasabi for DR.

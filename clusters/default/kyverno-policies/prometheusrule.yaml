@@ -1,0 +1,76 @@
+# quick-260504-oee — Alerting on Kyverno audit-mode violations + controller down.
+#
+# Two alerts:
+#   1. KyvernoPolicyViolation (warning, 5m) — fires on any audit-mode
+#      violation. Mode is currently Audit (see clusterpolicy-velero-business-
+#      hours.yaml header) so this alert IS the operational signal that a
+#      protected window was bumped. When policies flip to Enforce, this alert
+#      becomes a "something tried to bypass policy" signal — equally useful.
+#   2. KyvernoAdmissionControllerDown (critical, 5m) — fires when the
+#      admission controller has zero ready replicas. Because the chart sets
+#      failurePolicy: Ignore (features.forceFailurePolicyIgnore.enabled),
+#      cluster admission survives this; no policies are evaluated until the
+#      controller is back.
+#
+# Metric name verification:
+#   `kyverno_policy_results_total` is the canonical metric for policy
+#   evaluation outcomes per Kyverno's monitoring docs
+#   (https://kyverno.io/docs/monitoring/policy-results/). Labels include
+#   policy_name, rule_name, policy_validation_action, rule_result,
+#   resource_kind, resource_namespace, resource_name. If the metric is
+#   missing or empty after deploy, confirm with a port-forwarded
+#   curl http://kyverno-svc-metrics.kyverno:8000/metrics | grep kyverno_policy
+#   and adjust expr to the actual metric name (chart upgrades rarely rename,
+#   but it has happened — track release notes).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kyverno-policy-violations
+  namespace: monitoring
+  labels:
+    # REQUIRED — kube-prometheus-stack's ruleSelector matches this.
+    release: prometheus
+spec:
+  groups:
+    - name: kyverno.policies
+      rules:
+        - alert: KyvernoPolicyViolation
+          expr: |
+            increase(kyverno_policy_results_total{policy_validation_action="audit",rule_result="fail"}[10m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            component: kyverno
+          annotations:
+            summary: "Kyverno policy in audit mode flagged a violation"
+            description: >-
+              Policy {{ $labels.policy_name }} rule {{ $labels.rule_name }}
+              flagged a {{ $labels.resource_kind }} in
+              {{ $labels.resource_namespace }}/{{ $labels.resource_name }}.
+              Audit mode — not blocked. Inspect with:
+              kubectl get policyreport -A | grep {{ $labels.policy_name }}
+            dashboard_url: "https://grafana.__BASE-DOMAIN__/d/kyverno-policy-reports"
+            runbook: >-
+              If unexpected: investigate the source of the create call
+              (kubectl get events --field-selector involvedObject.name=...).
+              If expected (e.g. operator-driven test): annotate or filter from
+              the audit-clean-window check.
+        - alert: KyvernoAdmissionControllerDown
+          expr: |
+            kube_deployment_status_replicas_available{namespace="kyverno",deployment=~"kyverno.*admission-controller.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: kyverno
+          annotations:
+            summary: "Kyverno admission controller has zero ready replicas"
+            description: >-
+              Kyverno admission controller deployment
+              {{ $labels.deployment }} in ns {{ $labels.namespace }} has zero
+              ready replicas. Cluster admission CONTINUES because the chart
+              sets failurePolicy: Ignore on every webhook
+              (features.forceFailurePolicyIgnore.enabled = true), but no
+              policies are evaluated until the controller is back. Check:
+              kubectl -n kyverno describe deploy/{{ $labels.deployment }}
+              kubectl -n kyverno logs -l app.kubernetes.io/component=admission-controller --tail=200
+            dashboard_url: "https://grafana.__BASE-DOMAIN__/d/kyverno-policy-reports"

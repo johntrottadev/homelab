@@ -1,0 +1,52 @@
+# quick-260504-oee — Kyverno metrics scrape.
+#
+# Why this lives in clusters/default/kyverno-policies/ (not kyverno/):
+# Observability of policy outcomes ships with the policies, not with the
+# controller. If the controller dir gets paused for a chart migration, the
+# policy + its observability still get deployed together.
+#
+# Why namespace: monitoring (and not kyverno):
+# Existing convention in this repo (mirrors speedtest-exporter, backup-host-exporter,
+# pihole-exporter ServiceMonitors). The kube-prometheus-stack
+# `serviceMonitorSelector.matchLabels: {release: prometheus}` is namespaced
+# but matches across all namespaces because the operator uses
+# `namespaceSelector: { any: true }` by default. Keeping all SMs in the
+# monitoring ns makes the operator's view (`kubectl -n monitoring get
+# servicemonitor`) the single audit trail.
+#
+# Why selector matches `app.kubernetes.io/part-of: kyverno`:
+# Chart 3.7.1 produces FOUR metrics Services — kyverno-svc-metrics,
+# kyverno-background-controller-metrics, kyverno-cleanup-controller-metrics,
+# kyverno-reports-controller-metrics — all in the kyverno ns, all carrying
+# label `app.kubernetes.io/part-of: kyverno`, all exposing port 8000 named
+# `metrics-port`. One ServiceMonitor selecting on `part-of=kyverno` catches
+# all four — no per-controller stanzas needed. Verified via:
+#   helm template kyverno kyverno/kyverno --version 3.7.1 --namespace kyverno
+#
+# If the chart bumps its label scheme, re-run that helm template and adjust.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kyverno
+  namespace: monitoring
+  labels:
+    # REQUIRED — kube-prometheus-stack's serviceMonitorSelector matches this.
+    # Project memory: monitoring_stack_state.
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - kyverno
+  selector:
+    matchLabels:
+      # Catches all four kyverno controllers' metrics services.
+      app.kubernetes.io/part-of: kyverno
+      # Restrict to *-metrics services only — admission-controller and
+      # cleanup-controller also expose a non-metrics https Service on 443.
+      # Filtering on the metrics-port targetPort name in `endpoints` covers
+      # this; we list one endpoint with the canonical port name.
+  endpoints:
+    - port: metrics-port  # all four metrics services name their port this
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 25s

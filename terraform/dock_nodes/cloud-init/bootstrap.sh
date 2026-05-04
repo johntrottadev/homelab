@@ -29,6 +29,8 @@
 #
 # What this does NOT do (separate steps in README "Post-clone runbook"):
 #   - mount /mnt/kub  → needs /etc/samba/credentials scp'd from docker-1 (secret)
+#   - configure Kopia → Wasabi backups → run cloud-init/kopia-backup.sh with
+#     KOPIA_PASSWORD + Wasabi creds (secret env vars)
 #   - install Komodo Periphery → needs /opt/komodo/.env scp'd from docker-1 (secret)
 #   - register the node in Komodo Core UI
 #   - update Traefik EndpointSlices in clusters/default/{legacy-vm,...}.yaml
@@ -123,6 +125,7 @@ echo
 echo "==== bootstrap.sh complete ===="
 echo "Next operator steps (see README.md \"Post-clone runbook\"):"
 echo "  1. scp /etc/samba/credentials from docker-1, uncomment fstab CIFS line, mount -a"
-echo "  2. scp /opt/komodo/.env from docker-1, install Komodo Periphery"
-echo "  3. Register the node in Komodo Core UI"
-echo "  4. Add new node IP to Traefik EndpointSlices in clusters/default/<svc>.yaml"
+echo "  2. Run cloud-init/kopia-backup.sh with KOPIA_PASSWORD + Wasabi creds"
+echo "  3. scp /opt/komodo/.env from docker-1, install Komodo Periphery"
+echo "  4. Register the node in Komodo Core UI"
+echo "  5. Add new node IP to Traefik EndpointSlices in clusters/default/<svc>.yaml"

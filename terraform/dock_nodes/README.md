@@ -128,7 +128,45 @@ ssh bastion@<new-ip> "sudo sed -i 's|^# //__NAS-IP__/kub|//__NAS-IP__/kub|' /etc
 # Expect: list of homelab dirs (cryptpad, maltrail, nextcloud, ...).
 ```
 
-### 2. Install Komodo Periphery
+### 2. Set up Kopia backups to Wasabi
+
+Each dock node snapshots its local docker volumes and stack configs to its
+own Kopia repo in Wasabi (`s3://__WASABI-BUCKET__/dock/<hostname>/`). Same bucket
+and credentials as Velero (which backs up the k8s side); separate prefix.
+
+```bash
+# Inputs (need all three):
+#   - KOPIA_PASSWORD: the shared dock-fleet repo password (lookup in pw mgr;
+#     same value used on docker-1 and docker-2 — required to read existing repos
+#     from any host).
+#   - Wasabi creds: pull from the velero-wasabi-creds secret.
+KOPIA_PASSWORD='<paste from password manager>'
+read -r KOPIA_S3_ACCESS_KEY KOPIA_S3_SECRET_KEY < <(
+  kubectl get secret velero-wasabi-creds -n velero -o jsonpath='{.data.cloud}' \
+    | base64 -d \
+    | awk -F= '/aws_access_key_id/{a=$2} /aws_secret_access_key/{s=$2} END{print a, s}'
+)
+
+ssh bastion@<new-ip> \
+  "export KOPIA_PASSWORD='$KOPIA_PASSWORD'; \
+   export KOPIA_S3_ACCESS_KEY='$KOPIA_S3_ACCESS_KEY'; \
+   export KOPIA_S3_SECRET_KEY='$KOPIA_S3_SECRET_KEY'; \
+   sudo --preserve-env=KOPIA_PASSWORD,KOPIA_S3_ACCESS_KEY,KOPIA_S3_SECRET_KEY bash -s" \
+  < cloud-init/kopia-backup.sh
+
+# Verify the timer is armed and run once on demand:
+ssh bastion@<new-ip> 'systemctl list-timers kopia-backup.timer; sudo systemctl start kopia-backup.service; sudo journalctl -u kopia-backup.service --no-pager -n 30'
+
+# List snapshots in the new repo:
+ssh bastion@<new-ip> 'sudo kopia snapshot list'
+```
+
+Default backup paths: `/var/lib/docker/volumes`, `/opt/stacks`,
+`/opt/komodo`. Edit `/etc/kopia/sources.list` on the host to change.
+Schedule defaults to daily 03:30 (offset from velero's 03:00 — adjust via
+`KOPIA_DAILY_AT=HH:MM` when re-running `kopia-backup.sh`).
+
+### 3. Install Komodo Periphery
 
 docker-1 runs Komodo **Core** (the controller); each dock node runs **Periphery**
 (the agent). Same passkey on Core and every Periphery — that's how Core
@@ -164,7 +202,7 @@ Verify Periphery is listening:
 ss -tlnp 2>/dev/null | grep 8120  # Periphery default
 ```
 
-### 3. Register in Komodo Core UI
+### 4. Register in Komodo Core UI
 
 In Komodo at `http://__LAN-IP__:9120`:
 
@@ -172,7 +210,7 @@ In Komodo at `http://__LAN-IP__:9120`:
    passkey from the shared `.env` (`PERIPHERY_PASSKEYS`).
 2. **Servers → \<dockN\> → Health** turns green within ~30s.
 
-### 4. Reassign stateless stacks
+### 5. Reassign stateless stacks
 
 In Komodo, edit each **stateless** stack (drawio is k8s-native and excluded;
 legacy-vm is the main candidate as of 2026-05-01) → server list += new node.
@@ -186,7 +224,7 @@ Stateful singletons stay on docker-1 only:
 - cryptpad
 - checkmk
 
-### 5. Update Traefik EndpointSlices
+### 6. Update Traefik EndpointSlices
 
 For each stateless service the new node mirrors, edit the bundle in
 `clusters/default/<svc>.yaml` to add a second `addresses` entry:
@@ -202,7 +240,7 @@ endpoints:
 Commit + push; flux reconciles. Traefik round-robins by default — no service
 config change needed.
 
-### 6. Validate
+### 7. Validate
 
 ```bash
 # Round-robin check (run repeatedly; netdata per-host request rate should

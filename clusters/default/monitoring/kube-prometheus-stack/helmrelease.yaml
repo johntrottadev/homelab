@@ -418,6 +418,21 @@ spec:
             - __LAN-IP__:9090
             labels:
               instance: bastion
+        # Static node_exporter targets on the Docker hosts. node_exporter ships
+        # general host metrics and reads kopia-backup textfiles
+        # (/var/lib/node_exporter/textfile_collector/kopia.prom written by
+        # kopia-backup-run.sh after every snapshot run). See
+        # terraform/dock_nodes/cloud-init/kopia-backup.sh for the host setup
+        # and monitoring/grafana-dashboard-kopia.yaml for the dashboard.
+        - job_name: dock-hosts
+          scrape_interval: 30s
+          static_configs:
+          - targets: [__LAN-IP__:9100]
+            labels:
+              instance: docker-1
+          - targets: [__LAN-IP__:9100]
+            labels:
+              instance: docker-2
         replicas: 1
         storageSpec:
           volumeClaimTemplate:

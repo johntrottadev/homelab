@@ -1,0 +1,36 @@
+# Grant the kyverno reports-controller list/watch on Velero CRs so
+# PolicyReport CRs are generated for `velero.io/v1/Backup` and
+# `velero.io/v1/PodVolumeBackup` admission events.
+#
+# Without this, admission still works (the validating webhook fires and
+# the Prometheus metric `kyverno_policy_results_total` increments), but
+# the PolicyReport CR is not created — the operator-side view via
+# `kubectl get policyreport` shows nothing for those kinds. The metric
+# alone is enough for alerting; the PolicyReport is the operator's audit
+# narrative ("which exact Backup did the policy flag?").
+#
+# Implementation: aggregate to `kyverno:reports-controller` via the
+# documented label selector (`rbac.kyverno.io/aggregate-to-reports-controller:
+# "true"`). No need to bind to the SA directly — the chart's main reports
+# ClusterRole inherits via aggregation.
+#
+# Verbs limited to read-only (get/list/watch). The reports controller
+# never writes Backup or PodVolumeBackup CRs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:reports-controller:velero-readonly
+  labels:
+    # quick-260504-oee — discovered during smoke test that the chart's
+    # default RBAC doesn't include velero.io types.
+    rbac.kyverno.io/aggregate-to-reports-controller: "true"
+rules:
+  - apiGroups:
+      - velero.io
+    resources:
+      - backups
+      - podvolumebackups
+    verbs:
+      - get
+      - list
+      - watch

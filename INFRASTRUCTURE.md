@@ -120,31 +120,77 @@ migration scope. See bastion backlog `999.2 — homelab GitOps migration`.
 
 These routes expose hosts that run **outside** the k3s cluster. Each
 bundle is one YAML file at `clusters/default/<host>.yaml` containing a
-headless Service, a static EndpointSlice pointing to the external IP, and
-an IngressRoute on the `websecure` entrypoint. ProxMox hosts (`__PVE-NODE-1__-3`,
-`backup-host`), the Synology DSM (`synology` / `storage`), DNS hosts (`dns`, `dns2`),
-the network switches (`sw`, `sw10`), and the Pi-hole admin (`pa`) all
-follow this pattern with HTTPS upstream and `serversTransport: lan-self-signed`
-to skip cert verification on internal self-signed certs.
+headless Service, a static EndpointSlice pointing to the external IP(s),
+and an IngressRoute on the `websecure` entrypoint. Traefik terminates
+TLS with the `*.__BASE-DOMAIN__` Let's Encrypt wildcard so every backend gets
+a valid cert without per-host ACME. For HTTPS backends,
+`serversTransport: lan-self-signed` skips upstream cert verification on
+internal self-signed certs.
 
-| Hostname                | EndpointSlice -> | Backend                        | Notes |
-|-------------------------|-------------------|--------------------------------|-------|
-| __PVE-NODE-1__.__BASE-DOMAIN__         | __PVE1-IP__:8006   | ProxMox VE 1                   | HTTPS + lan-self-signed |
-| __PVE-NODE-2__.__BASE-DOMAIN__         | __PVE2-IP__:8006   | ProxMox VE 2                   | HTTPS + lan-self-signed |
-| __PVE-NODE-3__.__BASE-DOMAIN__         | __PVE3-IP__:8006   | ProxMox VE 3                   | HTTPS + lan-self-signed |
-| backup-host.__BASE-DOMAIN__          | __PVE-IP__:8007   | ProxMox Backup Server          | HTTPS + lan-self-signed |
-| synology.__BASE-DOMAIN__ + __NAS-HOST__ | __NAS-IP__:5001 | Synology DSM        | HTTPS + lan-self-signed (consolidated) |
-| dns.__BASE-DOMAIN__ / dns2.__BASE-DOMAIN__ | __LAN-IP__/31:443 | Pi-hole 1 / 2 admin     | HTTPS + lan-self-signed |
-| sw.__BASE-DOMAIN__ / sw10.__BASE-DOMAIN__  | (switch IPs)        | Network switch admin    | HTTPS + lan-self-signed |
-| **wazuh.__BASE-DOMAIN__**    | **__LAN-IP__:5601** | **docker-1 docker compose (Wazuh)** | **First docker-1-backed external-IP HTTPS bundle (260429-qyu).** Single-node Wazuh stack from upstream `wazuh/wazuh-docker@v4.14.5`. Vendored compose copy at `bastion/services/wazuh/`. |
-| torrents.__BASE-DOMAIN__     | __LAN-IP__:8085   | docker-1 qbittorrent              | Plain HTTP upstream — gluetun publishes :8085 |
+**Why this section exists:** internal scans / `dig` / nmap on these
+hostnames return `__K3S-VIP__` (the Traefik VIP), not the real backend.
+That's by design — the alternative is per-host cert distribution to
+preserve TLS, which isn't worth the maintenance surface. When you need
+to know what's actually behind a hostname (recon, troubleshooting,
+emergency direct access if Traefik is down), this table is the source
+of truth.
 
-Other docker-1-backed routes (`guac`, `hoarder`, `libre`, `n8n`,
-`paperless`, `pa`) all use plain HTTP upstream because the underlying
-service binds HTTP only — `wazuh` is the first docker-1-backed route that
-needs HTTPS upstream (the dashboard binds 5601 with a self-signed cert).
-Pattern is reusable for any future docker-1 service whose upstream presents
-HTTPS with a self-signed cert.
+#### Single dedicated backend
+
+Each host has one IP and runs only that service — no Traefik
+hostname-routing required. If Traefik is down, you can hit the host
+directly at the listed `<ip>:<port>` (with whatever cert that host
+serves itself, which is usually self-signed).
+
+| Hostname | Real backend | Upstream |
+|---|---|---|
+| __PVE-NODE-1__.__BASE-DOMAIN__ | __PVE-NODE-1__ — __PVE1-IP__ | 8006 https |
+| __PVE-NODE-2__.__BASE-DOMAIN__ | __PVE-NODE-2__ — __PVE2-IP__ | 8006 https |
+| __PVE-NODE-3__.__BASE-DOMAIN__ | __PVE-NODE-3__ — __PVE3-IP__ | 8006 https |
+| __PVE-MGMT-1__.__BASE-DOMAIN__ | __PVE-NODE-1__ BMC — __LAN-IP__ | 443 https |
+| backup-host.__BASE-DOMAIN__ | PBS — __LAN-IP__ | 8007 https |
+| __NAS-HOST__ + synology.__BASE-DOMAIN__ | Synology DSM — __NAS-IP__ | 5001 https |
+| dns.__BASE-DOMAIN__ | pihole1 — __PIHOLE1-IP__ | 80 http |
+| dns2.__BASE-DOMAIN__ | pihole2 — __PIHOLE2-IP__ | 80 http |
+| sw.__BASE-DOMAIN__ | network switch — __LAN-IP__ | 80 http |
+| pa.__BASE-DOMAIN__ | pa device — __LAN-IP__ | 443 https |
+
+#### docker-1 multi-tenant
+
+All seven hostnames terminate at Traefik, which routes to the right
+docker container on docker-1 by host header. Direct access bypassing
+Traefik would require either a reverse proxy on docker-1 itself or
+per-service host ports. The upstream port column is the docker-published
+host port — usable for emergency access via `https://__LAN-IP__:<port>`
+(self-signed where applicable).
+
+| Hostname | Container | Upstream |
+|---|---|---|
+| checkmk.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `checkmk` | 5000 http |
+| cryptpad.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `cryptpad` | 3000 http |
+| komodo.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `komodo-core-1` | 9120 http |
+| maltrail.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `maltrail-server` | 8338 http |
+| openvas.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `greenbone-...-nginx-1` | 9443 https (lan-self-signed) |
+| torrents.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `qbittorrent` via `gluetun` | 8085 http |
+| wazuh.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `single-node-wazuh.dashboard-1` | 5601 https (lan-self-signed) |
+
+#### Multi-IP load-balanced
+
+Traefik fans out across multiple backends. There's no single "real IP"
+to broadcast in DNS — load balancing is the point.
+
+| Hostname | Real backends | Upstream |
+|---|---|---|
+| netdata.__BASE-DOMAIN__ | every node — __LAN-IP__, .41, .42, .45, .46, .47 | 19999 http |
+| legacy-vm.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) + docker-2 (__LAN-IP__) | 6901 https (lan-self-signed) |
+
+#### Adding a new external-IP route
+
+When you add a new `clusters/default/<host>.yaml` with the
+Service+EndpointSlice+IngressRoute pattern, add a row to the appropriate
+table above. Without it, future-you (or the next person scanning the
+LAN) can't tell what's behind the hostname — DNS only ever points at
+the Traefik VIP.
 
 #### Retired apps
 
@@ -157,5 +203,5 @@ HTTPS with a self-signed cert.
 
 - **k3s-6 lacks `nfs-common`** — pods using NFS PVs fail to mount here. Pin NFS-dependent workloads to `k3s-2` via `nodeSelector: { kubernetes.io/hostname: k3s-2 }` (pattern used by jellyfin and paperless).
 - **k3s version drift**: k3s-1 on v1.34.2, others on v1.32.3. No active issues, but upgrade path needed.
-- **DNS gotcha**: `__PVE-NODE-3__.__BASE-DOMAIN__` resolves to k8s node IPs (incorrect). Always use raw PVE IPs `__PVE1-IP__/11/12`.
+- **DNS gotcha**: every external-IP-backend hostname resolves to the Traefik VIP (`__K3S-VIP__`) on internal DNS, not the real backend. This is intentional — Traefik serves the LE wildcard cert. For the actual backend behind any hostname (recon, troubleshooting, emergency direct access), see the *External-IP-backend bundles* section above.
 - **Terraform coverage**: only `k3s-5` is managed by `terraform/k3s_nodes/`. k3s-4 was manually provisioned and got decommissioned 2026-04-22 (chronic flapping).

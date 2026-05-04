@@ -14,8 +14,6 @@ spec:
       - events.events.k8s.io
       - events
     includedNamespaces:
-      - checkmk
-      - cryptpad
       - dashy
       - drawio
       - firefly
@@ -54,8 +52,6 @@ spec:
       - events.events.k8s.io
       - events
     includedNamespaces:
-      - checkmk
-      - cryptpad
       - dashy
       - drawio
       - firefly
@@ -94,8 +90,6 @@ spec:
       - events.events.k8s.io
       - events
     includedNamespaces:
-      - checkmk
-      - cryptpad
       - dashy
       - drawio
       - firefly

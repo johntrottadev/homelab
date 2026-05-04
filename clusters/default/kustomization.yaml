@@ -357,17 +357,16 @@ resources:
   - kyverno/namespace.yaml
   - kyverno/helmrepository.yaml
   - kyverno/helmrelease.yaml
-  # kyverno-policies/* commented out for the FIRST reconcile because the
-  # ClusterPolicy CRD ships with the HelmRelease above — a single-batch apply
-  # fails dry-run with "no matches for kind ClusterPolicy" before the chart
-  # has had a chance to install the CRDs. They will be uncommented in a
-  # follow-up commit once the HelmRelease is Ready (mirrors how
-  # kube-prometheus-stack ServiceMonitors were added in a second pass).
-  # See quick-260504-oee SUMMARY for full deviation note.
-  # - kyverno-policies/clusterpolicy-velero-business-hours.yaml
-  # - kyverno-policies/servicemonitor.yaml
-  # - kyverno-policies/prometheusrule.yaml
-  # - kyverno-policies/grafana-dashboard-cm.yaml
+  # kyverno-policies/* deferred from the first commit (see prior fix commit
+  # b8f15ac — two-phase rollout because Kyverno CRDs ship from the chart and
+  # a single-batch flux Kustomization apply hits "no matches for kind
+  # ClusterPolicy" on dry-run before the HelmRelease lands. Now safe to
+  # apply — HelmRelease is Ready, CRDs are installed, controllers are
+  # Running). See quick-260504-oee SUMMARY.
+  - kyverno-policies/clusterpolicy-velero-business-hours.yaml
+  - kyverno-policies/servicemonitor.yaml
+  - kyverno-policies/prometheusrule.yaml
+  - kyverno-policies/grafana-dashboard-cm.yaml
 
   - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)

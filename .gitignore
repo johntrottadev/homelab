@@ -5,4 +5,32 @@ ansible/logs/
 # Templates live at *-creds.template and ARE tracked.
 wasabi-creds
 *-creds
+
+# ---- Hoarder / app secrets (audit class) ------------------------------------
+*.secrets
+
+# ---- Dotenv files (audit class) ---------------------------------------------
+*.env
+.env
+.env.*
+
+# ---- Terraform state (audit class) ------------------------------------------
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# ---- Ansible inventory (audit class) ----------------------------------------
+inventory/hosts.ini
+ansible/inventory/hosts.ini
+ansible/inventory/host_vars/
+ansible/inventory/group_vars/
+
+# ---- Allowlist (re-include templates and examples) --------------------------
+# Order matters: deny patterns above, allow patterns below.
 !*-creds.template
+!*.template
+!*.example
+!*.tfvars.example
+!.env.example
+!.env.*.example

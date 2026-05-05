@@ -21,6 +21,14 @@ spec:
         - name: meilisearch
           image: getmeili/meilisearch:v1.42.1
           imagePullPolicy: Always
+          envFrom:
+            # Secret stays kubectl-managed (out-of-band; matches web/deployment.yaml).
+            # Phase 1 (SEC-01) hardening: was previously keyless dev mode (RESEARCH Pitfall #4).
+            - secretRef:
+                name: hoarder-secrets
+          env:
+            - name: MEILI_ENV
+              value: production
           ports:
             - containerPort: 7700
               protocol: TCP

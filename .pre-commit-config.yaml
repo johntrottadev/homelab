@@ -1,0 +1,10 @@
+# .pre-commit-config.yaml
+# Phase 1 (M1 SEC-05): local pre-commit secret scanner.
+# Source: https://github.com/gitleaks/gitleaks/blob/master/.pre-commit-hooks.yaml
+# Pinning rev: v8.30.1 makes the hook reproducible AND keeps Phase 4 GATE-01
+# CI in lockstep — same binary, same default ruleset, same allowlist file.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks

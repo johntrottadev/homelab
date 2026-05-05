@@ -1,0 +1,23 @@
+# .gitleaks.toml — extends upstream default ruleset, adds project allowlist.
+# Phase 1 (M1 SEC-05). Same file is consumed by Phase 4 GATE-01 CI verbatim.
+# Source: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+# gitleaks v8.25+ requires [[allowlists]] (plural). [allowlist] singular is silently ignored.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Known-safe placeholder syntaxes used in this repo's templates"
+regexTarget = "secret"
+regexes = [
+  '''\{\{[a-zA-Z0-9_.-]+\}\}''',                                  # Helm/Jinja: {{var_name}}
+  '''\$\{[A-Z0-9_]+(:-[^}]*)?\}''',                               # shell/compose: ${VAR} or ${VAR:-default}
+  '''<[a-zA-Z0-9 _.-]+>''',                                       # docs placeholder: <your-token-here>
+  '''(?i)your[-_](github[-_]client[-_])?(id|secret|token|key)''', # "your-github-client-secret"
+  '''(?i)example[-_]?(token|secret|key|password)''',
+  '''(?i)changeme|placeholder|REPLACE_ME|TODO''',
+]
+
+[[allowlists]]
+description = "Phase-1 self-test fixture — EVIDENCE.md may contain --redact'd canary references"
+paths = ['''\.planning/phases/01-quarantine-rotate/01-EVIDENCE\.md''']

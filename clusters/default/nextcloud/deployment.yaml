@@ -44,7 +44,7 @@ spec:
               mountPath: /var/www/html/data
       containers:
         - name: nextcloud
-          image: nextcloud:30-apache
+          image: nextcloud:33.0.3-apache
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

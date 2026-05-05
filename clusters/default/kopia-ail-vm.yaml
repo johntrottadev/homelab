@@ -1,0 +1,52 @@
+# IngressRoute bundle for the read-only Kopia web UI on app-vm.
+# Browser → https://kopia-app-vm.__BASE-DOMAIN__ → Traefik → http://__LAN-IP__:51515
+# Basic auth (user=kopia, password in /etc/kopia/env on app-vm — same shared
+# credential as kopia-docker-1.__BASE-DOMAIN__ / kopia-docker-2.__BASE-DOMAIN__).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-kopia-app-vm
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 51515
+      targetPort: 51515
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-kopia-app-vm-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-kopia-app-vm
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 51515
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kopia-app-vm-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`kopia-app-vm.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-kopia-app-vm
+          port: 51515
+          scheme: http

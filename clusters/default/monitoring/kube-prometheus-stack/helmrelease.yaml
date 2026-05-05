@@ -433,6 +433,9 @@ spec:
           - targets: [__LAN-IP__:9100]
             labels:
               instance: docker-2
+          - targets: [__LAN-IP__:9100]
+            labels:
+              instance: app-vm
         replicas: 1
         storageSpec:
           volumeClaimTemplate:

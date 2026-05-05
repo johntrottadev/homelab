@@ -1,0 +1,57 @@
+# IngressRoute bundle for AIL Framework on app-vm (__LAN-IP__:7000).
+# AIL ships its own self-signed cert on :7000/HTTPS by default. We terminate
+# the wildcard *.__BASE-DOMAIN__ cert at Traefik and proxy upstream HTTPS using
+# the lan-self-signed ServersTransport (same pattern as openvas).
+#
+# AIL UI default credentials: admin@admin.test / contents of
+# app-vm:/opt/app-vm/DEFAULT_PASSWORD (file self-deletes after first password
+# change in the UI).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-app-vm
+  namespace: kube-system
+spec:
+  ports:
+    - name: https
+      protocol: TCP
+      port: 7000
+      targetPort: 7000
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-app-vm-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-app-vm
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: https
+    protocol: TCP
+    port: 7000
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: app-vm-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`app-vm.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-app-vm
+          port: 7000
+          scheme: https
+          serversTransport: lan-self-signed

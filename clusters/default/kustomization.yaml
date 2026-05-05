@@ -436,6 +436,9 @@ resources:
   - openvas.yaml          # docker-1:9392 — Greenbone CE GSA web UI
   - kopia-docker-1.yaml      # docker-1:51515 — read-only Kopia web UI for the docker-1 backup repo
   - kopia-docker-2.yaml      # docker-2:51515 — read-only Kopia web UI for the docker-2 backup repo
+  - kopia-app-vm.yaml     # app-vm:51515 — read-only Kopia web UI for the app-vm backup repo
+  - app-vm.yaml              # app-vm:7000 — AIL Framework UI (HTTPS upstream, lan-self-signed)
+  - lacus.yaml            # docker-2:7100 — Lacus capture system status UI (used by AIL crawler over HTTP API)
 
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a

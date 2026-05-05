@@ -1,0 +1,47 @@
+# Lacus — capture system used by AIL framework (and standalone clients) to
+# fetch + render URLs via Playwright/Chromium. Single-container service:
+# the bundled Valkey (Lacus's job queue) runs inside the same image,
+# orchestrated by entrypoint.sh + supervisord.
+#
+# Komodo poll path: docker-2/lacus/compose.yaml (project_name: lacus).
+#
+# Ports exposed on docker-2 (__LAN-IP__):
+#   7100 — HTTP API. AIL on __LAN-IP__ reaches Lacus via http://__LAN-IP__:7100.
+#          Cluster Traefik bundle in clusters/default/lacus.yaml fronts this
+#          at https://lacus.__BASE-DOMAIN__ for operator access.
+#   7101 — Tactus interactive xpra (pinned to 127.0.0.1 inside compose, no
+#          external exposure — interactive sessions are only used in-container).
+#
+# Persistence:
+#   ./config             → Lacus generic.json (job retention, capture limits)
+#   lacus_cache (named)  → /app/lacus/cache (Valkey AOF + in-flight queue
+#                          state; survives container restarts so submitted
+#                          captures aren't lost on bounce)
+#
+# First build is heavy (~15 min, downloads chromium ~500 MB).
+#
+# IMPORTANT — first-run config seed: the bind mount at ./config masks the
+# image's /app/lacus/config/ which contains the *.json.sample files Lacus
+# requires. After `docker compose build` and BEFORE the first
+# `docker compose up`, seed the host's ./config from the image:
+#
+#   docker create --name lacus-cfg-extract lacus-lacus:latest
+#   docker cp lacus-cfg-extract:/app/lacus/config/. ./config/
+#   docker rm lacus-cfg-extract
+
+name: lacus
+
+services:
+  lacus:
+    build: .
+    container_name: lacus
+    restart: unless-stopped
+    ports:
+      - "7100:7100"
+      - "127.0.0.1:7101:7101"
+    volumes:
+      - ./config:/app/lacus/config
+      - lacus_cache:/app/lacus/cache
+
+volumes:
+  lacus_cache:

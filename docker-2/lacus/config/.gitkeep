@@ -1,0 +1,4 @@
+# config/ is mounted into /app/lacus/config — Lacus drops its generic.json
+# here on first run via `poetry run update --init`. Keep this dir tracked
+# so the compose mount target exists at deploy time; runtime files are
+# gitignored separately if desired.

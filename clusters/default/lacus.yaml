@@ -1,0 +1,53 @@
+# IngressRoute bundle for Lacus on docker-2 (__LAN-IP__:7100).
+# Lacus serves the capture API (and a minimal status page) on :7100 over
+# plain HTTP — no TLS upstream. AIL on __LAN-IP__ talks to Lacus directly
+# at http://__LAN-IP__:7100; this Traefik route exists for operator UI
+# access at https://lacus.__BASE-DOMAIN__ (status, capture browse).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-lacus
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 7100
+      targetPort: 7100
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-lacus-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-lacus
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 7100
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: lacus-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`lacus.__BASE-DOMAIN__`)
+      kind: Rule
+      services:
+        - name: ext-lacus
+          port: 7100
+          scheme: http

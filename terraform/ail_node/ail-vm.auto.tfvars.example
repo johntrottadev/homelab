@@ -1,0 +1,14 @@
+# Copy to app-vm.auto.tfvars (gitignored) and adjust if needed.
+#
+# Default placement (target_node = __PVE-NODE-2__) is the lightest-loaded host that
+# is not already a docker host (__PVE-NODE-1__ → docker-1, __PVE-NODE-3__ → docker-2). Diversifying
+# AIL onto __PVE-NODE-2__ spreads blast radius across all three PVE nodes.
+#
+# IP __LAN-IP__ is the operator-assigned slot for app-vm.
+
+nodes = {
+  app-vm = {
+    target_node = "__PVE-NODE-2__"
+    ip          = "__LAN-IP__"
+  }
+}

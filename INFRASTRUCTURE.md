@@ -68,6 +68,16 @@ Enables per-app point-in-time restore through `velero restore create`. Replaces 
 |---|---|---|---|
 | `nextcloud-rclone-wasabi` CronJob | Per-user file tree at `data/<user>/files/**` | `wasabi:nextcloud-mirror` (real path keys, browsable) | ✓ Every 15 min |
 
+### Layer 5 — Single-purpose VM Kopia repos
+
+| What | Covers | Target | Status |
+|---|---|---|---|
+| app-vm Kopia | `/opt/app-vm/configs`, `/opt/app-vm/PASTES`, `/opt/app-vm/DATA_KVROCKS` | `s3://__WASABI-BUCKET__/vm/app-vm/` (separate prefix from `dock/dockN/`) | ✓ Daily 03:30 |
+
+Same machinery as docker-1/docker-2 (`terraform/dock_nodes/cloud-init/kopia-backup.sh`),
+just different `KOPIA_PATHS` + `KOPIA_S3_PREFIX`. Read-only browse UI at
+`https://kopia-app-vm.__BASE-DOMAIN__`.
+
 Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is **standalone-restorable**: pull from Wasabi to any disk and the file tree is usable as-is. Added 2026-05-04 with the filesystem-primary cutover (replaced MinIO + the prior `mc mirror` cronjob, which mirrored opaque `urn:oid` blobs).
 
 ## Component Inventory
@@ -80,6 +90,7 @@ Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is
 - **k3s control plane**: k3s-1 @ __K3S-API-IP__ (master, v1.34.2)
 - **k3s workers**: k3s-2 @ __LAN-IP__, k3s-5 @ __LAN-IP__, k3s-6 @ __LAN-IP__ (all v1.32.3 — version drift to monitor)
 - **Other services**: docker-1 (__LAN-IP__, Docker host), pihole1 (__PIHOLE1-IP__), netbird-exit-1/2 (__LAN-IP__/49)
+- **Single-purpose app VMs**: app-vm (__LAN-IP__, AIL Framework — bare-metal upstream installer, no docker; managed via `terraform/app-vm-node/`)
 
 ### Storage
 - **Synology NAS** — `__NAS-HOST__` / __NAS-IP__
@@ -162,6 +173,8 @@ serves itself, which is usually self-signed).
 | dns2.__BASE-DOMAIN__ | pihole2 — __PIHOLE2-IP__ | 80 http |
 | sw.__BASE-DOMAIN__ | network switch — __LAN-IP__ | 80 http |
 | pa.__BASE-DOMAIN__ | pa device — __LAN-IP__ | 443 https |
+| app-vm.__BASE-DOMAIN__ | app-vm — __LAN-IP__ | 7000 https (lan-self-signed) |
+| kopia-app-vm.__BASE-DOMAIN__ | app-vm systemd `kopia-server.service` — __LAN-IP__ | 51515 http (basic auth) |
 
 #### docker-1 multi-tenant
 
@@ -179,6 +192,7 @@ host port — usable for emergency access via `https://__LAN-IP__:<port>`
 | komodo.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `komodo-core-1` | 9120 http |
 | kopia-docker-1.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) systemd `kopia-server.service` | 51515 http (basic auth) |
 | kopia-docker-2.__BASE-DOMAIN__ | docker-2 (__LAN-IP__) systemd `kopia-server.service` | 51515 http (basic auth) |
+| lacus.__BASE-DOMAIN__ | docker-2 (__LAN-IP__) `lacus` | 7100 http (capture API) |
 | maltrail.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `maltrail-server` | 8338 http |
 | openvas.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `greenbone-...-nginx-1` | 9443 https (lan-self-signed) |
 | torrents.__BASE-DOMAIN__ | docker-1 (__LAN-IP__) `qbittorrent` via `gluetun` | 8085 http |

@@ -1,0 +1,8 @@
+# Copy this file to `wasabi-creds` (without .template) and fill in real values.
+# That filename is gitignored — it will never be committed.
+#
+# The format matches AWS SDK credentials (Wasabi is S3-compatible).
+
+[default]
+aws_access_key_id=REPLACE_WITH_WASABI_ACCESS_KEY
+aws_secret_access_key=REPLACE_WITH_WASABI_SECRET_KEY

@@ -21,3 +21,18 @@ regexes = [
 [[allowlists]]
 description = "Phase-1 self-test fixture — EVIDENCE.md may contain --redact'd canary references"
 paths = ['''\.planning/phases/01-quarantine-rotate/01-EVIDENCE\.md''']
+
+[[allowlists]]
+description = "Kopia env-var names in README.md docs (preserve-env lists and export lines are variable names, not key values)"
+regexTarget = "match"
+regexes = [
+  '''KOPIA_S3_ACCESS_KEY''',  # shell env var name in --preserve-env list / export; no real value ever committed
+]
+paths = ['''terraform/dock_nodes/README\.md''']
+
+[[allowlists]]
+description = "Gitignored out-of-band credential files — never committed, present in working tree as applied secrets (gitignored via *-creds and wasabi-creds patterns)"
+paths = [
+  '''clusters/default/netalert/secret-paloarp-creds''',  # gitignored via .gitignore:10:*-creds; 0 commits in history
+  '''velero/wasabi-creds''',                              # gitignored via velero/.gitignore:2:wasabi-creds; 0 commits in history
+]

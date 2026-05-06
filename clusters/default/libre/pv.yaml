@@ -18,6 +18,6 @@ spec:
     namespace: libre
     name: libreoffice-pvc
   nfs:
-    server: __NAS-IP__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/libreoffice
     readOnly: false

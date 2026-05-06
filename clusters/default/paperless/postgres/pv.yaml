@@ -13,6 +13,6 @@ spec:
     namespace: paperless
     name: pgsql-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kubdbs/homelab/paperless
     readOnly: false

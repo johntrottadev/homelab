@@ -13,6 +13,6 @@ spec:
     namespace: homelab
     name: guacamole-db-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kubdbs/homelab/guacamole
     readOnly: false

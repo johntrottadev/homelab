@@ -13,6 +13,6 @@ spec:
     namespace: hoarder
     name: data-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/hoarder/data
     readOnly: false

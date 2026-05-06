@@ -20,6 +20,6 @@ spec:
     namespace: nextcloud
     name: nextcloud-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/nextcloud/config
     readOnly: false

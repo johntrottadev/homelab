@@ -16,6 +16,6 @@ spec:
     namespace: firefly
     name: firefly-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/firefly
     readOnly: false

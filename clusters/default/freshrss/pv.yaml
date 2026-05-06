@@ -18,6 +18,6 @@ spec:
   nfs:
     # Mirrors existing PV server (immutable once Bound). __NAS-HOST__
     # latent DNS issue is documented; not in scope to fix here.
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/freshrss
     readOnly: false

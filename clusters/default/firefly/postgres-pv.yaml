@@ -16,6 +16,6 @@ spec:
     namespace: firefly
     name: firefly-postgres-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kubdbs/firefly
     readOnly: false

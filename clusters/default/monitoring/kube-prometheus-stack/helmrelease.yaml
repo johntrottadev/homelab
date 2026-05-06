@@ -105,7 +105,7 @@ spec:
             title: '[CRITICAL] {{ .CommonLabels.alertname }} ({{ .Status }})'
             token_file: /etc/alertmanager/secrets/pushover-creds/token
             url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else
-              }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+              }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
             url_title: Open dashboard
             user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
         - name: pushover-warning
@@ -126,7 +126,7 @@ spec:
             title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
             token_file: /etc/alertmanager/secrets/pushover-creds/token
             url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else
-              }}https://grafana.__BASE-DOMAIN__/d/homelab-front-page{{ end }}'
+              }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
             url_title: Open dashboard
             user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
         route:

@@ -80,13 +80,13 @@ spec:
                   key: NEXTCLOUD_ADMIN_PASSWORD
             # --- Trust the Traefik IngressRoute ---
             - name: NEXTCLOUD_TRUSTED_DOMAINS
-              value: nextcloud.__BASE-DOMAIN__
+              value: nextcloud.${BASE_DOMAIN}
             - name: OVERWRITEPROTOCOL
               value: https
             - name: OVERWRITEHOST
-              value: nextcloud.__BASE-DOMAIN__
+              value: nextcloud.${BASE_DOMAIN}
             - name: OVERWRITECLIURL
-              value: https://nextcloud.__BASE-DOMAIN__
+              value: https://nextcloud.${BASE_DOMAIN}
             # Pod CIDR + service CIDR — adjust if these change. Lets
             # Nextcloud trust X-Forwarded-* from Traefik.
             - name: TRUSTED_PROXIES
@@ -128,7 +128,7 @@ spec:
               port: 80
               httpHeaders:
                 - name: Host
-                  value: nextcloud.__BASE-DOMAIN__
+                  value: nextcloud.${BASE_DOMAIN}
             failureThreshold: 60
             periodSeconds: 10
             timeoutSeconds: 5
@@ -138,7 +138,7 @@ spec:
               port: 80
               httpHeaders:
                 - name: Host
-                  value: nextcloud.__BASE-DOMAIN__
+                  value: nextcloud.${BASE_DOMAIN}
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
@@ -148,7 +148,7 @@ spec:
               port: 80
               httpHeaders:
                 - name: Host
-                  value: nextcloud.__BASE-DOMAIN__
+                  value: nextcloud.${BASE_DOMAIN}
             initialDelaySeconds: 120
             periodSeconds: 60
             timeoutSeconds: 10

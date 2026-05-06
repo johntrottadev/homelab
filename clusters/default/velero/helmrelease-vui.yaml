@@ -60,7 +60,7 @@ spec:
       enabled: false
     exposure:
       clusterIP:
-        localAddress: velero-ui.__BASE-DOMAIN__
+        localAddress: velero-ui.${BASE_DOMAIN}
         protocol: https
         wsProtocol: wss
       mode: clusterIP

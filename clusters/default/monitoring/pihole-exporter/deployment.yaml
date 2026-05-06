@@ -23,7 +23,7 @@ spec:
       containers:
       - env:
         - name: PIHOLE_HOSTNAME
-          value: __PIHOLE1-IP__,__PIHOLE2-IP__
+          value: ${PIHOLE1_IP},${PIHOLE2_IP}
         - name: PIHOLE_PORT
           value: 80,80
         - name: PIHOLE_PROTOCOL

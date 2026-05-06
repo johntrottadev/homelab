@@ -48,7 +48,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`app-vm.__BASE-DOMAIN__`)
+    - match: Host(`app-vm.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-app-vm

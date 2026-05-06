@@ -45,7 +45,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`lacus.__BASE-DOMAIN__`)
+    - match: Host(`lacus.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-lacus

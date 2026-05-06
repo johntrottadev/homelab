@@ -50,7 +50,7 @@ spec:
             runAsGroup: 1000
           env:
             - name: N8N_HOST
-              value: n8n.__BASE-DOMAIN__
+              value: n8n.${BASE_DOMAIN}
             - name: N8N_PROTOCOL
               value: https
             - name: NODE_ENV

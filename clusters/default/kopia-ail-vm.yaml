@@ -44,7 +44,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`kopia-app-vm.__BASE-DOMAIN__`)
+    - match: Host(`kopia-app-vm.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-kopia-app-vm

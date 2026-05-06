@@ -27,7 +27,7 @@ ports:
   port: 5001
 endpoints:
 - addresses:
-  - __NAS-IP__
+  - ${NAS_IP}
   conditions:
     ready: true
     serving: true
@@ -42,7 +42,7 @@ spec:
   entryPoints:
   - websecure
   routes:
-  - match: Host(`synology.__BASE-DOMAIN__`) || Host(`__NAS-HOST__`)
+  - match: Host(`synology.${BASE_DOMAIN}`) || Host(`storage.${BASE_DOMAIN}`)
     kind: Rule
     services:
     - name: ext-synology

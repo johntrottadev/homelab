@@ -49,7 +49,7 @@ spec:
               {{ $labels.resource_namespace }}/{{ $labels.resource_name }}.
               Audit mode — not blocked. Inspect with:
               kubectl get policyreport -A | grep {{ $labels.policy_name }}
-            dashboard_url: "https://grafana.__BASE-DOMAIN__/d/kyverno-policy-reports"
+            dashboard_url: "https://grafana.${BASE_DOMAIN}/d/kyverno-policy-reports"
             runbook: >-
               If unexpected: investigate the source of the create call
               (kubectl get events --field-selector involvedObject.name=...).
@@ -73,4 +73,4 @@ spec:
               policies are evaluated until the controller is back. Check:
               kubectl -n kyverno describe deploy/{{ $labels.deployment }}
               kubectl -n kyverno logs -l app.kubernetes.io/component=admission-controller --tail=200
-            dashboard_url: "https://grafana.__BASE-DOMAIN__/d/kyverno-policy-reports"
+            dashboard_url: "https://grafana.${BASE_DOMAIN}/d/kyverno-policy-reports"

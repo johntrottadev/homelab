@@ -43,7 +43,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`cryptpad.__BASE-DOMAIN__`) || Host(`cryptpad-sandbox.__BASE-DOMAIN__`)
+    - match: Host(`cryptpad.${BASE_DOMAIN}`) || Host(`cryptpad-sandbox.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-cryptpad

@@ -30,9 +30,9 @@ spec:
             - name: APP_DEBUG
               value: "false"
             - name: SITE_OWNER
-              value: __ACME-EMAIL__
+              value: ${ACME_EMAIL}
             - name: APP_URL
-              value: https://firefly.__BASE-DOMAIN__
+              value: https://firefly.${BASE_DOMAIN}
             - name: TRUSTED_PROXIES
               value: "**"
             - name: TZ

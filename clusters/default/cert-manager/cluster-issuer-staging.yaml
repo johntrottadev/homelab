@@ -5,7 +5,7 @@ metadata:
 spec:
   acme:
     server: https://acme-staging-v02.api.letsencrypt.org/directory
-    email: __ACME-EMAIL__
+    email: ${ACME_EMAIL}
     privateKeySecretRef:
       name: letsencrypt-staging-account-key
     solvers:
@@ -16,4 +16,4 @@ spec:
             key: api-token
       selector:
         dnsZones:
-        - __BASE-DOMAIN__
+        - ${BASE_DOMAIN}

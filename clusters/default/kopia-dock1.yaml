@@ -43,7 +43,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`kopia-docker-1.__BASE-DOMAIN__`)
+    - match: Host(`kopia-docker-1.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-kopia-docker-1

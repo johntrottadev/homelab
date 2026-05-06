@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`velero-ui.__BASE-DOMAIN__`)
+    - match: Host(`velero-ui.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: vui-ui-clusterip-svc

@@ -40,7 +40,7 @@ spec:
   entryPoints:
   - websecure
   routes:
-  - match: Host(`backup-host.__BASE-DOMAIN__`)
+  - match: Host(`backup-host.${BASE_DOMAIN}`)
     kind: Rule
     services:
     - name: ext-backup-host

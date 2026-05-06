@@ -1,0 +1,16 @@
+# Copy to workers.auto.tfvars (gitignored via .gitignore *.tfvars deny) when
+# adding k3s workers via Terraform.
+#
+# Historical context: k3s-1, k3s-2, k3s-5, k3s-6, k3s-7 pre-existed this Terraform
+# module and are NOT TF-managed. Do not list them here. Only NEW workers
+# created via Terraform belong in this map.
+#
+# Example: adding a kub8 worker on __PVE-NODE-3__ at .48 in the LAN_SVC CIDR would look
+# like the commented block below. Uncomment and edit to populate.
+
+workers = {
+  # kub8 = {
+  #   target_node = "__PVE-NODE-3__"
+  #   ip          = "__LAN-IP__"
+  # }
+}

@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: PUBLIC_DNS
-              value: drawio.__BASE-DOMAIN__
+              value: drawio.${BASE_DOMAIN}
             - name: ORGANISATION_UNIT
               value: jt-lab
             - name: ORGANISATION

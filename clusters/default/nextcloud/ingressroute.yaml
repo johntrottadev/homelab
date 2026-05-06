@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`nextcloud.__BASE-DOMAIN__`)
+    - match: Host(`nextcloud.${BASE_DOMAIN}`)
       kind: Rule
       middlewares:
         - name: nextcloud-headers

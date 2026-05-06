@@ -34,8 +34,8 @@ services:
       # the auto-generation entirely. CPAD_MAIN_DOMAIN/SANDBOX_DOMAIN are
       # only consulted in that disabled branch but kept for clarity.
       - CPAD_CONF=/cryptpad/config/config.js
-      - CPAD_MAIN_DOMAIN=https://cryptpad.__BASE-DOMAIN__
-      - CPAD_SANDBOX_DOMAIN=https://cryptpad-sandbox.__BASE-DOMAIN__
+      - CPAD_MAIN_DOMAIN=https://cryptpad.${BASE_DOMAIN}
+      - CPAD_SANDBOX_DOMAIN=https://cryptpad-sandbox.${BASE_DOMAIN}
       - TZ=America/New_York
     volumes:
       # Hand-written config.js seeded by the operator (see

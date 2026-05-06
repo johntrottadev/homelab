@@ -10,8 +10,8 @@ spec:
   privateKey:
     rotationPolicy: Always
   dnsNames:
-  - "*.__BASE-DOMAIN__"
-  - "__BASE-DOMAIN__"
+  - "*.${BASE_DOMAIN}"
+  - "${BASE_DOMAIN}"
   issuerRef:
     name: letsencrypt-staging
     kind: ClusterIssuer

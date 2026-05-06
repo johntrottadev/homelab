@@ -41,7 +41,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`maltrail.__BASE-DOMAIN__`)
+    - match: Host(`maltrail.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-maltrail

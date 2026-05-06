@@ -44,7 +44,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`checkmk.__BASE-DOMAIN__`)
+    - match: Host(`checkmk.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-checkmk

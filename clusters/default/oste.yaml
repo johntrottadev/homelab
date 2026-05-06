@@ -54,7 +54,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`legacy-vm.__BASE-DOMAIN__`)
+    - match: Host(`legacy-vm.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-legacy-vm

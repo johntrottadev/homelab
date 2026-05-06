@@ -40,7 +40,7 @@ spec:
   entryPoints:
   - websecure
   routes:
-  - match: Host(`torrents.__BASE-DOMAIN__`)
+  - match: Host(`torrents.${BASE_DOMAIN}`)
     kind: Rule
     services:
     - name: ext-torrents

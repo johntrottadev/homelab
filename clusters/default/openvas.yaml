@@ -46,7 +46,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`openvas.__BASE-DOMAIN__`)
+    - match: Host(`openvas.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-openvas

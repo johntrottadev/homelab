@@ -50,7 +50,7 @@ spec:
   entryPoints:
   - websecure
   routes:
-  - match: Host(`komodo.__BASE-DOMAIN__`)
+  - match: Host(`komodo.${BASE_DOMAIN}`)
     kind: Rule
     services:
     - name: ext-komodo

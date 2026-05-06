@@ -23,19 +23,19 @@ variable "workers" {
 variable "lan_gateway" {
   description = "LAN default gateway for workers"
   type        = string
-  default     = "__LAN-IP__"
+  default     = "REPLACE_WITH_LAN_GATEWAY"
 }
 
 variable "lan_dns" {
   description = "DNS servers for workers (pihole1 + pihole2). Proxmox accepts a space-separated list."
   type        = string
-  default     = "__PIHOLE1-IP__ __PIHOLE2-IP__"
+  default     = "REPLACE_WITH_LAN_DNS_PAIR"
 }
 
 variable "search_domain" {
   description = "Search domain for workers"
   type        = string
-  default     = "__BASE-DOMAIN__"
+  default     = "REPLACE_WITH_BASE_DOMAIN"
 }
 
 variable "ci_user" {

@@ -1,0 +1,39 @@
+# Source: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution
+# Existing in-cluster spec captured 2026-05-06 in
+#   .planning/phases/03-parameterize-site-values/baselines/baseline-wrapper.yaml
+# (path/prune/sourceRef/interval mirror that captured object verbatim).
+#
+# Cutover sequence (Plan 03-02):
+#   1. Apply cluster-vars ConfigMap from off-tree YAML.
+#   2. kubectl apply -f this file (still suspended).
+#   3. flux resume kustomization flux-system -n flux-system  <-- live point.
+#   4. flux get kustomization flux-system --watch  <-- confirm Ready: True.
+#
+# Rollback: kubectl apply -f baselines/baseline-wrapper.yaml restores the
+# pre-cutover spec (no postBuild); flux suspend keeps reconcile paused.
+#
+# This repo was bootstrapped manually (no `flux bootstrap` flow); the
+# flux-system/ directory contains ONLY this Kustomization and the
+# cluster-vars.example.yaml ConfigMap template. Do NOT add gotk-components.yaml
+# or gotk-sync.yaml siblings (RESEARCH Pitfall 10).
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./clusters/default
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  # During cutover, suspend remains true; flip via `flux resume` after
+  # cluster-vars ConfigMap is verified in place. Plan 03-02 owns the flip.
+  suspend: true
+  postBuild:
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-vars
+        # optional: false (default) — reconcile fails if ConfigMap absent.
+        # Desired: cluster-vars is load-bearing (RESEARCH Pitfall 9).

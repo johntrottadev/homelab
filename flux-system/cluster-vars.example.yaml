@@ -1,0 +1,57 @@
+# Source: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution
+#
+# Committed example for the cluster-vars ConfigMap consumed by
+# flux-system/kustomization.yaml's postBuild.substituteFrom.
+#
+# 21-key cluster-side surface — 1:1 with .env.example at repo root.
+#
+# Real-values copy lives off-tree at:
+#   /Volumes/code/secrets/homelab/cluster-vars.yaml
+# Apply via:
+#   kubectl apply -f /Volumes/code/secrets/homelab/cluster-vars.yaml
+#
+# Variable name validation (Flux postBuild): ^[_[:alpha:]][_[:alpha:][:digit:]]*$
+# Numbers and dotted strings MUST be quoted (RESEARCH Pitfall 4).
+#
+# This file's key set MUST match .env.example at repo root (21 keys). Plan
+# 03-05 audits the two with a sorted-key diff for drift.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-vars
+  namespace: flux-system
+data:
+  # Domain + ACME
+  BASE_DOMAIN: __BASE-DOMAIN__
+  ACME_EMAIL: REPLACE_WITH_OPERATOR_EMAIL
+
+  # S3 / Wasabi
+  S3_BUCKET: REPLACE_WITH_S3_BUCKET
+  S3_ENDPOINT: __WASABI-ENDPOINT__
+  S3_REGION: us-east-1
+
+  # NAS
+  NAS_HOST: __NAS-HOST__
+  NAS_IP: "__NAS-IP__"
+
+  # Canonical role IPs (D-09)
+  K3S_VIP: "__K3S-VIP__"
+  K3S_API_IP: "__K3S-API-IP__"
+  PIHOLE1_IP: "__PIHOLE1-IP__"
+  PIHOLE2_IP: "__PIHOLE2-IP__"
+
+  # Subnet shape (D-08)
+  LAN_MGMT_CIDR: __LAN-MGMT-CIDR__
+  LAN_HV_CIDR: __LAN-HV-CIDR__
+  LAN_SVC_CIDR: __LAN-SVC-CIDR__
+
+  # Proxmox / Terraform
+  PVE_API_HOST: "__PVE1-IP__"
+  PVE_API_USER: bastion@pve
+  PVE_NODE_1: __PVE-NODE-1__
+  PVE_NODE_2: __PVE-NODE-2__
+  PVE_NODE_3: __PVE-NODE-3__
+
+  # VCS (used by Phase 4 docs)
+  VCS_OWNER: REPLACE_WITH_GITHUB_OWNER
+  VCS_REPO: homelab

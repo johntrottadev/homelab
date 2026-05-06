@@ -5,4 +5,4 @@ metadata:
   name: kubevip
   namespace: kube-system
 data:
-  range-global: __K3S-VIP__-__LAN-IP__
+  range-global: ${K3S_VIP}-__LAN-IP__

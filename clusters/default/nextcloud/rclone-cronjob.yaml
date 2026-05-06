@@ -50,9 +50,9 @@ spec:
                 - name: RCLONE_CONFIG_WASABI_PROVIDER
                   value: Wasabi
                 - name: RCLONE_CONFIG_WASABI_ENDPOINT
-                  value: __WASABI-ENDPOINT__
+                  value: ${S3_ENDPOINT}
                 - name: RCLONE_CONFIG_WASABI_REGION
-                  value: us-east-1
+                  value: ${S3_REGION}
                 - name: RCLONE_CONFIG_WASABI_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:

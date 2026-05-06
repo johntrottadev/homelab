@@ -37,11 +37,11 @@ spec:
     cleanUpCRDs: false
     configuration:
       backupStorageLocation:
-        - bucket: __WASABI-BUCKET__
+        - bucket: ${S3_BUCKET}
           config:
-            region: us-east-1
+            region: ${S3_REGION}
             s3ForcePathStyle: "true"
-            s3Url: https://__WASABI-ENDPOINT__
+            s3Url: https://${S3_ENDPOINT}
           default: true
           name: wasabi
           prefix: velero

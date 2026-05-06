@@ -21,7 +21,7 @@ spec:
   valuesContent: |-
     service:
       annotations:
-        kube-vip.io/loadbalancerIPs: "__K3S-VIP__"
+        kube-vip.io/loadbalancerIPs: "${K3S_VIP}"
     deployment:
       replicas: 3
     # Spread replicas across nodes — single-node loss takes at most 1 replica.

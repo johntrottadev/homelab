@@ -25,7 +25,7 @@ ports:
   port: 80
 endpoints:
 - addresses:
-  - __PIHOLE2-IP__
+  - ${PIHOLE2_IP}
   conditions:
     ready: true
     serving: true
@@ -40,7 +40,7 @@ spec:
   entryPoints:
   - websecure
   routes:
-  - match: Host(`dns2.__BASE-DOMAIN__`)
+  - match: Host(`dns2.${BASE_DOMAIN}`)
     kind: Rule
     services:
     - name: ext-dns2

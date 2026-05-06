@@ -17,7 +17,7 @@ services:
       # cryptpad has docker-1:3000; map kasm 6901 to docker-1:6901 (no conflict).
       - "6901:6901"
     environment:
-      - VNC_PW=changeme
+      - VNC_PW=${VNC_PW}
       - TZ=America/New_York
     volumes:
       # NB: don't mount on /home/kasm-user — the kasmweb entrypoint tries to

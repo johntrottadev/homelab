@@ -42,7 +42,10 @@ test -s "$CLUSTER_VARS_FILE" || { echo "tools/flux-envsubst-check.sh: cluster-va
 # --- CFG-05 drift gate ---
 # Extract data: keys from cluster-vars ConfigMap into env vars for flux envsubst.
 # Note: assumes data: contains string-leaf values (no maps/lists).
-eval "$(yq '.data | to_entries[] | "export " + .key + "=\"" + .value + "\""' "$CLUSTER_VARS_FILE")"
+# Safe export: yq emits key=value lines; read assigns without shell interpretation.
+while IFS='=' read -r key value; do
+  export "$key=$value"
+done < <(yq '.data | to_entries[] | .key + "=" + .value' "$CLUSTER_VARS_FILE")
 
 kustomize build clusters/default/ \
   | flux envsubst --strict \

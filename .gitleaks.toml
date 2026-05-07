@@ -36,3 +36,7 @@ paths = [
   '''clusters/default/netalert/secret-paloarp-creds''',  # gitignored via .gitignore:10:*-creds; 0 commits in history
   '''velero/wasabi-creds''',                              # gitignored via velero/.gitignore:2:wasabi-creds; 0 commits in history
 ]
+
+[[allowlists]]
+description = "Pre-rewrite hoarder secrets in origin/main pre-Phase-2 commit (e2dd29e) — expunged from local main by git filter-repo (Phase 2, 2026-05-06); will disappear from --all after Wave 3 force-push overwrites origin/main. Rotated: hoarder NextAuth/Meilisearch keys rotated in Phase 1 plan 01-03."
+commits = ["e2dd29eeb352f5b7fbe25f25ab92034713f91c3a"]

@@ -40,10 +40,10 @@ spec:
                 - |
                   set -euo pipefail
                   ts="$(date -u +%Y%m%dT%H%M%SZ)"
-                  out="/backup/nextcloud-${ts}.sql.gz"
-                  echo "[backup] dumping to ${out}"
+                  out="/backup/nextcloud-$${ts}.sql.gz"
+                  echo "[backup] dumping to $${out}"
                   pg_dump --format=plain --no-owner --no-privileges \
-                    | gzip -9 > "${out}"
+                    | gzip -9 > "$${out}"
                   echo "[backup] pruning dumps older than 7 days"
                   find /backup -name 'nextcloud-*.sql.gz' -type f -mtime +7 -delete
                   echo "[backup] done; current dumps:"

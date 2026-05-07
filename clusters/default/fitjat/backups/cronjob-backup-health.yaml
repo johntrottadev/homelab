@@ -19,7 +19,7 @@ spec:
         spec:
           containers:
           - args:
-            - "set -u\nALERTS=\"\"\nadd_alert() { ALERTS=\"${ALERTS}- $1\n\"; }\n\n\
+            - "set -u\nALERTS=\"\"\nadd_alert() { ALERTS=\"$${ALERTS}- $1\n\"; }\n\n\
               # 1. /data/backups/ has at least one fresh fitjat-*.db (within 14d).\n\
               echo \"[health] /data/backups listing:\"\nls -lh /data/backups/ 2>&1\
               \ || add_alert \"backups dir missing\"\nfresh=$(find /data/backups -name\
@@ -50,11 +50,11 @@ spec:
               \ - datetime.fromisoformat(ts)\nprint(int(delta.total_seconds() // 3600))\n\
               \" 2>/dev/null || echo \"\")\n  if [ -z \"$age_h\" ]; then\n    echo\
               \ \"[health] WARN: could not parse $cj lastScheduleTime '$last'\"\n\
-              \    continue\n  fi\n  echo \"[health] cronjob $cj last ran ${age_h}h\
+              \    continue\n  fi\n  echo \"[health] cronjob $cj last ran $${age_h}h\
               \ ago\"\n  case \"$cj\" in\n    fitjat-backup)\n      [ \"$age_h\" -gt\
-              \ 30 ] && add_alert \"$cj last ran ${age_h}h ago (expected <=30h)\"\
+              \ 30 ] && add_alert \"$cj last ran $${age_h}h ago (expected <=30h)\"\
               \ ;;\n    fitjat-rsync-storage)\n      [ \"$age_h\" -gt 2 ] && add_alert\
-              \ \"$cj last ran ${age_h}h ago (expected <=2h)\" ;;\n  esac\ndone\n\n\
+              \ \"$cj last ran $${age_h}h ago (expected <=2h)\" ;;\n  esac\ndone\n\n\
               # 4. Failed Jobs in the last 30 days (status.failed > 0).\nfailed=$(kubectl\
               \ -n fitjat get jobs -o json 2>/dev/null | python3 -c \"\nimport json,\
               \ sys\nfrom datetime import datetime, timezone, timedelta\nd = json.load(sys.stdin)\n\
@@ -74,8 +74,8 @@ spec:
               \ -o jsonpath='{.data.token}' | base64 -d)\nif [ -z \"$USER_KEY\" ]\
               \ || [ -z \"$TOKEN\" ]; then\n  echo \"[health] WARN: Pushover creds\
               \ unreadable; cannot alert. Failing the Job so it surfaces in events.\"\
-              \n  exit 1\nfi\n\nmsg=\"fitjat backup health audit found ${count} issue(s):\n\
-              ${ALERTS}\"\ncurl -sS -X POST https://api.pushover.net/1/messages.json\
+              \n  exit 1\nfi\n\nmsg=\"fitjat backup health audit found $${count} issue(s):\n\
+              $${ALERTS}\"\ncurl -sS -X POST https://api.pushover.net/1/messages.json\
               \ \\\n  -d token=\"$TOKEN\" -d user=\"$USER_KEY\" -d priority=0 \\\n\
               \  -d title='fitjat backup health' -d message=\"$msg\"\necho\necho \"\
               [health] Pushover alert sent ($count issue(s)).\"\n# exit 0 \u2014 alert\

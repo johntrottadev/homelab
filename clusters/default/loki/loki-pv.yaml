@@ -20,6 +20,6 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: storage
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/loki
     readOnly: false

@@ -17,6 +17,6 @@ spec:
     # Use NAS IP, not __NAS-HOST__ — that DNS A record currently points at
     # the Traefik LoadBalancer VIP (__K3S-VIP__), not the NAS at __NAS-IP__.
     # Existing flux PVs that use the hostname work only via cached mounts.
-    server: __NAS-IP__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/dashy
     readOnly: false

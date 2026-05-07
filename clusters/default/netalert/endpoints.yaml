@@ -16,6 +16,6 @@ ports:
     protocol: TCP
 endpoints:
   - addresses:
-      - "__K3S-API-IP__"
+      - "${K3S_API_IP}"
     conditions:
       ready: true

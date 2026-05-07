@@ -13,6 +13,6 @@ spec:
     namespace: paperless
     name: paperless-data-pvc
   nfs:
-    server: __NAS-HOST__
+    server: ${NAS_HOST}
     path: /volume1/kub/homelab/paperless/data
     readOnly: false

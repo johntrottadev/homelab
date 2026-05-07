@@ -29,7 +29,7 @@ ports:
     port: 19999
 endpoints:
   - addresses:
-      - __K3S-API-IP__   # k3s-1
+      - ${K3S_API_IP}   # k3s-1
     conditions:
       ready: true
       serving: true
@@ -74,7 +74,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`netdata.__BASE-DOMAIN__`)
+    - match: Host(`netdata.${BASE_DOMAIN}`)
       kind: Rule
       services:
         - name: ext-netdata

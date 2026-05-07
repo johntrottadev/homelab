@@ -21,6 +21,6 @@ spec:
     # same to keep the existing binding intact.
     driver: nfs.csi.k8s.io
     volumeAttributes:
-      server: __NAS-IP__
+      server: ${NAS_HOST}
       share: /volume1/kub/homelab/fitjat
     volumeHandle: fitjat-pv

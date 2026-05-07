@@ -18,6 +18,6 @@ spec:
   csi:
     driver: nfs.csi.k8s.io
     volumeAttributes:
-      server: __NAS-IP__
+      server: ${NAS_HOST}
       share: /volume1/kub/homelab/fitjat-backups-mirror
     volumeHandle: fitjat-mirror-pv

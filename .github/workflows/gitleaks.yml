@@ -1,0 +1,27 @@
+# .github/workflows/gitleaks.yml
+# Phase 4 GATE-01: CI secret scanning gate.
+# Runs gitleaks on every PR and every push to main.
+# Reuses .gitleaks.toml rules from Phase 1 (auto-detected at repo root).
+# gitleaks-action v2.3.9 — personal repo (johntrottadev) — no GITLEAKS_LICENSE required.
+name: gitleaks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE not required: johntrottadev is a personal GitHub account
+          # GITLEAKS_CONFIG not required: .gitleaks.toml is auto-detected at repo root

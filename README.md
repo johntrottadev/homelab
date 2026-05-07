@@ -1,50 +1,99 @@
-# flux-source — homelab GitOps target state
+# homelab
 
-Flux watches this repo and applies `clusters/default/`. Per-app subdirs
-under `clusters/default/<app>/` hold the full workload (Namespace, PV,
-PVC, Deployment, Service, IngressRoute) for apps that have been migrated
-to flux. Other apps live as single-file IngressRoute stubs at the repo
-root.
+A GitOps-managed k3s + Proxmox homelab used as a real-world IaC sandbox. Three Proxmox
+VE nodes host a k3s cluster, two Docker Compose hosts, and supporting infrastructure.
+Flux reconciles `clusters/default/` on every push; Terraform provisions VMs; Ansible
+configures nodes. Everything a fork operator needs to replicate on their own domain is in
+this repo.
 
-See `INFRASTRUCTURE.md` for the homelab inventory and the per-app
-table.
+## Architecture
 
-## Flux-managed app workloads
+The Proxmox cluster hosts k3s worker VMs and Docker Compose hosts. Flux watches this Git
+repo and applies `clusters/default/` to the cluster continuously. The NAS provides
+NFS-backed PersistentVolume storage for stateful workloads. Off-site backups flow to
+Wasabi S3 via Hyper Backup at the NAS level and via Velero + Kopia at the pod level.
 
-| App                  | Hostname                | Subdir                          |
-|----------------------|-------------------------|---------------------------------|
-| uptime-kuma          | uptime.__BASE-DOMAIN__       | `clusters/default/uptime-kuma/` |
-| netalert (NetAlertX) | netalert.__BASE-DOMAIN__     | `clusters/default/netalert/`    |
-| loki                 | (internal-only)         | `clusters/default/loki/`        |
-| promtail             | (DaemonSet)             | `clusters/default/loki/`        |
-| wazuh (route only)   | wazuh.__BASE-DOMAIN__        | `clusters/default/wazuh.yaml` (route only — workload runs as docker compose on docker-1; vendored copy at `bastion/services/wazuh/`) |
+See [INFRASTRUCTURE.md](INFRASTRUCTURE.md) for the full topology diagram and component
+inventory.
 
-### Helm-shipped apps
+```mermaid
+flowchart LR
+    git[Git Repo] -->|Flux GitOps| k8s[k3s Cluster]
+    k8s -->|PVC mounts| storage[NAS / NFS]
+    storage -->|Hyper Backup| wasabi[Wasabi S3]
+    k8s -->|Velero + Kopia| wasabi
+    tf[Terraform] -->|provisions| pve[Proxmox VMs]
+    pve --> k8s
+```
 
-Apps that ship via Helm (e.g., Loki) live under their own per-app subdir
-and reference a shared `HelmRepository` in `flux-system` (see the `grafana`
-HelmRepository in `clusters/default/loki/helmrepository-grafana.yaml`).
-Future Grafana-stack apps reuse the same HelmRepository instead of
-declaring their own.
+## Prerequisites
 
-`loki` has **no IngressRoute** and **no LoadBalancer Service** — it is
-internal-only. Grafana (in the `monitoring` ns) queries Loki via the
-in-cluster ClusterIP at `loki.loki.svc.cluster.local:3100`. Do not add an
-IngressRoute for Loki without explicitly re-evaluating the security posture
-(logs may contain secrets in error stacks).
+### Hardware
 
-## Repository conventions
+| Component | Notes |
+|-----------|-------|
+| Proxmox VE cluster (3 nodes recommended) | Single-node works with manifest adjustments |
+| NAS with NFS exports | Synology used here; any NFS server works |
+| Domain name | All IngressRoutes and cert-manager derive from `BASE_DOMAIN` |
+| S3-compatible storage (Wasabi recommended) | Required for off-site backups (Velero + Hyper Backup) |
 
-- Image references are pinned to digests, never `:latest`.
-- PVs are statically bound (`volumeName`) for deterministic PVC binds.
-- IngressRoutes use the websecure entrypoint and the wildcard cert
-  `*.__BASE-DOMAIN__` issued by cert-manager (Phase 14).
-- flux-system uses `prune: false` — manifest deletions in this repo do
-  NOT auto-delete cluster objects. Run `kubectl delete` explicitly when
-  retiring an app (see bastion quick task 260429-npe for an example).
+### Accounts
 
-## Related repos
+| Service | Purpose | Required |
+|---------|---------|---------|
+| GitHub | Flux GitOps source | Yes |
+| Cloudflare (or other DNS provider) | ACME DNS-01 challenge for wildcard cert | Yes |
+| Wasabi (or other S3-compatible) | Off-site backup target | Yes |
 
-- `~/projects/bastion` — planning artifacts, monitoring scripts,
-  operational tooling. The `.planning/` tree there is the journal of
-  cluster work.
+### Tools
+
+| Tool | Purpose | Min Version |
+|------|---------|-------------|
+| tofu (OpenTofu) | VM provisioning via Terraform modules | 1.6+ |
+| ansible | k3s installation and node configuration | 2.15+ |
+| kubectl | Cluster management and out-of-band secret application | 1.28+ |
+| flux CLI | GitOps bootstrap and monitoring | 2.x |
+| kustomize | Manifest rendering and drift verification | 5.x |
+| gh CLI | Repo and release management | 2.x |
+
+## Getting Started
+
+Order of operations for a fork-and-replicate:
+
+1. Fork this repo and clone your fork
+2. Copy `.env.example` → `.env`; fill in all 21 variables (see [REPLICATE.md](REPLICATE.md) for a key-by-key walkthrough)
+3. Provision infrastructure: `tofu apply` in each Terraform module, then Ansible for k3s
+4. Apply the cluster-vars ConfigMap to your cluster (off-tree real-values file, gitignored)
+5. Bootstrap Flux against your fork
+6. Apply out-of-band Kubernetes Secrets (see [SECRETS.md](SECRETS.md))
+7. Watch `flux get kustomization flux-system --watch` until reconciliation succeeds
+
+Full step-by-step walkthrough: **[REPLICATE.md](REPLICATE.md)**
+
+## Key Variables
+
+The 21 variables in `.env.example` and `flux-system/cluster-vars.example.yaml` are the
+complete fork-operator surface. The most important ones to set first:
+
+| Variable | Purpose |
+|----------|---------|
+| `BASE_DOMAIN` | Your domain; all IngressRoutes and cert-manager derive from this |
+| `NAS_HOST` / `NAS_IP` | Your NFS server hostname and IP |
+| `S3_BUCKET` | Your Wasabi/S3 bucket name for off-site backups |
+| `K3S_VIP` | MetalLB VIP assigned to the Traefik LoadBalancer Service |
+| `PVE_NODE_1/2/3` | Proxmox cluster node hostnames |
+
+Full variable reference with descriptions and example values: [REPLICATE.md](REPLICATE.md)
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [REPLICATE.md](REPLICATE.md) | Step-by-step: fork → reconciling cluster |
+| [SECRETS.md](SECRETS.md) | Every Kubernetes Secret: apply pattern, key sources, template files |
+| [INFRASTRUCTURE.md](INFRASTRUCTURE.md) | Homelab topology, backup strategy, component inventory |
+| [docs/FLUX-SOURCE.md](docs/FLUX-SOURCE.md) | Internal operator notes: migrated apps, Helm pattern, repo conventions |
+
+## License
+
+MIT — see [LICENSE](LICENSE)

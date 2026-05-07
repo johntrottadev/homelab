@@ -35,6 +35,12 @@ kustomize version >/dev/null 2>&1 || { echo "tools/flux-envsubst-check.sh: kusto
 command -v yq >/dev/null 2>&1 || { echo "tools/flux-envsubst-check.sh: yq missing (install via brew install yq)"; exit 2; }
 command -v awk >/dev/null 2>&1 || { echo "tools/flux-envsubst-check.sh: awk missing (should never happen on a *nix system)"; exit 2; }
 
+# --- Gate 0: CWD sanity ---
+[[ -d clusters/default ]] || {
+  echo "tools/flux-envsubst-check.sh: must be run from the repo root (clusters/default not found)"
+  exit 2
+}
+
 # --- Gate 2: input files ---
 test -s "$BASELINE" || { echo "tools/flux-envsubst-check.sh: baseline file missing or empty: $BASELINE"; exit 2; }
 test -s "$CLUSTER_VARS_FILE" || { echo "tools/flux-envsubst-check.sh: cluster-vars file missing or empty: $CLUSTER_VARS_FILE"; exit 2; }

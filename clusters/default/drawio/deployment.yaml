@@ -25,9 +25,9 @@ spec:
             - name: PUBLIC_DNS
               value: drawio.${BASE_DOMAIN}
             - name: ORGANISATION_UNIT
-              value: jt-lab
+              value: homelab
             - name: ORGANISATION
-              value: jt-lab
+              value: homelab
             - name: COUNTRY_CODE
               value: US
           ports:

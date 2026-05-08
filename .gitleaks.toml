@@ -88,6 +88,9 @@ tags = ["topology", "hostname", "TOPO-03"]
 
 [[rules]]
 id = "topology-private-repo-url"
-description = "FLUX-05 banned literal — __PRIVATE-REPO__ repo URL must not appear in any committed file"
-regex = '''__PRIVATE-REPO__'''
+# FLUX-05 banned literal — private repo URL must not appear in any committed file.
+# The literal is split via [h]omelab-priv[a]te so the regex source itself does not
+# contain the bare literal — prevents topology-gate.sh self-match against this file.
+description = "FLUX-05 banned literal — private GitHub repo URL must not appear in any committed file"
+regex = '''johntrottadev/[h]omelab-priv[a]te'''
 tags = ["topology", "repo-url", "TOPO-03", "FLUX-05"]

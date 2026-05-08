@@ -40,3 +40,54 @@ paths = [
 [[allowlists]]
 description = "Pre-rewrite hoarder secrets in origin/main pre-Phase-2 commit (e2dd29e) — expunged from local main by git filter-repo (Phase 2, 2026-05-06); will disappear from --all after Wave 3 force-push overwrites origin/main. Rotated: hoarder NextAuth/Meilisearch keys rotated in Phase 1 plan 01-03."
 commits = ["e2dd29eeb352f5b7fbe25f25ab92034713f91c3a"]
+
+# --- TOPO-03: Topology defense-in-depth rules (Phase 6 extension) ---
+# Source: .planning/phases/06-sanitization-tooling/06-CONTEXT.md §<decisions> D-06.
+# These [[rules]] mirror the banned-pattern set in tools/sanitize/topology-gate.sh
+# so that gitleaks (pre-commit hook + public-mirror CI scan) catches the same
+# topology surface the sanitizer's post-filter gate guards. Defense-in-depth.
+#
+# This file ships to the public mirror via tools/sanitize/paths-from-file.txt
+# allow-list — the topology rules are not sensitive and are valuable on the
+# public side too.
+#
+# Regex alignment note (2026-05-08): topology-base-domain uses \bjt-lab\.net\b
+# (broader, matches bare __BASE-DOMAIN__) and topology-known-hostnames includes pve[123]
+# (real Proxmox hostname) instead of placeholder hv-[123]; these align this file
+# with the post-Wave-4 form of tools/sanitize/topology-gate.sh.
+
+[[rules]]
+id = "topology-lab-subnets"
+description = "RFC-1918 lab subnets (10.10.1/2/3.x) — D-06 banned-pattern set"
+regex = '''\b10\.10\.[123]\.[0-9]{1,3}\b'''
+tags = ["topology", "lab-subnet", "TOPO-03"]
+
+[[rules]]
+id = "topology-base-domain"
+description = "__BASE-DOMAIN__ base-domain literal — D-06 banned-pattern set"
+regex = '''\bjt-lab\.net\b'''
+tags = ["topology", "domain", "TOPO-03"]
+
+[[rules]]
+id = "topology-wasabi-bucket"
+description = "Wasabi bucket name — D-06 banned-pattern set"
+regex = '''\b__WASABI-BUCKET__\b'''
+tags = ["topology", "bucket", "TOPO-03"]
+
+[[rules]]
+id = "topology-acme-email"
+description = "ACME registration email — D-06 banned-pattern set"
+regex = '''johntrottacv@gmail\.com'''
+tags = ["topology", "email", "TOPO-03"]
+
+[[rules]]
+id = "topology-known-hostnames"
+description = "Real hostnames (pve[123], kub[1-7], dock[12], app-vm, __NAS-USER__, pve mgmt) — D-06 banned-pattern set"
+regex = '''\b(pve[123]|kub[1-7]|dock[12]|app-vm[-_]vm|__NAS-USER__|__PVE-MGMT-1__|pve[123]-mgmt)\b'''
+tags = ["topology", "hostname", "TOPO-03"]
+
+[[rules]]
+id = "topology-private-repo-url"
+description = "FLUX-05 banned literal — __PRIVATE-REPO__ repo URL must not appear in any committed file"
+regex = '''__PRIVATE-REPO__'''
+tags = ["topology", "repo-url", "TOPO-03", "FLUX-05"]

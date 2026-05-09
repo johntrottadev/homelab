@@ -28,9 +28,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  # During cutover, suspend remains true; flip via `flux resume` after
-  # cluster-vars ConfigMap is verified in place. Plan 03-02 owns the flip.
-  suspend: true
+  suspend: false
   postBuild:
     substituteFrom:
       - kind: ConfigMap

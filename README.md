@@ -1,5 +1,10 @@
 # homelab
 
+> **This is a sanitized public mirror.** The source of truth lives in a private
+> repository and is force-pushed here on every change. Issues, pull requests, or
+> comments opened directly on this repo are not monitored. Forks are welcome;
+> this mirror does not accept upstream contributions.
+
 A GitOps-managed k3s + Proxmox homelab used as a real-world IaC sandbox. Three Proxmox
 VE nodes host a k3s cluster, two Docker Compose hosts, and supporting infrastructure.
 Flux reconciles `clusters/default/` on every push; Terraform provisions VMs; Ansible

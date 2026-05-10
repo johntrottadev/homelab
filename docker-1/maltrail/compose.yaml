@@ -2,7 +2,7 @@
 #   - sensor: needs raw libpcap on docker-1's interface, host networking,
 #             NET_ADMIN/NET_RAW caps. Sees only traffic that flows past
 #             docker-1's NIC (acceptable for first deploy per
-#             docker-1/MIRROR-PLAN.md scope; switch SPAN port for cluster-
+#             docs/operator/MIRROR-PLAN.md scope; switch SPAN port for cluster-
 #             wide visibility is a follow-up).
 #   - server: web UI on :8338, reads sensor logs from shared bind mount.
 #

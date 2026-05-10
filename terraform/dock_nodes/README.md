@@ -5,7 +5,7 @@ docker-1's stateless workloads). Clones from `ubuntu-24-tpl` (vmid 9000),
 which exists on every PVE node so the clone is in-node regardless of
 `target_node`.
 
-Plan source-of-truth: [`/Volumes/code/homelab/docker-1/MIRROR-PLAN.md`](../../docker-1/MIRROR-PLAN.md).
+Plan source-of-truth: [`/Volumes/code/homelab/docs/operator/MIRROR-PLAN.md`](../../docs/operator/MIRROR-PLAN.md) (private-only).
 
 ## Status
 

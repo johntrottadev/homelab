@@ -13,7 +13,7 @@ variable "nodes" {
     Don't try to import it — Telmate's efidisk handling forces replacement.
 
     Default sizing (4 vCPU / 16 GiB / 100 GiB) is the docker-2 spec from
-    /Volumes/code/homelab/docker-1/MIRROR-PLAN.md. Override per-node if a
+    /Volumes/code/homelab/docs/operator/MIRROR-PLAN.md. Override per-node if a
     workload needs more.
   EOT
   type = map(object({

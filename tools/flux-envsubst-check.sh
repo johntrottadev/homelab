@@ -24,10 +24,15 @@ set -euo pipefail
 
 BASELINE="${BASELINE:-.planning/phases/03-parameterize-site-values/baselines/baseline.yaml}"
 CLUSTER_VARS_FILE="${CLUSTER_VARS_FILE:-/Volumes/code/secrets/homelab/cluster-vars.yaml}"
+ALLOWED_IPS_FILE="${ALLOWED_IPS_FILE:-tools/.flux-envsubst-allowed-ips}"
 
 # Allowed-literal IP set per D-10 (per-VM IPs that legitimately stay literal).
-# Pipe-separated regex for grep -vE.
-ALLOWED_IPS='10\.10\.1\.3|10\.10\.1\.4|10\.10\.1\.14|10\.10\.2\.10|10\.10\.2\.11|10\.10\.2\.12|10\.10\.3\.19|10\.10\.3\.38|10\.10\.3\.39|10\.10\.3\.40|10\.10\.3\.42|10\.10\.3\.45|10\.10\.3\.46|10\.10\.3\.47|10\.10\.3\.69|10\.10\.3\.70'
+# Loaded from $ALLOWED_IPS_FILE — kept out of this script so the literal list
+# never reaches the public mirror (the file is not in the sanitize allow-list).
+# Builds a pipe-separated regex for grep -vE; dots are escaped automatically.
+test -s "$ALLOWED_IPS_FILE" || { echo "tools/flux-envsubst-check.sh: allowed-ips file missing or empty: $ALLOWED_IPS_FILE"; exit 2; }
+ALLOWED_IPS=$(grep -vE '^[[:space:]]*(#|$)' "$ALLOWED_IPS_FILE" | sed 's/\./\\./g' | paste -sd '|' -)
+[[ -n "$ALLOWED_IPS" ]] || { echo "tools/flux-envsubst-check.sh: no allowed IPs parsed from $ALLOWED_IPS_FILE"; exit 2; }
 
 # --- Gate 1: tooling sanity ---
 flux version --client 2>/dev/null | grep -q v2 || { echo "tools/flux-envsubst-check.sh: flux v2.x missing (install via brew install fluxcd/tap/flux)"; exit 2; }

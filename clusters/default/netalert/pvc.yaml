@@ -1,3 +1,5 @@
+# Dynamic PVC against storage-apps SC (Wave 2, 260511-utf).
+# Path: __NAS-IP__:/volume1/kub/homelab/netalert/netalert-data/
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,6 +11,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage
-  # Static binding — guarantees this PVC binds to netalert-data-pv.
-  volumeName: netalert-data-pv
+  storageClassName: storage-apps

@@ -4,7 +4,10 @@ metadata:
   name: nfs-csi
 provisioner: nfs.csi.k8s.io
 parameters:
-  server: __NAS-IP__
+  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
+  # post-creation; the live SC was created with this hostname. IP swap is
+  # deferred to Wave 5 cleanup when this SC is recreated (or deleted as unused).
+  server: __NAS-HOST__
   share: /volume1/kub
 reclaimPolicy: Delete
 volumeBindingMode: Immediate

@@ -6,7 +6,10 @@ parameters:
   nfsVers: "4.1"
   path: /volume1/kubdbs
   readOnly: "false"
-  server: __NAS-IP__
+  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
+  # post-creation; the live SC was created with this hostname. IP swap is
+  # deferred to Wave 5 cleanup when this SC is recreated.
+  server: __NAS-HOST__
 provisioner: nfs.csi.k8s.io
 reclaimPolicy: Retain
 volumeBindingMode: Immediate

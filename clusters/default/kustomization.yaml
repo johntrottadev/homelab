@@ -126,7 +126,7 @@ resources:
 
   # Phase 999.2 plan-02 — freshrss (in ns "rss", supersedes top-level freshrss.yaml).
   - freshrss/namespace.yaml
-  - freshrss/pv.yaml
+  # freshrss/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - freshrss/pvc.yaml
   - freshrss/deployment.yaml
   - freshrss/service.yaml

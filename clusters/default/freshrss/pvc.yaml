@@ -1,3 +1,7 @@
+# Dynamic PVC against storage-apps SC (Wave 1 of PV/PVC standardization, 260511-utf).
+# NOTE: PVC namespace is `rss` but legacy NAS path was /volume1/kub/homelab/freshrss/.
+# Cutover moved data to /volume1/kub/homelab/rss/freshrss-pvc/ to match the
+# subDir template (${pvc.namespace}/${pvc.name}).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +13,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage
-  volumeName: freshrss-pv
+  storageClassName: storage-apps

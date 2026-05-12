@@ -176,7 +176,7 @@ resources:
   # svc 9222), meilisearch (port 7700). Secrets + ConfigMap stay kubectl-managed.
   - hoarder/namespace.yaml
   - hoarder/ingressroute.yaml
-  - hoarder/web/pv.yaml
+  # hoarder/web/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - hoarder/web/pvc.yaml
   - hoarder/web/deployment.yaml
   - hoarder/web/service.yaml

@@ -1,7 +1,10 @@
-# Dynamic PVC against the jellyfin StorageClass.
+# Dynamic PVC against the storage-apps StorageClass.
 # Path: __NAS-IP__:/volume1/kub/homelab/jellyfin/jellyfin-config-pvc/
 # Renamed from `jellyfin-config` 2026-05-12 to follow the project-wide <name>-pvc
-# naming convention. PVC was kubectl-managed before this commit; now Flux-tracked.
+# naming convention. Migrated from the (now-deleted) `jellyfin` SC to `storage-apps`
+# 2026-05-12 (Wave 8 of storage standardization) — storage-apps subDir template
+# ${ns}/${pvc-name} resolves to the same NFS path, so this was a metadata-only
+# swap with no data movement.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,4 +16,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: jellyfin
+  storageClassName: storage-apps

@@ -1,13 +1,15 @@
+# Live-exported during Wave 0 (260511-utf) — repo was drifted from cluster reality.
+# Note: uses `path:` (older nfs.csi.k8s.io alias for `share:`) — must match live SC
+# parameters byte-for-byte because they are immutable. Wave 5 cleanup will re-create
+# the SC using the canonical `share:` parameter alongside other normalizations.
+# Used by kube-prometheus-stack chart-generated PVCs (prometheus / grafana / alertmanager).
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: monitoring
+provisioner: nfs.csi.k8s.io
 parameters:
   path: /volume1/kub/homelab/monitoring
-  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
-  # post-creation; the live SC was created with this hostname. IP swap is
-  # deferred to Wave 5 cleanup when this SC is recreated.
-  server: __NAS-HOST__
-provisioner: nfs.csi.k8s.io
+  server: __NAS-IP__
 reclaimPolicy: Retain
 volumeBindingMode: Immediate

@@ -1,13 +1,13 @@
+# Live-exported during Wave 0 (260511-utf) — repo was drifted from cluster reality.
+# StorageClass.parameters are immutable, so this file must match the live SC byte-for-byte
+# until Wave 5 recreates the SC. Used by jellyfin-config PVC (dynamic).
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: jellyfin
 provisioner: nfs.csi.k8s.io
 parameters:
-  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
-  # post-creation; the live SC was created with this hostname. IP swap is
-  # deferred to Wave 5 cleanup when this SC is recreated.
-  server: __NAS-HOST__
+  server: __NAS-IP__
   share: /volume1/kub/homelab/jellyfin
 reclaimPolicy: Retain
 volumeBindingMode: Immediate

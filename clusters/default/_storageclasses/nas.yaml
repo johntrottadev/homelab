@@ -1,15 +1,14 @@
+# Live-exported during Wave 0 (260511-utf) — repo was drifted from cluster reality.
+# Legacy general-purpose SC used by the static-PV-per-app pattern that Wave 1+
+# migrates off. storage-apps is the new flexible replacement. Match live byte-for-byte
+# until Wave 5 deletes this SC.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: storage
-parameters:
-  nfsVers: "4.1"
-  path: /volume1/kub
-  readOnly: "false"
-  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
-  # post-creation; the live SC was created with this hostname. IP swap is
-  # deferred to Wave 5 cleanup when this SC is recreated.
-  server: __NAS-HOST__
 provisioner: nfs.csi.k8s.io
+parameters:
+  server: __NAS-IP__
+  share: /volume1/kub
 reclaimPolicy: Retain
 volumeBindingMode: Immediate

@@ -1,15 +1,16 @@
+# Live-exported during Wave 0 (260511-utf) — repo was drifted from cluster reality.
+# Legacy DB-tier SC used by static-PV-per-DB pattern that Wave 1+ migrates off.
+# storage-dbs is the new flexible replacement. Note: live reclaimPolicy is Delete
+# (not Retain), and uses `path:` parameter; both deviations from repo design intent
+# are preserved here until Wave 5 recreates the SC.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: storage-db
+provisioner: nfs.csi.k8s.io
 parameters:
-  nfsVers: "4.1"
   path: /volume1/kubdbs
   readOnly: "false"
-  # Hostname retained (not __NAS-IP__). StorageClass.parameters is immutable
-  # post-creation; the live SC was created with this hostname. IP swap is
-  # deferred to Wave 5 cleanup when this SC is recreated.
-  server: __NAS-HOST__
-provisioner: nfs.csi.k8s.io
-reclaimPolicy: Retain
+  server: __NAS-IP__
+reclaimPolicy: Delete
 volumeBindingMode: Immediate

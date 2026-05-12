@@ -1,3 +1,7 @@
+# Dynamic PVC against storage-dbs SC (Wave 1, 260511-utf — DB tier).
+# Path: __NAS-IP__:/volume1/kubdbs/paperless/pgsql-pvc/
+# Was previously at /kubdbs/homelab/paperless/. AccessMode fixed RWX -> RWO
+# (postgres is single-writer; legacy static PV had wrong mode).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -5,9 +9,8 @@ metadata:
   namespace: paperless
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-db
-  volumeName: pgsql-pv
+  storageClassName: storage-dbs

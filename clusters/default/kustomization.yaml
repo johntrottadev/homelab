@@ -197,7 +197,7 @@ resources:
   - paperless/paperless/pvc.yaml
   - paperless/paperless/deployment.yaml
   - paperless/paperless/service.yaml
-  - paperless/postgres/pv.yaml
+  # paperless/postgres/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - paperless/postgres/pvc.yaml
   - paperless/postgres/deployment.yaml
   - paperless/postgres/service.yaml

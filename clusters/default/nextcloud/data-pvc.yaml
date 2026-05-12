@@ -1,3 +1,8 @@
+# Dynamic PVC against storage-apps SC (Wave 4, 260511-utf).
+# Path: __NAS-IP__:/volume1/kub/homelab/nextcloud/nextcloud-data-pvc/
+# This is Nextcloud's user-file store (filesystem-primary), rclone-mirrored to
+# Wasabi by the nextcloud-rclone-wasabi CronJob. Wave 4 migration is in-place
+# directory rename (metadata only) — no copy across volumes.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +14,4 @@ spec:
   resources:
     requests:
       storage: 500Gi
-  storageClassName: storage
-  volumeName: nextcloud-data-pv
+  storageClassName: storage-apps

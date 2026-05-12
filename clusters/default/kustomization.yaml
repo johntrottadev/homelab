@@ -271,7 +271,7 @@ resources:
   - nextcloud/redis-service.yaml
   # nextcloud/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - nextcloud/pvc.yaml
-  - nextcloud/data-pv.yaml
+  # nextcloud/data-pv.yaml removed — Wave 4 (260511-utf) migrated to dynamic storage-apps SC.
   - nextcloud/data-pvc.yaml
   - nextcloud/deployment.yaml
   - nextcloud/service.yaml

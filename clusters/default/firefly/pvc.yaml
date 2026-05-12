@@ -1,3 +1,7 @@
+# Dynamic PVC against storage-apps SC (Wave 1 of PV/PVC standardization, 260511-utf).
+# Path: __NAS-IP__:/volume1/kub/homelab/firefly/firefly-pvc/
+# firefly app data is empty in practice — state lives in firefly-postgres — but
+# the deployment mounts this PVC, so it must exist.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +13,4 @@ spec:
   resources:
     requests:
       storage: 2Gi
-  storageClassName: storage
-  volumeName: firefly-pv
+  storageClassName: storage-apps

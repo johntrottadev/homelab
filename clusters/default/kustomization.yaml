@@ -398,7 +398,7 @@ resources:
   - firefly/postgres-pvc.yaml
   - firefly/postgres-deployment.yaml
   - firefly/postgres-service.yaml
-  - firefly/pv.yaml
+  # firefly/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - firefly/pvc.yaml
   - firefly/deployment.yaml
   - firefly/service.yaml

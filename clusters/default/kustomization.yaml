@@ -270,7 +270,7 @@ resources:
   - nextcloud/postgres-backup-cronjob.yaml
   - nextcloud/redis-deployment.yaml
   - nextcloud/redis-service.yaml
-  - nextcloud/pv.yaml
+  # nextcloud/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - nextcloud/pvc.yaml
   - nextcloud/data-pv.yaml
   - nextcloud/data-pvc.yaml

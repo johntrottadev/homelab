@@ -1,3 +1,7 @@
+# Dynamic PVC against storage-dbs SC (Wave 1, 260511-utf — DB tier).
+# Path: __NAS-IP__:/volume1/kubdbs/homarr/homarr-database/
+# Was previously at /kubdbs/homelab/homarr/ — Wave 1 cutover relocated data to
+# the canonical ${namespace}/${pvc-name} template path.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +13,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-db
-  volumeName: homarr-database
+  storageClassName: storage-dbs

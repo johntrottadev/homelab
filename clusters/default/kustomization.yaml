@@ -165,7 +165,7 @@ resources:
   # historical record; harmless. db-secret (SECRET_ENCRYPTION_KEY) stays
   # kubectl-managed (sensitive, scope-out).
   - homarr/namespace.yaml
-  - homarr/pv.yaml
+  # homarr/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - homarr/pvc.yaml
   - homarr/deployment.yaml
   - homarr/service.yaml

@@ -1,3 +1,5 @@
+# Dynamic PVC against storage-apps SC (Wave 2, 260511-utf).
+# Path: __NAS-IP__:/volume1/kub/homelab/fitjat/fitjat-pvc/
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +11,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage
-  volumeName: fitjat-pv
+  storageClassName: storage-apps

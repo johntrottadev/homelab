@@ -144,7 +144,7 @@ resources:
   # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC).
   # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.
   - fitjat/namespace.yaml
-  - fitjat/pv.yaml
+  # fitjat/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - fitjat/pvc.yaml
   - fitjat/deployment.yaml
   - fitjat/service.yaml
@@ -153,7 +153,7 @@ resources:
   # cloudflared-token Secret and cloudflared-info ConfigMap stay kubectl-managed
   # (token is sensitive; CM content is config detail).
   - fitjat/cloudflared/deployment.yaml
-  - fitjat/backups/pv.yaml
+  # fitjat/backups/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - fitjat/backups/pvc.yaml
   - fitjat/backups/cronjob-backup.yaml
   - fitjat/backups/cronjob-backup-health.yaml

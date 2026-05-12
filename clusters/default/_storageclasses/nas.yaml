@@ -1,0 +1,12 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: storage
+parameters:
+  nfsVers: "4.1"
+  path: /volume1/kub
+  readOnly: "false"
+  server: __NAS-IP__
+provisioner: nfs.csi.k8s.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate

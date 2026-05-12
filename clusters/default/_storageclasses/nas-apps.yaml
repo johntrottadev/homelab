@@ -1,0 +1,18 @@
+# General-purpose NFS-backed StorageClass for app data.
+# Per-PVC subdirectories are auto-created at:
+#   __NAS-IP__:/volume1/kub/homelab/<namespace>/<pvc-name>/
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: storage-apps
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: __NAS-IP__
+  share: /volume1/kub/homelab
+  subDir: ${pvc.metadata.namespace}/${pvc.metadata.name}
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  - hard
+  - nfsvers=4.1

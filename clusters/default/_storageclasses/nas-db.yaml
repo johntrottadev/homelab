@@ -1,8 +1,8 @@
-# Live-exported during Wave 0 (260511-utf) — repo was drifted from cluster reality.
 # Legacy DB-tier SC used by static-PV-per-DB pattern that Wave 1+ migrates off.
-# storage-dbs is the new flexible replacement. Note: live reclaimPolicy is Delete
-# (not Retain), and uses `path:` parameter; both deviations from repo design intent
-# are preserved here until Wave 5 recreates the SC.
+# storage-dbs is the new flexible replacement. Path-style parameter (`path:` rather
+# than canonical `share:`) retained until Wave 5 recreation; reclaimPolicy
+# flipped from Delete to Retain (live SC delete+recreate handled out-of-band
+# alongside this commit) since DB data must never auto-vanish on PVC delete.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -12,5 +12,5 @@ parameters:
   path: /volume1/kubdbs
   readOnly: "false"
   server: __NAS-IP__
-reclaimPolicy: Delete
+reclaimPolicy: Retain
 volumeBindingMode: Immediate

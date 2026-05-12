@@ -1,24 +1,40 @@
-# StorageClasses for the default cluster. Brought under Flux in Wave 0 of
-# PV/PVC standardization (quick-260511-utf, 2026-05-12). Subsequent waves:
+# Cluster storage layer for the default cluster. Holds:
+#   - StorageClasses (dynamic provisioners + a VolumeSnapshotClass)
+#   - Static PersistentVolumes (per-repo convention: all PV files live here,
+#     even though the directory name historically only covered SCs)
+# PVCs continue to live with their app under clusters/default/<app>/.
+#
+# Storage standardization arc (quick-260511-utf and quick-260512-mxm):
+#   - Wave 0 brought all SCs under Flux.
 #   - Wave 5 removed the legacy `storage-db` SC and the unused `nfs-csi` SC file
 #     (storage-csi-storageclass.yaml) after Waves 1-2-4 finished migration.
 #   - Wave 7 (quick-260512-mxm) removed the legacy `storage` SC after Loki — its
 #     sole remaining binding — migrated to dynamic `storage-apps`.
 #   - Wave 8 removed the `jellyfin` SC after jellyfin-config-pvc migrated to
 #     `storage-apps` (paths resolved identically — metadata-only swap).
+#   - Wave 9 (2026-05-12) consolidated all static PV files into this dir.
 #
-# Current active set:
+# Current SC set:
 #   storage-apps — flexible SC for app data; subDir templating: ${namespace}/${pvc-name}
 #   storage-dbs  — flexible SC for DB data; same subDir templating
 #   monitoring — flexible SC scoped to monitoring's NAS root (existing, pre-Wave-0;
 #                used only by the kube-prometheus-stack static PVs)
 #   nfs-snapclass — VolumeSnapshotClass for nfs.csi.k8s.io (driver-level; no
 #                   active VolumeSnapshots, kept for ad-hoc snapshot capability)
+#
+# Static PVs (here by convention; not dynamically provisioned):
+#   jellyfin-movies-pv — 5TB external Synology share /volume1/storage/media/movies,
+#                        pre-bound to jellyfin/jellyfin-movies-pvc, excluded
+#                        from Velero backups (curated media tree, not managed
+#                        per-PVC). Permanent static-PV exception.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # StorageClasses + VolumeSnapshotClass
   - monitoring.yaml
   - storage-apps.yaml
   - storage-dbs.yaml
   - nfs-snapclass.yaml
+  # Static PersistentVolumes
+  - jellyfin-movies-pv.yaml

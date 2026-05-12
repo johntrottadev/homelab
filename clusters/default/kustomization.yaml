@@ -116,13 +116,13 @@ resources:
   - n8n/ingressroute.yaml
 
   # Phase 999.2 plan-02 — jellyfin (supersedes top-level jellyfin.yaml).
-  # PVCs stay kubectl-managed: jellyfin-config is CSI-dynamic (nfs.csi.k8s.io,
-  # SC=jellyfin), jellyfin-movies is statically bound to a 5TB __NAS-HOST__
-  # NFS volume excluded from Velero backups.
+  # jellyfin-config-pvc: CSI-dynamic via storage-apps SC (Wave 8 of storage
+  # standardization, 2026-05-12 — was on the now-retired `jellyfin` SC).
+  # jellyfin-movies-pvc: statically bound to jellyfin-movies-pv (5TB
+  # /volume1/storage/media/movies, excluded from Velero backups). The static PV
+  # itself lives under _storageclasses/ per repo convention (all PV files
+  # consolidated there; PVCs stay with their app).
   - jellyfin/namespace.yaml
-  # PVCs + the static movies PV brought under Flux 2026-05-12 (PVC rename to
-  # <name>-pvc convention; jellyfin SC also gained a subDir template).
-  - jellyfin/jellyfin-movies-pv.yaml
   - jellyfin/jellyfin-config-pvc.yaml
   - jellyfin/jellyfin-movies-pvc.yaml
   - jellyfin/deployment.yaml

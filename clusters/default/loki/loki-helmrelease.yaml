@@ -24,6 +24,11 @@ spec:
       retries: 3
   upgrade:
     crds: CreateReplace
+    # force: true triggers helm upgrade --force, which lets helm-controller
+    # recreate the StatefulSet when its volumeClaimTemplate changes (an
+    # otherwise-immutable field). Required for the 260512-mxm cutover from
+    # static `storage` SC to dynamic `storage-apps`. Safe to leave on indefinitely.
+    force: true
     remediation:
       retries: 3
   values:
@@ -56,18 +61,15 @@ spec:
       replicas: 1
       persistence:
         enabled: true
-        # Chart 7.0.0 has no `existingClaim` knob for singleBinary — the
-        # volumeClaimTemplate `storage` auto-creates PVC `storage-loki-0`.
-        # Bind that PVC to our static NFS-backed PV via storageClass + size +
-        # label selector match. The PV (loki-pv.yaml) carries
-        # `loki-storage: "true"`.
-        storageClass: storage
+        # Dynamic provisioning via storage-apps SC (quick-260512-mxm cutover
+        # from static `storage` SC). Chart 7.0.0 auto-creates the StatefulSet
+        # volumeClaimTemplate `storage` → PVC `storage-loki-0`; storage-apps
+        # subDir template resolves to /volume1/kub/homelab/loki/storage-loki-0/
+        # on the NAS (pre-migrated dataset preserved at that path).
+        storageClass: storage-apps
         size: 50Gi
         accessModes:
           - ReadWriteOnce
-        selector:
-          matchLabels:
-            loki-storage: "true"
       resources:
         requests:
           cpu: 200m

@@ -290,7 +290,7 @@ resources:
   # First flux-managed HelmRepository + HelmRelease in this repo.
   - loki/namespace.yaml
   - loki/helmrepository-grafana.yaml
-  - loki/loki-pv.yaml
+  # loki/loki-pv.yaml removed — quick-260512-mxm migrated to dynamic storage-apps SC.
   - loki/loki-helmrelease.yaml
   - loki/promtail-helmrelease.yaml
   - loki/grafana-datasource-configmap.yaml

@@ -1,0 +1,10 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: jellyfin
+provisioner: nfs.csi.k8s.io
+parameters:
+  server: __NAS-IP__
+  share: /volume1/kub/homelab/jellyfin
+reclaimPolicy: Retain
+volumeBindingMode: Immediate

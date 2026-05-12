@@ -265,7 +265,7 @@ resources:
   - nextcloud/postgres-pvc.yaml
   - nextcloud/postgres-deployment.yaml
   - nextcloud/postgres-service.yaml
-  - nextcloud/postgres-backup-pv.yaml
+  # nextcloud/postgres-backup-pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - nextcloud/postgres-backup-pvc.yaml
   - nextcloud/postgres-backup-cronjob.yaml
   - nextcloud/redis-deployment.yaml

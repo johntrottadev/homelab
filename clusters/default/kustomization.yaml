@@ -135,7 +135,7 @@ resources:
   # Phase 999.2 plan-02 — vscode (deploy "code-server", IR "vs", host vs.__BASE-DOMAIN__,
   # supersedes top-level vs.yaml). Privileged container intentional — IDE.
   - vscode/namespace.yaml
-  - vscode/pv.yaml
+  # vscode/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - vscode/pvc.yaml
   - vscode/deployment.yaml
   - vscode/service.yaml

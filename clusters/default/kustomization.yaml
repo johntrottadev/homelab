@@ -214,7 +214,7 @@ resources:
   - guacamole/guacamole/service.yaml
   - guacamole/guacd/deployment.yaml
   - guacamole/guacd/service.yaml
-  - guacamole/guacamole-db/pv.yaml
+  # guacamole/guacamole-db/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - guacamole/guacamole-db/pvc.yaml
   - guacamole/guacamole-db/deployment.yaml
   - guacamole/guacamole-db/service.yaml

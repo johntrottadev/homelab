@@ -1,3 +1,6 @@
+# Dynamic PVC against storage-dbs SC (Wave 1, 260511-utf — DB tier).
+# Path: __NAS-IP__:/volume1/kubdbs/homelab/guacamole-db-pvc/
+# NOTE: namespace is `homelab` (not `guacamole`), so subDir lands at homelab/.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +12,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-db
-  volumeName: guacamole-db-pv
+  storageClassName: storage-dbs

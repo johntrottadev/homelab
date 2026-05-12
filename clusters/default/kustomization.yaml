@@ -82,7 +82,7 @@ resources:
   # which never existed; IR moves into the subdir). Manifest mirrors the working
   # kubectl spec; only intentional diff is image pin :latest → :3.3.1.
   - dashy/namespace.yaml
-  - dashy/pv.yaml
+  # dashy/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - dashy/pvc.yaml
   - dashy/deployment.yaml
   - dashy/service.yaml

@@ -1,3 +1,7 @@
+# Dynamic PVCs against storage-apps SC (Wave 1, 260511-utf).
+# Paths:
+#   __NAS-IP__:/volume1/kub/homelab/paperless/paperless-data-pvc/  (config/db state)
+#   __NAS-IP__:/volume1/kub/homelab/paperless/paperless-media-pvc/ (document store)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,8 +13,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: storage
-  volumeName: paperless-data-pv
+  storageClassName: storage-apps
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -23,5 +26,4 @@ spec:
   resources:
     requests:
       storage: 100Gi
-  storageClassName: storage
-  volumeName: paperless-media-pv
+  storageClassName: storage-apps

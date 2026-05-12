@@ -193,8 +193,7 @@ resources:
   # values in the running spec (pre-existing security debt; out of scope here).
   - paperless/namespace.yaml
   - paperless/ingressroute.yaml
-  - paperless/paperless/pv.yaml
-  - paperless/paperless/pv-media.yaml
+  # paperless/paperless/pv.yaml + pv-media.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - paperless/paperless/pvc.yaml
   - paperless/paperless/deployment.yaml
   - paperless/paperless/service.yaml

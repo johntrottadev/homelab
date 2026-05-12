@@ -1,3 +1,6 @@
+# Dynamic PVC against storage-dbs SC (Wave 1, 260511-utf — DB tier).
+# Path: __NAS-IP__:/volume1/kubdbs/firefly/firefly-postgres-pvc/
+# Postgres is single-writer; RWO enforced (was RWX in legacy static PV — wrong).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -5,9 +8,8 @@ metadata:
   namespace: firefly
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-db
-  volumeName: firefly-postgres-pv
+  storageClassName: storage-dbs

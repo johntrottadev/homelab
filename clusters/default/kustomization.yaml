@@ -393,7 +393,7 @@ resources:
   - netdata/daemonset.yaml
 
   - firefly/namespace.yaml
-  - firefly/postgres-pv.yaml
+  # firefly/postgres-pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - firefly/postgres-pvc.yaml
   - firefly/postgres-deployment.yaml
   - firefly/postgres-service.yaml

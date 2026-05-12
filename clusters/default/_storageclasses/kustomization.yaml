@@ -2,16 +2,17 @@
 # PV/PVC standardization (quick-260511-utf, 2026-05-12). After Waves 1-2-4
 # completed migration off the legacy `storage-db` SC, that SC and the
 # `storage-csi-storageclass.yaml` file (which defined an unused `nfs-csi` SC, never
-# in the live cluster) were both removed in Wave 5.
+# in the live cluster) were both removed in Wave 5. The legacy `storage` SC was
+# removed in Wave 7 (quick-260512-mxm, 2026-05-12) after Loki — its sole
+# remaining binding — migrated to dynamic `storage-apps`.
 #
 # Current active set:
-#   storage      — legacy SC, retained ONLY because loki-pv (Helm chart label-selector
-#              contract) still binds against it. Permanent exception.
 #   storage-apps — flexible SC for app data; subDir templating: ${namespace}/${pvc-name}
 #   storage-dbs  — flexible SC for DB data; same subDir templating
 #   jellyfin — flexible SC scoped to jellyfin's NAS root (existing, pre-Wave-0)
 #   monitoring — flexible SC scoped to monitoring's NAS root (existing, pre-Wave-0)
-#   nfs-snapclass — VolumeSnapshotClass for nfs.csi.k8s.io
+#   nfs-snapclass — VolumeSnapshotClass for nfs.csi.k8s.io (driver-level; no
+#                   active VolumeSnapshots, kept for ad-hoc snapshot capability)
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -20,5 +21,4 @@ resources:
   - monitoring.yaml
   - storage-apps.yaml
   - storage-dbs.yaml
-  - storage.yaml
   - nfs-snapclass.yaml

@@ -107,9 +107,9 @@ resources:
   - libre/ingressroute.yaml
 
   # Phase 999.2 plan-02 — n8n (per-app subdir; supersedes top-level n8n.yaml).
-  # PV mirrors existing __NAS-HOST__ hostname (immutable once Bound).
+  # PV file deleted in Wave 1 of PV/PVC standardization (quick-260511-utf);
+  # n8n/pvc.yaml now provisions dynamically against the storage-apps SC.
   - n8n/namespace.yaml
-  - n8n/pv.yaml
   - n8n/pvc.yaml
   - n8n/deployment.yaml
   - n8n/service.yaml

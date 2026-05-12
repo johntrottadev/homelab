@@ -1,3 +1,7 @@
+# Dynamic PVC against the storage-apps StorageClass (Wave 1 of PV/PVC standardization,
+# 260511-utf). The CSI driver auto-creates the per-PVC subdir:
+#   __NAS-IP__:/volume1/kub/homelab/n8n/n8n-pvc/
+# Existing data pre-relocated to this exact path before the cutover.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +13,4 @@ spec:
   resources:
     requests:
       storage: 1Gi
-  storageClassName: storage
-  volumeName: n8n-pv
+  storageClassName: storage-apps

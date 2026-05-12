@@ -72,7 +72,7 @@ resources:
   # Don't propagate this pattern to other apps yet — the migration phase will
   # sequence per-app moves explicitly.
   - uptime-kuma/namespace.yaml
-  - uptime-kuma/pv.yaml
+  # uptime-kuma/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - uptime-kuma/pvc.yaml
   - uptime-kuma/deployment.yaml
   - uptime-kuma/service.yaml

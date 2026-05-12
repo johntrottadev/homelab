@@ -1,3 +1,5 @@
+# Dynamic PVC against storage-apps SC (Wave 2, 260511-utf).
+# Path: __NAS-IP__:/volume1/kub/homelab/uptime-kuma/uptime-kuma-pvc/
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,7 +11,4 @@ spec:
   resources:
     requests:
       storage: 2Gi
-  storageClassName: storage
-  # Static binding: guarantees this PVC binds to OUR PV, not some other
-  # 2Gi storage-class PV that happens to be Available.
-  volumeName: uptime-kuma-pv
+  storageClassName: storage-apps

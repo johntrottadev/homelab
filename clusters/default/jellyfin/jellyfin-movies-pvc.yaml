@@ -1,0 +1,15 @@
+# Static binding to jellyfin-movies-pv (5TB external mount). Renamed from
+# `jellyfin-movies` 2026-05-12 to follow project-wide <name>-pvc naming.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-movies-pvc
+  namespace: jellyfin
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5000Gi
+  storageClassName: ""
+  volumeName: jellyfin-movies-pv

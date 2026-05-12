@@ -5,7 +5,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: homarr-database
+  name: homarr-database-pvc
   namespace: homarr
 spec:
   accessModes:

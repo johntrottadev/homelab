@@ -120,6 +120,11 @@ resources:
   # SC=jellyfin), jellyfin-movies is statically bound to a 5TB __NAS-HOST__
   # NFS volume excluded from Velero backups.
   - jellyfin/namespace.yaml
+  # PVCs + the static movies PV brought under Flux 2026-05-12 (PVC rename to
+  # <name>-pvc convention; jellyfin SC also gained a subDir template).
+  - jellyfin/jellyfin-movies-pv.yaml
+  - jellyfin/jellyfin-config-pvc.yaml
+  - jellyfin/jellyfin-movies-pvc.yaml
   - jellyfin/deployment.yaml
   - jellyfin/service.yaml
   - jellyfin/ingressroute.yaml

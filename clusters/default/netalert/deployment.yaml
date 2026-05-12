@@ -103,7 +103,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: netalert-data
+            claimName: netalert-data-pvc
         - name: paloarp-plugin
           configMap:
             name: paloarp-plugin

@@ -116,5 +116,5 @@ spec:
       volumes:
       - name: homarr-database
         persistentVolumeClaim:
-          claimName: homarr-database
+          claimName: homarr-database-pvc
 

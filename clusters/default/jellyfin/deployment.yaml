@@ -40,10 +40,11 @@ spec:
       volumes:
         - name: config
           persistentVolumeClaim:
-            # PVCs stay kubectl-managed: jellyfin-config is dynamically
-            # provisioned via nfs.csi.k8s.io (volumeName is a UUID we don't
-            # want in git); jellyfin-movies is bound to a static 5TB PV.
-            claimName: jellyfin-config
+            # Both PVCs are now Flux-managed under jellyfin-config-pvc.yaml and
+            # jellyfin-movies-pvc.yaml (renamed 2026-05-12 to match the
+            # project-wide <name>-pvc convention; jellyfin SC also gained a
+            # subDir template so config lands at /jellyfin/jellyfin-config-pvc/).
+            claimName: jellyfin-config-pvc
         - name: movies
           persistentVolumeClaim:
-            claimName: jellyfin-movies
+            claimName: jellyfin-movies-pvc

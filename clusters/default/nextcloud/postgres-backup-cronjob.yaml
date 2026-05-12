@@ -61,4 +61,4 @@ spec:
           volumes:
             - name: backup
               persistentVolumeClaim:
-                claimName: nextcloud-postgres-backup
+                claimName: nextcloud-postgres-backup-pvc

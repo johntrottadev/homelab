@@ -182,7 +182,7 @@ resources:
   - hoarder/web/service.yaml
   - hoarder/chrome/deployment.yaml
   - hoarder/chrome/service.yaml
-  - hoarder/meilisearch/pv.yaml
+  # hoarder/meilisearch/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - hoarder/meilisearch/pvc.yaml
   - hoarder/meilisearch/deployment.yaml
   - hoarder/meilisearch/service.yaml

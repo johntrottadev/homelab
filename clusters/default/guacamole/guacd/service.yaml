@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: guacd
-  namespace: homelab
+  namespace: guacamole
   labels:
     app: guacd
 spec:

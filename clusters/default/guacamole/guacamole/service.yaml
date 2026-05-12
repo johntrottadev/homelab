@@ -4,7 +4,7 @@ metadata:
   # Service name intentionally differs from deployment name (legacy);
   # the IngressRoute references this name.
   name: guacamole-service
-  namespace: homelab
+  namespace: guacamole
   labels:
     app: guacamole
 spec:

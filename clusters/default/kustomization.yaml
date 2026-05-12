@@ -204,11 +204,13 @@ resources:
   - paperless/redis/deployment.yaml
   - paperless/redis/service.yaml
 
-  # Phase 999.2 plan-03 — guacamole (per-component subdirs in homelab ns;
-  # supersedes guac.yaml). 3 components: guacamole (web, svc named
-  # "guacamole-service"), guacd (proxy, port 4822), guacamole-db (postgres,
-  # 5Gi PV at /volume1/kubdbs/homelab/guacamole). Stays in homelab ns so the
-  # existing guacamole-db-pv claimRef.namespace remains valid.
+  # Phase 999.2 plan-03 — guacamole (per-component subdirs). 3 components:
+  # guacamole (web, svc named "guacamole-service"), guacd (proxy, port 4822),
+  # guacamole-db (postgres, dynamic PVC against storage-dbs SC).
+  # Namespace moved from homelab -> guacamole 2026-05-12 (post-Wave-1) so the
+  # stack lives in its own ns alongside everything else; data path on NAS:
+  # /volume1/kubdbs/guacamole/guacamole-db-pvc/.
+  - guacamole/namespace.yaml
   - guacamole/ingressroute.yaml
   - guacamole/guacamole/deployment.yaml
   - guacamole/guacamole/service.yaml

@@ -1,0 +1,17 @@
+# StorageClasses for the default cluster. Brought under Flux in Wave 0 of
+# PV/PVC standardization (quick-260511-utf). The 6 SCs that were previously
+# kubectl-applied (jellyfin, monitoring, storage, nfs-csi, storage-db, nfs-snapclass)
+# adopt in place via SSA. storage-apps and storage-dbs are net-new and use the
+# nfs.csi.k8s.io subDir templating so per-PVC subdirectories auto-create.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - jellyfin.yaml
+  - monitoring.yaml
+  - storage-apps.yaml
+  - storage-csi-storageclass.yaml
+  - storage-db.yaml
+  - storage-dbs.yaml
+  - storage.yaml
+  - nfs-snapclass.yaml

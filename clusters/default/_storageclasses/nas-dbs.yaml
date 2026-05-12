@@ -1,6 +1,10 @@
 # DB-tier NFS-backed StorageClass for database workloads.
 # Per-PVC subdirectories are auto-created at:
-#   __NAS-IP__:/volume1/kubdbs/<namespace>/<pvc-name>/
+#   __NAS-IP__:/volume1/kub/homelab/<namespace>/<pvc-name>/
+# Same physical share as storage-apps — tier distinction is for future divergence
+# in mountOptions / reclaim / RWO defaults. Wave 6 (260511-utf) consolidated
+# share from /volume1/kubdbs to /volume1/kub/homelab so DBs co-locate with
+# their app data by namespace.
 # Bind PVCs as RWO — single-writer semantics are expected for DB volumes.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -9,7 +13,7 @@ metadata:
 provisioner: nfs.csi.k8s.io
 parameters:
   server: __NAS-IP__
-  share: /volume1/kubdbs
+  share: /volume1/kub/homelab
   # $$ escapes Flux envsubst so the CSI driver sees the literal ${...} template
   # and resolves it at provision time to <namespace>/<pvc-name>.
   subDir: $${pvc.metadata.namespace}/$${pvc.metadata.name}

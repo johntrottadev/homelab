@@ -35,6 +35,12 @@ resources:
   - traefik/tlsstore-default.yaml
   - traefik/serverstransport-lan-self-signed.yaml
 
+  # Wave 0 of PV/PVC standardization (quick-260511-utf) — StorageClasses moved
+  # from the top-level _storageclasses/ directory into Flux. 6 existing SCs
+  # (jellyfin, monitoring, storage, nfs-csi, storage-db, nfs-snapclass) adopted in
+  # place via SSA; storage-apps and storage-dbs added with subDir templating.
+  - _storageclasses
+
   # Wave 4 — Traefik k3s HelmChartConfig (Phase 13 values + Phase 14 D-04 redirect).
   # Brings the previously kubectl-applied HelmChartConfig under Flux management.
   - traefik/helmchartconfig.yaml

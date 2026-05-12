@@ -2,7 +2,8 @@
 # Flux helm-controller adopts in place when releaseName + targetNamespace + chart
 # version + values match the existing release. The single user-supplied value
 # (controller.replicas: 1) is mirrored exactly; all other settings are chart defaults.
-# StorageClasses (jellyfin, monitoring, storage, storage-db) stay kubectl-managed — out of scope for JT-38.
+# StorageClasses migrated under Flux in Wave 0 of PV/PVC standardization (quick-260511-utf):
+# see clusters/default/_storageclasses/. storage-apps and storage-dbs added there with subDir templating.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:

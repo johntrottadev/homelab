@@ -100,7 +100,7 @@ resources:
   # linuxserver image — root entrypoint + PUID/PGID env. Multi-port service
   # (80→3000 http, 443→3001 https). PV uses NAS IP, mountOptions preserved.
   - libre/namespace.yaml
-  - libre/pv.yaml
+  # libre/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - libre/pvc.yaml
   - libre/deployment.yaml
   - libre/service.yaml

@@ -1,3 +1,5 @@
+# Dynamic PVC against storage-apps SC (Wave 2, 260511-utf).
+# Path moves: /apps/libreoffice/ -> /apps/libre/libreoffice-pvc/ (PVC ns is `libre`).
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,5 +11,4 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: storage
-  volumeName: libreoffice-pv
+  storageClassName: storage-apps

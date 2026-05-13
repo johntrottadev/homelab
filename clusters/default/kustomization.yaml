@@ -393,6 +393,19 @@ resources:
   # links stay valid (GOC-03).
   - monitoring/rules/homelab-alerts.yaml
 
+  # Phase 10 wave 10-04 — adopt 3 Velero Schedule CRs under Flux via SSA.
+  # Byte-faithful captures with two post-capture injections per Schedule:
+  #   1. `kustomize.toolkit.fluxcd.io/ssa: Merge` so kustomize-controller does
+  #      not loop with velero's reset of spec.skipImmediately.
+  #   2. `spec.skipImmediately: true` so the velero controller skips the
+  #      immediate Backup on first reconcile (velero issues
+  #      #2433/#2612/#6517/#6685). velero v1.18 consumes-and-resets the field.
+  # GOC-04 verification: 10-min Backup-CR watch post-reconcile (D-15)
+  # confirms no new Backup with creationTimestamp inside the window.
+  - velero/schedules/daily-apps.yaml
+  - velero/schedules/weekly-apps.yaml
+  - velero/schedules/monthly-apps.yaml
+
   # quick-260504-oee — Kyverno policy engine.
   # Two separate Kustomizations conceptually (controller vs. policies) so the
   # ClusterPolicy can be paused/edited without touching the HelmRelease.

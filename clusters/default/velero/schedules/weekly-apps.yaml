@@ -1,0 +1,50 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-04).
+# Was kubectl-applied via `velero/schedules/weekly.yaml`.
+#
+# Two post-capture injections required:
+#   1. `kustomize.toolkit.fluxcd.io/ssa: Merge` annotation — without it, Flux loops
+#      with the velero controller's reset of spec.skipImmediately.
+#   2. `spec.skipImmediately: true` — velero spurious-trigger mitigation (issues
+#      #2433/#2612/#6517/#6685). velero v1.18 consumes-and-resets the field after
+#      one cron tick; the Merge annotation makes Flux tolerate that reset.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  labels:
+    tier: weekly
+  name: weekly-apps
+  namespace: velero
+  annotations:
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+spec:
+  paused: false
+  schedule: 0 4 * * 0
+  skipImmediately: true
+  template:
+    defaultVolumesToFsBackup: true
+    excludedResources:
+      - events.events.k8s.io
+      - events
+    includedNamespaces:
+      - dashy
+      - drawio
+      - firefly
+      - fitjat
+      - hoarder
+      - homarr
+      - homelab
+      - it-tools-namespace
+      - jellyfin
+      - libre
+      - loki
+      - monitoring
+      - n8n
+      - netalert
+      - nextcloud
+      - paperless
+      - rss
+      - uptime-kuma
+      - vscode
+    snapshotVolumes: false
+    storageLocation: wasabi
+    ttl: 672h

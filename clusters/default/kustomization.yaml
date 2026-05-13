@@ -466,7 +466,7 @@ resources:
   # quick-260501-ln4 — bastion-reader SA + ClusterRole + Binding for the dedicated
   # bastion LXC (__PVE-NODE-3__ / __LAN-IP__). READ-ONLY (get/list/watch) on the kinds the
   # K8s scanner + audit_drift agent task touch. Secrets EXCLUDED.
-  # Token minted out-of-band via `kubectl -n kube-system create token bastion-reader
+  # Token minted manually via `kubectl -n kube-system create token bastion-reader
   # --duration=8760h`, written to /etc/bastion/kube/bastion-reader.yaml on the LXC,
   # renewed annually. Adding a new kind to bastion scanner requires editing
   # bastion-reader/clusterrole.yaml.

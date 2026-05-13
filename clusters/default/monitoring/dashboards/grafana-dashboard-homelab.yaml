@@ -154,7 +154,7 @@ data:
             "defaults": {
               "custom": {"align": "left"},
               "links": [
-                {"title": "Open Alertmanager (silence/inhibit)", "url": "https://prometheus.__BASE-DOMAIN__/alerts?search=${__data.fields.Alert}", "targetBlank": true}
+                {"title": "Open Alertmanager (silence/inhibit)", "url": "https://prometheus.__BASE-DOMAIN__/alerts?search=$${__data.fields.Alert}", "targetBlank": true}
               ]
             },
             "overrides": [
@@ -169,7 +169,7 @@ data:
               ]},
               {"matcher": {"id": "byName", "options": "Alert"}, "properties": [
                 {"id": "links", "value": [
-                  {"title": "Runbook", "url": "https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#${__data.fields.Alert:lowercase}", "targetBlank": true}
+                  {"title": "Runbook", "url": "https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#$${__data.fields.Alert:lowercase}", "targetBlank": true}
                 ]}
               ]}
             ]

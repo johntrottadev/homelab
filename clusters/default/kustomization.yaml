@@ -336,7 +336,7 @@ resources:
   - kube-vip/daemonset.yaml
 
   # JT-41 — adopt default/k3s-builder0 BuildKit Deployment via Flux SSA. Originally
-  # created out-of-band by `docker buildx create --driver kubernetes --name k3s-builder`
+  # created manually by `docker buildx create --driver kubernetes --name k3s-builder`
   # (12h before adoption). Byte-faithful capture so first reconcile is a no-op SSA
   # upsert — zero pod churn. Privileged + network.host insecure-entitlement preserved
   # verbatim (required for buildkitd build sandbox). Lives in `default` ns to match

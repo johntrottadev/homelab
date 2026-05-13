@@ -355,6 +355,18 @@ resources:
   - monitoring/kube-prometheus-stack/helmrepository.yaml
   - monitoring/kube-prometheus-stack/helmrelease.yaml
 
+  # Phase 10 wave 10-01 — adopt monitoring static PVs (alertmanager-pv,
+  # grafana-pv, prometheus-pv) under Flux via SSA. Captured byte-faithful
+  # from the live cluster; each PV carries the `kustomize.toolkit.fluxcd.io/ssa:
+  # Merge` annotation so kustomize-controller preserves the in-cluster PV
+  # controller's claimRef.uid across reconciles (fluxcd/flux2#2250 mitigation).
+  # spec.claimRef preserved so existing PVC bindings survive first reconcile
+  # (GOC-01); reclaim policy Retain. Per D-05/D-11 — PVs go first because
+  # they are binding-critical (data-loss risk on bad adoption).
+  - monitoring/static-pvs/alertmanager-pv.yaml
+  - monitoring/static-pvs/grafana-pv.yaml
+  - monitoring/static-pvs/prometheus-pv.yaml
+
   # quick-260504-oee — Kyverno policy engine.
   # Two separate Kustomizations conceptually (controller vs. policies) so the
   # ClusterPolicy can be paused/edited without touching the HelmRelease.

@@ -1,0 +1,33 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-01).
+# Was kubectl-applied via `monitoring/grafana-pv.yaml`.
+#
+# kustomize.toolkit.fluxcd.io/ssa: Merge   --> preserves spec.claimRef.uid set by the
+# in-cluster PV controller after binding. Without this, Flux would strip claimRef.uid
+# on subsequent reconciles and the PVC would go Lost (fluxcd/flux2#2250).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/bound-by-controller: "yes"
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  name: grafana-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 10Gi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: storage-grafana-0
+    namespace: monitoring
+    uid: 11651535-08b5-403f-a7b3-dd829e3a07a9
+  mountOptions:
+    - nolock
+    - noatime
+    - nfsvers=4.1
+  nfs:
+    path: /volume1/kub/homelab/monitoring/grafana
+    server: __NAS-IP__
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: monitoring

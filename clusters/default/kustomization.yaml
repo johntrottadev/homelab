@@ -367,6 +367,23 @@ resources:
   - monitoring/static-pvs/grafana-pv.yaml
   - monitoring/static-pvs/prometheus-pv.yaml
 
+  # Phase 10 wave 10-02 — adopt 9 Grafana dashboard ConfigMaps under Flux via SSA.
+  # 8 are byte-faithful captures of CMs previously kubectl-applied from
+  # monitoring/grafana-dashboard-*.yaml files (deleted in wave 10-05); 1 is the
+  # orphan grafana-velero-native-dashboard (D-04 resolution — confirmed NOT
+  # shipped by vui chart v1.0.6). Every CM carries the
+  # `grafana_dashboard: "1"` label so the kube-prometheus-stack sidecar picks
+  # them up (GOC-02).
+  - monitoring/dashboards/grafana-dashboard-homelab.yaml
+  - monitoring/dashboards/grafana-dashboard-kopia.yaml
+  - monitoring/dashboards/grafana-dashboard-paloalto.yaml
+  - monitoring/dashboards/grafana-dashboard-pihole.yaml
+  - monitoring/dashboards/grafana-dashboard-pve.yaml
+  - monitoring/dashboards/grafana-dashboard-storage.yaml
+  - monitoring/dashboards/grafana-dashboard-velero.yaml
+  - monitoring/dashboards/grafana-dashboard-velero-per-app.yaml
+  - monitoring/dashboards/grafana-velero-native-dashboard.yaml
+
   # quick-260504-oee — Kyverno policy engine.
   # Two separate Kustomizations conceptually (controller vs. policies) so the
   # ClusterPolicy can be paused/edited without touching the HelmRelease.

@@ -1,0 +1,129 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-02).
+# Was kubectl-applied via `monitoring/grafana-dashboard-kopia.yaml`.
+apiVersion: v1
+data:
+  kopia.json: |
+    {
+      "title": "Kopia — Docker Host Backups",
+      "uid": "kopia-dock",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["kopia", "backup", "docker"],
+      "time": {"from": "now-7d", "to": "now"},
+      "refresh": "1m",
+      "templating": {
+        "list": [
+          {
+            "name": "host",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": {"query": "label_values(kopia_backup_run_timestamp_seconds, instance)", "refId": "host"},
+            "refresh": 2,
+            "sort": 1,
+            "current": {"text": "$__all", "value": "$__all"},
+            "includeAll": true,
+            "multi": true
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Fleet status",
+          "description": "Green when every host's last run succeeded across all sources.",
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "min(kopia_backup_run_status{instance=~\"$host\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "mappings": [{"type": "value", "options": {"0": {"text": "FAILED", "color": "red"}, "1": {"text": "OK", "color": "green"}}}], "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}}}
+        },
+        {
+          "id": 2, "type": "stat", "title": "Hosts reporting",
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count(kopia_backup_run_timestamp_seconds{instance=~\"$host\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 3, "type": "stat", "title": "Sources tracked",
+          "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "count(kopia_backup_source_status{instance=~\"$host\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}}
+        },
+        {
+          "id": 4, "type": "stat", "title": "Repo size (sum)",
+          "description": "Total used Wasabi storage across selected hosts (post dedup/compression).",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(kopia_backup_repo_size_bytes{instance=~\"$host\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "decbytes", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}}
+        },
+        {
+          "id": 5, "type": "stat", "title": "Oldest last-run",
+          "description": "Hours since the oldest host last completed a backup run. Alerts if a timer hasn't fired in > 36h.",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "(time() - min(kopia_backup_run_timestamp_seconds{instance=~\"$host\"})) / 3600", "refId": "A"}],
+          "fieldConfig": {"defaults": {"unit": "h", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 30}, {"color": "red", "value": 36}]}}}
+        },
+        {
+          "id": 10, "type": "table", "title": "Per-source status",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"expr": "kopia_backup_source_status{instance=~\"$host\"}", "refId": "status", "format": "table", "instant": true},
+            {"expr": "kopia_backup_source_duration_seconds{instance=~\"$host\"}", "refId": "duration", "format": "table", "instant": true},
+            {"expr": "kopia_backup_source_size_bytes{instance=~\"$host\"}", "refId": "size", "format": "table", "instant": true},
+            {"expr": "kopia_backup_source_files{instance=~\"$host\"}", "refId": "files", "format": "table", "instant": true},
+            {"expr": "kopia_backup_run_timestamp_seconds{instance=~\"$host\"}", "refId": "ran_at", "format": "table", "instant": true}
+          ],
+          "transformations": [
+            {"id": "joinByField", "options": {"byField": "instance", "mode": "outer"}},
+            {"id": "organize", "options": {"excludeByName": {"Time": true, "Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true, "Time 5": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true, "__name__ 5": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true, "job 5": true, "source 2": true, "source 3": true, "source 4": true}, "renameByName": {"instance": "Host", "source 1": "Source", "Value #status": "Status", "Value #duration": "Duration (s)", "Value #size": "Size", "Value #files": "Files", "Value #ran_at": "Last run"}}}
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"align": "left"}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Status"}, "properties": [{"id": "mappings", "value": [{"type": "value", "options": {"0": {"text": "FAIL", "color": "red"}, "1": {"text": "OK", "color": "green"}}}]}, {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
+              {"matcher": {"id": "byName", "options": "Size"}, "properties": [{"id": "unit", "value": "decbytes"}]},
+              {"matcher": {"id": "byName", "options": "Last run"}, "properties": [{"id": "unit", "value": "dateTimeAsIso"}]},
+              {"matcher": {"id": "byName", "options": "Duration (s)"}, "properties": [{"id": "unit", "value": "s"}]}
+            ]
+          }
+        },
+        {
+          "id": 20, "type": "timeseries", "title": "Backup duration per source",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "kopia_backup_source_duration_seconds{instance=~\"$host\"}", "refId": "A", "legendFormat": "{{instance}} {{source}}"}],
+          "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+        },
+        {
+          "id": 21, "type": "timeseries", "title": "Snapshot size per source",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "kopia_backup_source_size_bytes{instance=~\"$host\"}", "refId": "A", "legendFormat": "{{instance}} {{source}}"}],
+          "fieldConfig": {"defaults": {"unit": "decbytes", "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+        },
+        {
+          "id": 22, "type": "timeseries", "title": "Repo size per host",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "kopia_backup_repo_size_bytes{instance=~\"$host\"}", "refId": "A", "legendFormat": "{{instance}}"}],
+          "fieldConfig": {"defaults": {"unit": "decbytes", "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+        },
+        {
+          "id": 23, "type": "timeseries", "title": "Total run duration per host",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "kopia_backup_run_duration_seconds{instance=~\"$host\"}", "refId": "A", "legendFormat": "{{instance}}"}],
+          "fieldConfig": {"defaults": {"unit": "s", "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "fillOpacity": 10}}}
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: grafana-kopia-dashboard
+  namespace: monitoring

@@ -1,0 +1,162 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-02).
+# Was kubectl-applied via `monitoring/grafana-dashboard-pve.yaml`.
+apiVersion: v1
+data:
+  pve.json: |
+    {
+      "title": "Homelab — PVE Cluster",
+      "uid": "homelab-pve",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["pve", "proxmox", "homelab"],
+      "time": {"from": "now-6h", "to": "now"},
+      "refresh": "30s",
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "stat", "title": "Nodes Online",
+          "id": 1, "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"node/.*\"} == 1)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "orange", "value": 2}, {"color": "green", "value": 3}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "VMs Running",
+          "id": 2, "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"qemu/.*\"} == 1) or vector(0)"}, {"refId": "B", "expr": "count(pve_up{id=~\"qemu/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "LXCs Running",
+          "id": 3, "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "count(pve_up{id=~\"lxc/.*\"} == 1) or vector(0)"}],
+          "fieldConfig": {"defaults": {"unit": "short", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Cluster CPU (avg)",
+          "id": 4, "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * avg(pve_cpu_usage_ratio{id=~\"node/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Cluster Memory Used %",
+          "id": 5, "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * sum(pve_memory_usage_bytes{id=~\"node/.*\"}) / sum(pve_memory_size_bytes{id=~\"node/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 60}, {"color": "orange", "value": 80}, {"color": "red", "value": 92}]}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
+        },
+        {
+          "type": "stat", "title": "Cluster Memory Total",
+          "id": 6, "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sum(pve_memory_size_bytes{id=~\"node/.*\"})"}],
+          "fieldConfig": {"defaults": {"unit": "bytes", "color": {"mode": "fixed", "fixedColor": "blue"}}},
+          "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "none", "graphMode": "none", "justifyMode": "center"}
+        },
+        {
+          "type": "timeseries", "title": "Per-Node CPU Usage",
+          "id": 7, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * pve_cpu_usage_ratio{id=~\"node/.*\"}", "legendFormat": "{{id}}"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "timeseries", "title": "Per-Node Memory Usage",
+          "id": 8, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "100 * pve_memory_usage_bytes{id=~\"node/.*\"} / pve_memory_size_bytes{id=~\"node/.*\"}", "legendFormat": "{{id}}"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "table", "title": "Guest Inventory",
+          "id": 9, "gridPos": {"h": 12, "w": 24, "x": 0, "y": 12},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {"refId": "A", "expr": "pve_guest_info{template=\"0\"}", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "B", "expr": "pve_up{id=~\"qemu/.*|lxc/.*\"}", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "C", "expr": "100 * pve_cpu_usage_ratio{id=~\"qemu/.*|lxc/.*\"}", "format": "table", "instant": true, "legendFormat": "__auto"},
+            {"refId": "D", "expr": "100 * pve_memory_usage_bytes{id=~\"qemu/.*|lxc/.*\"} / pve_memory_size_bytes{id=~\"qemu/.*|lxc/.*\"}", "format": "table", "instant": true, "legendFormat": "__auto"}
+          ],
+          "transformations": [
+            {"id": "joinByField", "options": {"byField": "id", "mode": "outer"}},
+            {"id": "organize", "options": {"excludeByName": {"Time 1": true, "Time 2": true, "Time 3": true, "Time 4": true, "__name__ 1": true, "__name__ 2": true, "__name__ 3": true, "__name__ 4": true, "instance 1": true, "instance 2": true, "instance 3": true, "instance 4": true, "job 1": true, "job 2": true, "job 3": true, "job 4": true, "tags": true}, "renameByName": {"id": "ID", "name": "Name", "type": "Type", "node": "Node", "template": "Template", "Value #A": "Info", "Value #B": "Status", "Value #C": "CPU %", "Value #D": "Mem %"}, "indexByName": {"name": 0, "id": 1, "type": 2, "node": 3, "Value #B": 4, "Value #C": 5, "Value #D": 6}}}
+          ],
+          "fieldConfig": {
+            "defaults": {"custom": {"align": "left"}},
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "Status"}, "properties": [
+                {"id": "mappings", "value": [{"type": "value", "options": {"1": {"text": "running", "color": "green"}, "0": {"text": "stopped", "color": "red"}}}]},
+                {"id": "custom.cellOptions", "value": {"type": "color-text"}}
+              ]},
+              {"matcher": {"id": "byName", "options": "CPU %"}, "properties": [
+                {"id": "unit", "value": "percent"},
+                {"id": "decimals", "value": 1},
+                {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}},
+                {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}}
+              ]},
+              {"matcher": {"id": "byName", "options": "Mem %"}, "properties": [
+                {"id": "unit", "value": "percent"},
+                {"id": "decimals", "value": 1},
+                {"id": "thresholds", "value": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 60}, {"color": "orange", "value": 80}, {"color": "red", "value": 92}]}},
+                {"id": "custom.cellOptions", "value": {"type": "color-background", "mode": "gradient"}}
+              ]},
+              {"matcher": {"id": "byName", "options": "Info"}, "properties": [{"id": "custom.hidden", "value": true}]},
+              {"matcher": {"id": "byName", "options": "Template"}, "properties": [{"id": "custom.hidden", "value": true}]}
+            ]
+          },
+          "options": {"showHeader": true, "sortBy": [{"displayName": "Node", "desc": false}, {"displayName": "Name", "desc": false}]}
+        },
+        {
+          "type": "bargauge", "title": "Top 10 Guests — CPU",
+          "id": 10, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(10, 100 * pve_cpu_usage_ratio{id=~\"qemu/.*|lxc/.*\"} * on(id) group_left(name) pve_guest_info{template=\"0\"})", "legendFormat": "{{name}} ({{id}})"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "min": 0, "max": 100, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}}},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"}
+        },
+        {
+          "type": "bargauge", "title": "Top 10 Guests — Memory",
+          "id": 11, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(10, pve_memory_usage_bytes{id=~\"qemu/.*|lxc/.*\"} * on(id) group_left(name) pve_guest_info{template=\"0\"})", "legendFormat": "{{name}} ({{id}})"}],
+          "fieldConfig": {"defaults": {"unit": "bytes", "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "valueMode": "color"}
+        },
+        {
+          "type": "timeseries", "title": "Top 10 Guests — Network Throughput (rx + tx)",
+          "id": 12, "gridPos": {"h": 8, "w": 24, "x": 0, "y": 32},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "topk(10, 8 * (rate(pve_network_receive_bytes{id=~\"qemu/.*|lxc/.*\"}[5m]) + rate(pve_network_transmit_bytes{id=~\"qemu/.*|lxc/.*\"}[5m])) * on(id) group_left(name) pve_guest_info{template=\"0\"})", "legendFormat": "{{name}}"}],
+          "fieldConfig": {"defaults": {"unit": "bps", "custom": {"drawStyle": "line", "lineWidth": 1.5, "fillOpacity": 10, "showPoints": "never"}}},
+          "options": {"legend": {"displayMode": "table", "placement": "right", "calcs": ["last", "max", "mean"]}, "tooltip": {"mode": "multi", "sort": "desc"}}
+        },
+        {
+          "type": "table", "title": "Locked Guests",
+          "id": 13, "gridPos": {"h": 6, "w": 24, "x": 0, "y": 40},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "(pve_lock_state{id=~\"qemu/.*|lxc/.*\"} > 0) * on(id) group_left(name) pve_guest_info", "format": "table", "instant": true, "legendFormat": "__auto"}],
+          "transformations": [
+            {"id": "organize", "options": {"excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true}, "renameByName": {"id": "Guest ID", "name": "Name", "state": "Lock State", "Value": "Locked"}}}
+          ],
+          "fieldConfig": {"defaults": {"custom": {"align": "left"}}},
+          "options": {"showHeader": true, "footer": {"show": true, "reducer": ["count"], "fields": ""}}
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: grafana-pve-dashboard
+  namespace: monitoring

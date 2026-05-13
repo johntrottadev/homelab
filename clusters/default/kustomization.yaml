@@ -266,7 +266,7 @@ resources:
   # 15 min as real-named S3 objects (Wasabi is standalone-restorable).
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for
   # safety. Redis ephemeral (file locking + memcache).
-  # Secrets applied out-of-band (paloarp pattern); see clusters/default/nextcloud/README.md.
+  # Secrets applied manually (paloarp pattern); see clusters/default/nextcloud/README.md.
   - nextcloud/namespace.yaml
   - nextcloud/postgres-pvc.yaml
   - nextcloud/postgres-deployment.yaml

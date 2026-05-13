@@ -1,0 +1,33 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-01).
+# Was kubectl-applied via `monitoring/alertmanager-pv.yaml`.
+#
+# kustomize.toolkit.fluxcd.io/ssa: Merge   --> preserves spec.claimRef.uid set by the
+# in-cluster PV controller after binding. Without this, Flux would strip claimRef.uid
+# on subsequent reconciles and the PVC would go Lost (fluxcd/flux2#2250).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/bound-by-controller: "yes"
+    kustomize.toolkit.fluxcd.io/ssa: Merge
+  name: alertmanager-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 5Gi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: alertmanager-prometheus-alertmanager-db-alertmanager-prometheus-alertmanager-0
+    namespace: monitoring
+    uid: c68ab94d-c1d1-4bd3-85eb-f68e87d2ceb3
+  mountOptions:
+    - nolock
+    - noatime
+    - nfsvers=4.1
+  nfs:
+    path: /volume1/kub/homelab/monitoring/alert-manager
+    server: __NAS-IP__
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: monitoring

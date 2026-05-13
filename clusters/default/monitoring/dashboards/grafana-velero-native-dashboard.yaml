@@ -1,0 +1,201 @@
+# Captured from live cluster 2026-05-13 (Phase 10 wave 10-02).
+# Orphan dashboard per D-04 — not shipped by vui chart v1.0.6; applied out-of-band.
+apiVersion: v1
+data:
+  velero-native.json: |-
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "graphTooltip": 1,
+      "schemaVersion": 39,
+      "style": "dark",
+      "tags": ["velero", "backup"],
+      "time": { "from": "now-7d", "to": "now" },
+      "timepicker": {},
+      "timezone": "",
+      "title": "Velero (native metrics)",
+      "uid": "velero-native",
+      "version": 1,
+      "refresh": "30s",
+      "templating": {
+        "list": [
+          {
+            "name": "datasource",
+            "type": "datasource",
+            "query": "prometheus",
+            "refresh": 1,
+            "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" }
+          },
+          {
+            "name": "schedule",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": "${datasource}" },
+            "query": "label_values(velero_backup_attempt_total{schedule!=\"\"}, schedule)",
+            "multi": true,
+            "includeAll": true,
+            "refresh": 2,
+            "sort": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "BSL status",
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "velero_backup_location_status_gauge",
+            "legendFormat": "{{backup_location_name}}",
+            "refId": "A"
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "Unavailable", "color": "red" }, "1": { "text": "Available", "color": "green" } } }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "value_and_name" }
+        },
+        {
+          "type": "stat",
+          "title": "Last successful backup",
+          "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "time() - max(velero_backup_last_successful_timestamp{schedule=~\"$schedule\"})",
+            "refId": "A"
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "thresholds": { "mode": "absolute", "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 86400 },
+                { "color": "red", "value": 172800 }
+              ] }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+        },
+        {
+          "type": "stat",
+          "title": "Successful backups (7d)",
+          "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "sum(increase(velero_backup_success_total{schedule=~\"$schedule\"}[7d]))",
+            "refId": "A"
+          }],
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+        },
+        {
+          "type": "stat",
+          "title": "Failed / partial (7d)",
+          "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "sum(increase(velero_backup_failure_total{schedule=~\"$schedule\"}[7d])) + sum(increase(velero_backup_partial_failure_total{schedule=~\"$schedule\"}[7d]))",
+            "refId": "A"
+          }],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": { "mode": "absolute", "steps": [
+                { "color": "green", "value": null },
+                { "color": "yellow", "value": 1 },
+                { "color": "red", "value": 3 }
+              ] }
+            }
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" }
+        },
+        {
+          "type": "timeseries",
+          "title": "Backup attempts by schedule",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum by (schedule) (increase(velero_backup_success_total{schedule=~\"$schedule\"}[1h]))", "legendFormat": "{{schedule}} · success", "refId": "A" },
+            { "expr": "sum by (schedule) (increase(velero_backup_failure_total{schedule=~\"$schedule\"}[1h]))", "legendFormat": "{{schedule}} · failure", "refId": "B" },
+            { "expr": "sum by (schedule) (increase(velero_backup_partial_failure_total{schedule=~\"$schedule\"}[1h]))", "legendFormat": "{{schedule}} · partial", "refId": "C" }
+          ],
+          "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "stacking": { "mode": "normal" } } } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Backup duration p95 (by schedule)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "histogram_quantile(0.95, sum by (le, schedule) (rate(velero_backup_duration_seconds_bucket{schedule=~\"$schedule\"}[5m])))",
+            "legendFormat": "{{schedule}}",
+            "refId": "A"
+          }],
+          "fieldConfig": { "defaults": { "unit": "s" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Tarball size by schedule",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [{
+            "expr": "sum by (schedule) (velero_backup_tarball_size_bytes{schedule=~\"$schedule\"})",
+            "legendFormat": "{{schedule}}",
+            "refId": "A"
+          }],
+          "fieldConfig": { "defaults": { "unit": "bytes" } }
+        },
+        {
+          "type": "timeseries",
+          "title": "Restores & repo maintenance",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "sum(increase(velero_restore_success_total[1h]))", "legendFormat": "restore · success", "refId": "A" },
+            { "expr": "sum(increase(velero_restore_failed_total[1h]))", "legendFormat": "restore · failed", "refId": "B" },
+            { "expr": "sum(increase(velero_repo_maintenance_success_total[1h]))", "legendFormat": "repo maintenance · success", "refId": "C" }
+          ],
+          "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "stacking": { "mode": "normal" } } } }
+        },
+        {
+          "type": "table",
+          "title": "Per-schedule summary",
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "targets": [
+            { "expr": "max by (schedule) (velero_backup_last_successful_timestamp{schedule!=\"\"})", "format": "table", "instant": true, "refId": "A" },
+            { "expr": "sum by (schedule) (velero_backup_success_total{schedule!=\"\"})", "format": "table", "instant": true, "refId": "B" },
+            { "expr": "sum by (schedule) (velero_backup_failure_total{schedule!=\"\"}) + sum by (schedule) (velero_backup_partial_failure_total{schedule!=\"\"})", "format": "table", "instant": true, "refId": "C" }
+          ],
+          "transformations": [
+            { "id": "merge" },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": { "Time": true },
+                "renameByName": {
+                  "schedule": "Schedule",
+                  "Value #A": "Last successful (unix)",
+                  "Value #B": "Successes",
+                  "Value #C": "Failures"
+                }
+              }
+            }
+          ],
+          "fieldConfig": {
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "Last successful (unix)" }, "properties": [{ "id": "unit", "value": "dateTimeAsIso" }] }
+            ]
+          }
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: grafana-velero-native-dashboard
+  namespace: monitoring

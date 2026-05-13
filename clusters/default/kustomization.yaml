@@ -384,6 +384,15 @@ resources:
   - monitoring/dashboards/grafana-dashboard-velero-per-app.yaml
   - monitoring/dashboards/grafana-velero-native-dashboard.yaml
 
+  # Phase 10 wave 10-03 — adopt homelab-alerts PrometheusRule under Flux via SSA.
+  # Byte-faithful capture; preserves both `app: kube-prometheus-stack` and
+  # `release: prometheus` labels (the kube-prometheus-stack ruleSelector match).
+  # Pre-capture verified: NOT chart-managed (meta.helm.sh/release-name absent).
+  # The rule's runbook_url annotations point to `monitoring/RUNBOOKS.md` on the
+  # public mirror — that file is preserved in wave 10-05 deletion sweep so the
+  # links stay valid (GOC-03).
+  - monitoring/rules/homelab-alerts.yaml
+
   # quick-260504-oee — Kyverno policy engine.
   # Two separate Kustomizations conceptually (controller vs. policies) so the
   # ClusterPolicy can be paused/edited without touching the HelmRelease.

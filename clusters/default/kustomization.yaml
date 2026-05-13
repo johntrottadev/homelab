@@ -350,8 +350,10 @@ resources:
   # version + values all match. Values mirror `helm get values prometheus -n monitoring`
   # verbatim — Alertmanager Pushover routing, Velero CR custom-resource-state metrics,
   # Grafana persistence pinned to grafana-pv. Static PVs (alertmanager-pv, grafana-pv,
-  # prometheus-pv) and Secrets (grafana-admin-credentials, pushover-creds) stay
-  # kubectl-managed — out of scope. CRDs use CreateReplace policy (cert-manager pattern).
+  # prometheus-pv), homelab-alerts PrometheusRule, and the Grafana dashboard CMs are
+  # now Flux-managed via Phase 10 (waves 10-01..10-03 above). Secrets
+  # (grafana-admin-credentials, pushover-creds) stay kubectl-managed — out of scope
+  # (Phase 12 SOPS). CRDs use CreateReplace policy (cert-manager pattern).
   - monitoring/kube-prometheus-stack/helmrepository.yaml
   - monitoring/kube-prometheus-stack/helmrelease.yaml
 

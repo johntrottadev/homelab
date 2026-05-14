@@ -1,0 +1,22 @@
+# Documentation copy of the on-host config at /etc/komodo/periphery.config.toml on docker-1.
+# Authored by Phase 11 plan 11-01b, 2026-05-14. The on-host file additionally carries
+# an `onboarding_key = "..."` line ONCE for the first handshake with docker-3 Core; that
+# line is stripped after the Server registers (per T-11-01b-03 / D-12 — single-use).
+#
+# DO NOT commit the actual onboarding_key value or any private key to git — only this
+# structural shape ships in repo.
+
+root_directory = "/etc/komodo"
+core_address = "http://__LAN-IP__:9120"
+connect_as = "docker-1"
+
+# Periphery generates a long-lived Ed25519 keypair on first start at the path below
+# (upstream periphery.config.toml template default). Core's matching public key
+# is captured during onboarding into /etc/komodo/keys/core.pub.
+private_key = "file:/etc/komodo/keys/periphery.key"
+
+# Outbound mode — docker-1 connects out to docker-3 Core; nothing should reach Periphery on 8120.
+server_enabled = false
+
+logging.level = "info"
+logging.stdio = "standard"

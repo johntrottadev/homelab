@@ -115,8 +115,20 @@ When migrating each next service:
 |---|---|---|---|
 | `wazuh-single-node` | `single-node` | `docker-1/wazuh/compose.yaml` | `/mnt/kub/homelab/wazuh/single-node/.env` |
 | `qbittorrent` | `docker` | `docker-1/qbittorrent/compose.yaml` | `/mnt/kub/homelab/qbittorrent/.env` |
+| `greenbone-community-edition` | `greenbone-community-edition` | `docker-1/openvas/compose.yaml` | (none — uses host env) |
+| `checkmk` | `checkmk` | `docker-1/checkmk/compose.yaml` | — |
+| `cryptpad` | `cryptpad` | `docker-1/cryptpad/compose.yaml` | — |
+| `maltrail` | `maltrail` | `docker-1/maltrail/compose.yaml` | — |
+| `netdata` | `netdata` | `docker-1/netdata/compose.yaml` | — |
+| `legacy-vm` | `legacy-vm` | `docker-1/legacy-vm/compose.yaml` | — |
+
+The first three rows are project_name overrides (the compose file's `name:` field, or a Docker-compose default, doesn't match the directory). Komodo Stack `project_name` MUST equal the existing `com.docker.compose.project` label for adoption-in-place — otherwise Komodo would spawn parallel containers.
+
+> **As of Phase 11 (2026-05-14):** these Stacks are registered against the **docker-3** Komodo Core (`http://__LAN-IP__:9120`) via git-poll on `__PRIVATE-REPO__`, not the legacy docker-1 Core. The docker-1-resident v1 Core stack and its embedded Periphery remain operational until Plan 11-01c decommissions them per CONTEXT D-20. See [`docker-1/periphery/README.md`](periphery/README.md).
 
 ## Komodo install on docker-1
+
+> **As of 2026-05-14 (Phase 11 plan 11-01b):** the canonical management plane for docker-1 has moved to docker-3 Komodo Core (`http://__LAN-IP__:9120`) via a v2 systemd-managed Periphery on docker-1 — see [`periphery/README.md`](periphery/README.md). The v1 Core + embedded Periphery described below is still **running** on docker-1 but is the **legacy** path; it will be decommissioned in Plan 11-01c after Wave-2 parity per CONTEXT D-20. Do not run the install procedure below on a fresh dock node — use the periphery-only install instead.
 
 See `komodo-stack.yaml` (Postgres + FerretDB + Komodo Core + Periphery
 bootstrap). Run once on docker-1 host:

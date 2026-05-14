@@ -217,7 +217,7 @@ data:
           "type": "stat", "title": "DNS Queries / min",
           "id": 18, "gridPos": {"h": 5, "w": 4, "x": 16, "y": 39},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"refId": "A", "expr": "60 * sum(rate(pihole_dns_queries_today[5m]))"}],
+          "targets": [{"refId": "A", "expr": "sum(pihole_query_type_1m)"}],
           "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "color": {"mode": "fixed", "fixedColor": "blue"}}},
           "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "value", "colorMode": "value", "graphMode": "area", "justifyMode": "center"}
         },

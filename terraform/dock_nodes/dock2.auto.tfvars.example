@@ -5,12 +5,21 @@
 #   ip          = __LAN-IP__
 #   sizing      = 4 vCPU / 16 GiB / 100 GiB (defaults, can be omitted)
 #
-# Adding docker-3 later: append another map entry; pick the lightest-loaded host
-# that's not already running a dock node, and grab the next free IP.
+# docker-3 spec per D-17 (Phase 11 11-01a): __PVE-NODE-2__ / __LAN-IP__ / 4 vCPU / 8 GiB / 60 GiB
+#   (Core-only — smaller than docker-1/docker-2 default; no workload stacks on docker-3).
 
 nodes = {
   docker-2 = {
     target_node = "__PVE-NODE-3__"
     ip          = "__LAN-IP__"
+  }
+  docker-3 = {
+    # Phase 11 11-01a (D-17): runs Komodo Core v2 only — no workloads —
+    # so the default 4 vCPU / 16 GiB / 100 GiB is oversized. Override here.
+    target_node = "__PVE-NODE-2__"
+    ip          = "__LAN-IP__"
+    cores       = 4
+    memory      = 8192
+    disk_size   = "60G"
   }
 }

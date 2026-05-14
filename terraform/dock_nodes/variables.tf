@@ -1,5 +1,16 @@
+variable "pm_token_id" {
+  description = <<-EOT
+    PVE API token ID in `user@realm!tokenid` form. Default is the post-2026-05-04
+    write-token from bastion quick-260504-gpm (the original `bastion@pve!read` user
+    was deleted in that cleanup and is no longer a valid auth principal).
+    Override only when introducing a new write-scoped token.
+  EOT
+  type    = string
+  default = "bastion-write@pve!write"
+}
+
 variable "pm_token_secret" {
-  description = "Secret for the bastion@pve!read API token"
+  description = "Secret for var.pm_token_id (default: bastion-write@pve!write)"
   type        = string
   sensitive   = true
 }

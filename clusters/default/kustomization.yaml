@@ -243,6 +243,8 @@ resources:
   - monitoring/blackbox-exporter/service.yaml
   - monitoring/backup-host-exporter/deployment.yaml
   - monitoring/backup-host-exporter/service.yaml
+  # Phase 12 wave 12-07 — was secret-backup-host-exporter.template (kubectl apply).
+  - monitoring/secret-backup-host-exporter.enc.yaml
   - monitoring/pihole-exporter/deployment.yaml
   - monitoring/pihole-exporter/service.yaml
   - monitoring/snmp-exporter/deployment.yaml

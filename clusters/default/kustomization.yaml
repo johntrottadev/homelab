@@ -467,6 +467,8 @@ resources:
   - netdata/daemonset.yaml
 
   - firefly/namespace.yaml
+  # Phase 12 wave 12-07 — was secret.template (kubectl apply).
+  - firefly/secret-firefly.enc.yaml
   # firefly/postgres-pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - firefly/postgres-pvc.yaml
   - firefly/postgres-deployment.yaml

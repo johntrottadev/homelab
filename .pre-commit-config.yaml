@@ -3,8 +3,39 @@
 # Source: https://github.com/gitleaks/gitleaks/blob/master/.pre-commit-hooks.yaml
 # Pinning rev: v8.30.1 makes the hook reproducible AND keeps Phase 4 GATE-01
 # CI in lockstep — same binary, same default ruleset, same allowlist file.
+#
+# Phase 12 (SOPS-06): adds the local kind-detection backstop hook.
+# tools/pre-commit/ensure-sops-encrypted.sh fails on any `kind: Secret` under
+# clusters/ lacking a `sops:` block.
+#
+# Plan 12-05 originally specified yuvipanda/pre-commit-hook-ensure-sops as a
+# second SOPS hook. EMPIRICALLY DROPPED 2026-05-15: that hook expects every
+# leaf value to be `ENC[...]` (designed for fully-encrypted SOPS files), but
+# our `.sops.yaml` uses `encrypted_regex: ^(data|stringData)$` — only the
+# data/stringData maps are encrypted, while apiVersion/kind/metadata/type stay
+# plaintext (intentional, so operators can `grep -r 'name: pushover-creds'
+# clusters/` without decrypting). The yuvipanda hook is fundamentally
+# incompatible with this partial-encryption pattern. Coverage of the actual
+# risk surface (plaintext k8s Secret committed) is provided by:
+#   1. the custom kind-detection backstop (this file's third repo block);
+#   2. .gitignore deny-list `clusters/default/**/secret-*.yaml` with explicit
+#      negations for `*.enc.yaml` and `*.template`;
+#   3. the .sops.yaml `encrypted_regex` enforcement at sops-encrypt time;
+#   4. server-side gitleaks CI on every push.
+# See 12-05-SUMMARY.md and 12-05-hook-validation-record.txt for the deviation
+# rationale.
 repos:
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
     hooks:
       - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: ensure-sops-encrypted-kind-detection
+        name: Block plaintext kind=Secret under clusters/
+        entry: tools/pre-commit/ensure-sops-encrypted.sh
+        language: script
+        files: ^clusters/.*\.ya?ml$
+        # Defense-in-depth backstop — fails on any kind: Secret under
+        # clusters/ lacking a top-level sops: block.

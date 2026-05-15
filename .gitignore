@@ -9,6 +9,16 @@ ansible/logs/
 wasabi-creds
 *-creds
 
+# Phase 12 (SOPS-06): plaintext Secret defense-in-depth.
+# Block any `secret-*.yaml` file that lacks the `.enc.yaml` suffix from being
+# staged. Encrypted siblings (`secret-*.enc.yaml`) are explicitly negated below
+# so they remain trackable. Pre-commit hooks (yuvipanda/ensure-sops + custom
+# kind-detection backstop) complement this rule at hook-firing time; .gitignore
+# complements them at file-pattern time. Both layers exist intentionally.
+clusters/default/**/secret-*.yaml
+!clusters/default/**/secret-*.enc.yaml
+!clusters/default/**/secret-*.template
+
 # ---- Hoarder / app secrets (audit class) ------------------------------------
 *.secrets
 

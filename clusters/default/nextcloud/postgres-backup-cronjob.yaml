@@ -16,6 +16,9 @@ spec:
     spec:
       backoffLimit: 2
       template:
+        metadata:
+          annotations:
+            velero.io/exclude-from-backup: "true"
         spec:
           restartPolicy: OnFailure
           containers:

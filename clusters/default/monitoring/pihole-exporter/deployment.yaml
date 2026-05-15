@@ -1,15 +1,18 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pihole-exporter
+  name: pihole-exporter-pihole1
   namespace: monitoring
   labels:
     app.kubernetes.io/name: pihole-exporter
+    app.kubernetes.io/instance: pihole1
 spec:
   replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: pihole-exporter
+      app.kubernetes.io/instance: pihole1
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -19,56 +22,115 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: pihole-exporter
+        app.kubernetes.io/instance: pihole1
     spec:
       containers:
-      - env:
-        - name: PIHOLE_HOSTNAME
-          value: ${PIHOLE1_IP},${PIHOLE2_IP}
+      - name: exporter
+        image: amonacoos/pihole6_exporter:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PIHOLE_HOST
+          value: ${PIHOLE1_IP}
         - name: PIHOLE_PORT
-          value: 80,80
-        - name: PIHOLE_PROTOCOL
-          value: http,http
-        - name: PIHOLE_PASSWORD
+          value: "80"
+        - name: PIHOLE_SCHEME
+          value: http
+        - name: PIHOLE_API_KEY
           valueFrom:
             secretKeyRef:
-              key: passwords
               name: pihole-exporter-credentials
-        - name: PORT
-          value: '9617'
-        - name: INTERVAL
-          value: 30s
-        image: ekofr/pihole-exporter:v1.2.0
-        imagePullPolicy: IfNotPresent
-        livenessProbe:
-          failureThreshold: 3
-          httpGet:
-            path: /metrics
-            port: metrics
-            scheme: HTTP
-          initialDelaySeconds: 15
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
-        name: pihole-exporter
+              key: pihole1
         ports:
-        - containerPort: 9617
+        - containerPort: 9666
           name: metrics
           protocol: TCP
-        readinessProbe:
-          failureThreshold: 3
+        livenessProbe:
           httpGet:
             path: /metrics
             port: metrics
-            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
           initialDelaySeconds: 5
-          periodSeconds: 10
-          successThreshold: 1
-          timeoutSeconds: 1
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
         resources:
-          limits:
-            memory: 96Mi
           requests:
             cpu: 10m
             memory: 32Mi
-      securityContext: {}
-
+          limits:
+            memory: 128Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-exporter-pihole2
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: pihole-exporter
+    app.kubernetes.io/instance: pihole2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter
+      app.kubernetes.io/instance: pihole2
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pihole-exporter
+        app.kubernetes.io/instance: pihole2
+    spec:
+      containers:
+      - name: exporter
+        image: amonacoos/pihole6_exporter:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PIHOLE_HOST
+          value: ${PIHOLE2_IP}
+        - name: PIHOLE_PORT
+          value: "80"
+        - name: PIHOLE_SCHEME
+          value: http
+        - name: PIHOLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: pihole-exporter-credentials
+              key: pihole2
+        ports:
+        - containerPort: 9666
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 5
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi

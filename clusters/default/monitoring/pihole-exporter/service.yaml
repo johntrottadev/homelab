@@ -8,10 +8,9 @@ metadata:
 spec:
   ports:
   - name: metrics
-    port: 9617
+    port: 9666
     protocol: TCP
     targetPort: metrics
   selector:
     app.kubernetes.io/name: pihole-exporter
   type: ClusterIP
-

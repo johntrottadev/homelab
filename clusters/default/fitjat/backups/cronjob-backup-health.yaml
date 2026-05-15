@@ -16,6 +16,8 @@ spec:
         metadata:
           labels:
             app: fitjat-backup-health
+          annotations:
+            velero.io/exclude-from-backup: "true"
         spec:
           containers:
           - args:

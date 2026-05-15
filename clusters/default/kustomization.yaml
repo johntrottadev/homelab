@@ -273,8 +273,9 @@ resources:
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for
   # safety. Redis ephemeral (file locking + memcache).
   # Secrets applied manually (paloarp pattern); see clusters/default/nextcloud/README.md.
-  # Phase 12 wave 12-06 — was secret-nextcloud.template (kubectl apply).
+  # Phase 12 wave 12-06 — were secret-{nextcloud,rclone-wasabi}.template (kubectl apply).
   - nextcloud/secret-nextcloud.enc.yaml
+  - nextcloud/secret-rclone-wasabi.enc.yaml
   - nextcloud/namespace.yaml
   - nextcloud/postgres-pvc.yaml
   - nextcloud/postgres-deployment.yaml

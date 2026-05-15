@@ -1,0 +1,12 @@
+# Documentation copy of /etc/komodo/periphery.config.toml on docker-2.
+# Authored by Phase 11 plan 11-02, 2026-05-14. The on-host file additionally
+# carries an `onboarding_key = "..."` line ONCE for the first handshake;
+# stripped after the Server registers.
+
+root_directory = "/etc/komodo"
+core_address = "http://__LAN-IP__:9120"
+connect_as = "docker-2"
+private_key = "file:/etc/komodo/keys/periphery.key"
+server_enabled = false
+logging.level = "info"
+logging.stdio = "standard"

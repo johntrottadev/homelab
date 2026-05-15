@@ -1,0 +1,16 @@
+[Unit]
+Description=Komodo Periphery v2 (docker-2, outbound to docker-3:9120)
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Environment="HOME=/root"
+ExecStart=/bin/sh -lc "/usr/local/bin/periphery --config-path /etc/komodo/periphery.config.toml"
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=0
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

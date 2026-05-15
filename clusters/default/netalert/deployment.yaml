@@ -72,7 +72,10 @@ spec:
               cpu: 100m
               memory: 256Mi
             limits:
-              cpu: 500m
+              # nmap scan bursts spike CPU well past the 500m old cap, triggering
+              # CPUThrottlingHigh (~53% of CFS periods throttled). Bump to 2000m;
+              # idle baseline is ~100m so headroom for bursts, not sustained load.
+              cpu: "2000m"
               memory: 512Mi
           volumeMounts:
             - name: data

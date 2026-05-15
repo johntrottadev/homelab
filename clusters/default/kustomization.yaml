@@ -385,6 +385,11 @@ resources:
   - monitoring/dashboards/grafana-dashboard-velero.yaml
   - monitoring/dashboards/grafana-dashboard-velero-per-app.yaml
   - monitoring/dashboards/grafana-velero-native-dashboard.yaml
+  # Forked from chart-shipped `prometheus-nodes-darwin` ConfigMap (kube-prometheus-stack
+  # node-exporter-mixin) so the macOS dashboard is editable without losing changes on
+  # chart upgrade. uid=homelab-macos (distinct from upstream), cluster filter stripped.
+  # Added 2026-05-15 via bastion quick-260515-blr.
+  - monitoring/dashboards/grafana-dashboard-macos.yaml
 
   # Phase 10 wave 10-03 — adopt homelab-alerts PrometheusRule under Flux via SSA.
   # Byte-faithful capture; preserves both `app: kube-prometheus-stack` and

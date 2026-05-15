@@ -436,6 +436,16 @@ spec:
           - targets: [__LAN-IP__:9100]
             labels:
               instance: app-vm
+        # macOS workstations running brew-managed node_exporter bound to
+        # 0.0.0.0:9100. Initial target: TB-M-2 laptop. DNS via Pi-hole
+        # (tb-m-2.__BASE-DOMAIN__ -> __LAN-IP__). Cross-subnet scrape from
+        # k3s-1-7 (__LAN-SVC-CIDR__) may require a PA firewall rule.
+        - job_name: macos-hosts
+          scrape_interval: 30s
+          static_configs:
+          - targets: [tb-m-2.__BASE-DOMAIN__:9100]
+            labels:
+              instance: tb-m-2
         replicas: 1
         storageSpec:
           volumeClaimTemplate:

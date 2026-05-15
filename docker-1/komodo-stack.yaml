@@ -1,3 +1,31 @@
+# RETIRED 2026-05-15 per Phase 11 Plan 11-01c (D-20 decommission of v1 Core).
+#
+# This file describes the LEGACY v1 Komodo Core + embedded Periphery stack
+# that ran on docker-1 (__LAN-IP__) until decommissioned by 11-01c on the date
+# above. The active v2 Core now runs on docker-3 (__LAN-IP__) per Phase 11
+# 11-01a; the new v2 systemd Periphery on docker-1 (per 11-01b) connects to
+# that Core instead.
+#
+# Volumes renamed at decommission for 30d forensic preservation per D-20:
+#   komodo_postgres-data  -> komodo_postgres-data.retired-v1-20260515t0211Z
+#   komodo_ferretdb-state -> komodo_ferretdb-state.retired-v1-20260515t0211Z
+# After 2026-06-14 (= retired + 30d), a follow-on quick task removes this
+# file from the repo AND deletes the renamed volumes via `docker volume rm`.
+#
+# Forensic record: .planning/phases/11-komodo-periphery-docker-2-app-vm/
+#   11-01c-parity-gate-record.txt — parity verification + Kopia snapshot ID
+#     daafc60ff38cd8f7b821d8d44dd51b6a + decommission timestamp 20260515t0211Z
+#   11-01-ROLLBACK.md — failed in-place 11-01 attempt that motivated D-17 +
+#     11-01a/b/c (informs why v1 stays for 30d forensic window)
+#
+# Until the follow-on quick task ships, this file is INFORMATIONAL ONLY.
+# Do NOT `docker compose up` against this file — the v2 Core on docker-3
+# (http://__LAN-IP__:9120) is the canonical management surface.
+#
+# =====================================================================
+# ORIGINAL COMMENT BLOCK BELOW (preserved for audit):
+# =====================================================================
+
 # Komodo Core + FerretDB (Postgres-backed Mongo-wire) + Periphery bootstrap.
 # Run once on docker-1 (__LAN-IP__). Phase 999.2 Wave 5 — docker-1 sub-deliverable.
 #

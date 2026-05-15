@@ -109,7 +109,7 @@ When migrating each next service:
 3. Add a Stack resource in Komodo UI with `project_name` matching the
    existing container set so adoption is in-place (no parallel containers)
 
-### Adopted Stacks
+### Adopted Stacks (RETIRED — see docker-3 Core dashboard at http://__LAN-IP__:9120 for the v2 Stack registry)
 
 | Stack | project_name | compose | env_file |
 |---|---|---|---|
@@ -124,9 +124,15 @@ When migrating each next service:
 
 The first three rows are project_name overrides (the compose file's `name:` field, or a Docker-compose default, doesn't match the directory). Komodo Stack `project_name` MUST equal the existing `com.docker.compose.project` label for adoption-in-place — otherwise Komodo would spawn parallel containers.
 
-> **As of Phase 11 (2026-05-14):** these Stacks are registered against the **docker-3** Komodo Core (`http://__LAN-IP__:9120`) via git-poll on `__PRIVATE-REPO__`, not the legacy docker-1 Core. The docker-1-resident v1 Core stack and its embedded Periphery remain operational until Plan 11-01c decommissions them per CONTEXT D-20. See [`docker-1/periphery/README.md`](periphery/README.md).
+> **As of Phase 11 Plan 11-01c (2026-05-15):** these Stacks are registered against the **docker-3** Komodo Core (`http://__LAN-IP__:9120`) via git-poll on the operator's private repo. The docker-1-resident v1 Core stack and its embedded Periphery were DECOMMISSIONED on 2026-05-15 per CONTEXT D-20; the v1 volumes (`komodo_postgres-data`, `komodo_ferretdb-state`) are preserved as `*.retired-v1-20260515t0211Z` for 30 days (cleanup after 2026-06-14). See [`docker-1/periphery/README.md`](periphery/README.md) for the active v2 systemd Periphery on docker-1, and `.planning/phases/11-komodo-periphery-docker-2-app-vm/11-01c-parity-gate-record.txt` for the decommission audit record.
 
-## Komodo install on docker-1
+## ~~Komodo install on docker-1~~ (RETIRED 2026-05-15 per Plan 11-01c — see retirement note below)
+
+> **RETIRED 2026-05-15** per Phase 11 Plan 11-01c (D-20 decommission). The legacy v1 Komodo Core on this host has been decommissioned. The v2 Core now runs on docker-3 (__LAN-IP__) per Plan 11-01a; the v2 systemd Periphery on docker-1 (Plan 11-01b) connects to that Core. See `docker-3/README.md` for the v2 install runbook and `.planning/phases/11-komodo-periphery-docker-2-app-vm/11-01c-parity-gate-record.txt` for the decommission audit record. The v1 volumes (`komodo_postgres-data`, `komodo_ferretdb-state`) are preserved for 30 days as `*.retired-v1-20260515t0211Z`; a follow-on quick task removes this section + the v1 file + the renamed volumes after 2026-06-14.
+>
+> The bash block below is PRESERVED FOR AUDIT — do NOT execute. Use `docker-3/README.md` § "Komodo install on docker-3" for the canonical v2 install path.
+
+## ~~Komodo install on docker-1 (preserved-for-audit body below)~~
 
 > **As of 2026-05-14 (Phase 11 plan 11-01b):** the canonical management plane for docker-1 has moved to docker-3 Komodo Core (`http://__LAN-IP__:9120`) via a v2 systemd-managed Periphery on docker-1 — see [`periphery/README.md`](periphery/README.md). The v1 Core + embedded Periphery described below is still **running** on docker-1 but is the **legacy** path; it will be decommissioned in Plan 11-01c after Wave-2 parity per CONTEXT D-20. Do not run the install procedure below on a fresh dock node — use the periphery-only install instead.
 

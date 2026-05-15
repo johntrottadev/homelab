@@ -20,10 +20,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  # Phase 12 wave 12-02 — kustomize-controller patch for SOPS decryption
-  # (--sops-age-secret=sops-age). Self-applied via SSA on next reconcile pass.
-  - flux-system
-
   # Wave 1 — cert-manager + Traefik shared
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml

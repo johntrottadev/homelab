@@ -16,6 +16,22 @@
 # flux-system/ directory contains ONLY this Kustomization and the
 # cluster-vars.example.yaml ConfigMap template. Do NOT add gotk-components.yaml
 # or gotk-sync.yaml siblings (RESEARCH Pitfall 10).
+#
+# SOPS decryption (Phase 12 plan 12-02, Mode A — operator decision 2026-05-15):
+# spec.decryption.{provider,secretRef} below points at the in-cluster `sops-age`
+# Secret in flux-system ns (bootstrapped out-of-band by `kubectl create secret
+# generic sops-age --from-file=age.agekey=...`). Mode A (per-Kustomization
+# decryption) chosen instead of Mode B (kustomize-controller --sops-age-secret
+# global flag) because this manually-bootstrapped repo does NOT own the
+# kustomize-controller Deployment manifest in git, so a Kustomize `patches:`
+# block in clusters/default/flux-system/ would have no target in the build
+# output (verified empirically via `kustomize build clusters/default/flux-system/`
+# producing 0 lines; commit 5812eb5 was reverted in 24c5921 — see Phase 12
+# Plan 12-02 SUMMARY for the full rationale).
+#
+# This file is applied via `kubectl apply -f flux-system/kustomization.yaml`
+# (manual-bootstrap convention; documented in steps 1-4 above), NOT via Flux —
+# the parent Kustomization cannot manage itself.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -35,3 +51,7 @@ spec:
         name: cluster-vars
         # optional: false (default) — reconcile fails if ConfigMap absent.
         # Desired: cluster-vars is load-bearing (RESEARCH Pitfall 9).
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age

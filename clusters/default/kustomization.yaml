@@ -49,6 +49,8 @@ resources:
   # in 14-NPM-INVENTORY.md; IngressRoute lives in the app's namespace, no Service)
   # Workload + routing — uptime-kuma precedent (homelab GitOps migration scope).
   - netalert/namespace.yaml
+  # Phase 12 wave 12-07 — was secret-paloarp-creds.template (kubectl apply).
+  - netalert/secret-paloarp-creds.enc.yaml
   # netalert/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - netalert/pvc.yaml
   - netalert/deployment.yaml

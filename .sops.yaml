@@ -1,0 +1,23 @@
+# .sops.yaml — repo-root SOPS configuration (Phase 12, SOPS-01)
+#
+# Sources:
+#   .planning/phases/12-sops-age-secret-migration/12-CONTEXT.md §<decisions> D-03 + D-07a
+#   .planning/phases/12-sops-age-secret-migration/12-RESEARCH.md §Q1, Q5
+#   .planning/phases/12-sops-age-secret-migration/12-PATTERNS.md §`.sops.yaml`
+#
+# Single creation_rule covers all 9 encrypted Secrets at
+# clusters/default/<app>/secret-<name>.enc.yaml. encrypted_regex limits
+# encryption to `data:` + `stringData:` maps (NOT metadata) — operator can
+# `grep -r 'name: pushover-creds' clusters/` without decrypting.
+#
+# The throwaway test in Plan 12-03 (clusters/default/_sops-test/) uses
+# CLI-flag bypass (CONTEXT D-07a) so it does NOT need a second rule here.
+#
+# The age recipient below is the PUBLIC key. The matching PRIVATE key is
+# off-tree in 3 copies (CONTEXT D-02) — Mac SSD ~/.config/sops/age/keys.txt,
+# NAS CIFS /Volumes/code/secrets/homelab/flux-age.agekey, password manager.
+# This file ships to the public mirror intentionally (age pubkey is safe).
+creation_rules:
+  - path_regex: clusters/default/.*/secret-.*\.enc\.yaml$
+    encrypted_regex: ^(data|stringData)$
+    age: age1neq36mupvqrk7tzcymh8u73f9araq4mffa47azfll7erdvq7tsuqylqrwq

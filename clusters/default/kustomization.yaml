@@ -261,6 +261,8 @@ resources:
   # Phase 12 wave 12-04 canary — was secret-pushover.template (kubectl apply);
   # now SOPS-encrypted .enc.yaml decrypted by Flux per spec.decryption (Mode A).
   - monitoring/secret-pushover.enc.yaml
+  # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
+  - monitoring/secret-grafana-admin.enc.yaml
 
   # Nextcloud — filesystem-primary on NFS (cutover 2026-05-04 from MinIO-
   # primary, which itself replaced Wasabi-primary on 2026-04-30; the MinIO

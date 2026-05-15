@@ -40,3 +40,14 @@ paths = [
 [[allowlists]]
 description = "Pre-rewrite hoarder secrets in origin/main pre-Phase-2 commit (e2dd29e) — expunged from local main by git filter-repo (Phase 2, 2026-05-06); will disappear from --all after Wave 3 force-push overwrites origin/main. Rotated: hoarder NextAuth/Meilisearch keys rotated in Phase 1 plan 01-03."
 commits = ["e2dd29eeb352f5b7fbe25f25ab92034713f91c3a"]
+
+[[allowlists]]
+description = "Phase 12 (SOPS) audit-record sha256 fingerprints. Lines like `WITNESS_<key>_SHA256=<64-hex>` and `POST_<key>_SHA256=<64-hex>` and `ENCRYPTED_FILE_SHA256=<64-hex>` are sha256 of base64-decoded Secret values, captured for parity-check audit purposes (NEVER the plaintext). gitleaks generic-api-key rule false-positives on the 64-char hex due to entropy. These records live under .planning/phases/12-* and are private-only via paths-from-file.txt allow-list (so the false positives never reach the public mirror's gitleaks CI either). The sha256 is one-way; cannot recover the underlying secret."
+regexTarget = "match"
+regexes = [
+  '''(WITNESS|POST|POST_RECONCILE|ENCRYPTED_FILE)_[A-Za-z0-9_]+_SHA256=[0-9a-f]{64}''',
+  '''^[[:space:]]*(WITNESS|POST|POST_RECONCILE|ENCRYPTED_FILE)_[A-Za-z0-9_]+_SHA256=[0-9a-f]{64}''',
+]
+paths = [
+  '''\.planning/phases/12-sops-age-secret-migration/.*\.txt''',
+]

@@ -1,0 +1,30 @@
+# Documentation copy of /etc/komodo/periphery.config.toml on app-vm.
+# Authored by Phase 11 plan 11-03 (install) + 11-04 (this doc directory),
+# 2026-05-14.
+#
+# This is a DOCUMENTATION COPY of the on-host file. The live file at
+# /etc/komodo/periphery.config.toml on app-vm additionally carries an
+# `onboarding_key = "..."` line ONCE for the first handshake; that line
+# is removed via sed-strip after the Server registers (KOM-01 D-12
+# rotation procedure — see app-vm/README.md).
+#
+# DO NOT scp this file onto app-vm verbatim. Use the install procedure
+# documented in app-vm/periphery/README.md "First-run install".
+#
+# D-14 NOTE: app-vm runs ONLY the AIL Framework as a native systemd
+# service (SCREEN sessions under bastion). Periphery is registered as
+# a Server with Core but there are NO compose Stacks to deploy. The
+# `container_stats_polling_rate = "1-hr"` knob throttles the harmless
+# "no docker socket" ERROR from once-per-cycle to once-per-hour.
+#
+# DO NOT install Periphery on the k3s nodes (Pitfall 8 — cluster
+# destabilization risk; Periphery mounts /var/run/docker.sock + /proc).
+
+root_directory = "/etc/komodo"
+core_address = "http://__LAN-IP__:9120"
+connect_as = "app-vm"
+private_key = "file:/etc/komodo/keys/periphery.key"
+server_enabled = false
+container_stats_polling_rate = "1-hr"
+logging.level = "info"
+logging.stdio = "standard"

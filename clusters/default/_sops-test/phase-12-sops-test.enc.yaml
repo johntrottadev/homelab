@@ -1,0 +1,29 @@
+# Phase 12 SOPS validation throwaway — see CONTEXT D-07.
+# Deleted via follow-on commit (Plan 12-03 Task 4) AFTER `kubectl get cm
+# phase-12-sops-test -n flux-system -o jsonpath='{.data.marker}'` returns
+# the decrypted value.
+#
+# Encryption: CLI-flag bypass per D-07a — .sops.yaml path_regex deliberately
+# does NOT match this filename (rule is for secret-*.enc.yaml under app dirs).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: phase-12-sops-test
+    namespace: flux-system
+data:
+    marker: ENC[AES256_GCM,data:iww4L7w9wm9BH2Vw5E8GXuelR5aAMJIS8ikR83H9gLpfltc=,iv:Nn5wMIbHhONAQ0anyouax5mQ46J//zRxVGWctg41bRA=,tag:ryZ10CELLhiIsOnCnpWVMQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBza2VsT1o2MFZKZGtHc2d2
+            dldKTkNHYm1VZDJ3bjhiUFUxYzhWaHc5dkN3CkZNRzVPWmZ6bmFBRVJRU3FiZXR0
+            ckVHMFYwbCthTFJuUHR2M3pESGxNcTAKLS0tIHR4M25SQ3pUbHpRWlpudGc5NU5n
+            QXd6cTJlSHpTVGxCKzNxUFY4SWhIaTgKOWv/D6IzoOm1nUYdJdYA2XT143QcHyN9
+            JZUD7y91NWzAC50VL3/BbHTmk8YUG4MxsJC5a4IXElm53AAvqGXlDA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age1neq36mupvqrk7tzcymh8u73f9araq4mffa47azfll7erdvq7tsuqylqrwq
+    encrypted_regex: ^data$
+    lastmodified: "2026-05-15T16:29:47Z"
+    mac: ENC[AES256_GCM,data:Nh+iu1GaZgIpo7UvSa8FG89gU26JheO2NCVyw8++wJliPSBs+zbm/789iHwhFAs1wCvNZYUHOkz6MC9AFEwkBwW7ZgI0CEMYs6QDky5W4Od2hq/xYb1hBGFlhtW/MXeaYmf0Og8Uu3P/uPVmXFCMwfi8iJodDwLHAd8hNJ1Ks5A=,iv:tTUD4Ltr6aB68a1/q18DT+G3Y6w3pr3yUj0QCTXI92I=,tag:aTnjrijatk5uvzAbsI20Dg==,type:str]
+    version: 3.13.0

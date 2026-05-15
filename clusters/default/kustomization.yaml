@@ -20,6 +20,10 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # Phase 12 wave 12-03 — SOPS pipeline validation throwaway.
+  # Cleanup: Plan 12-03 Task 4 removes this entry AND the _sops-test/ dir.
+  - _sops-test
+
   # Wave 1 — cert-manager + Traefik shared
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml

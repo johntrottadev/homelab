@@ -184,6 +184,8 @@ resources:
   # 3 components: web (port 3000, svc 80), chrome (headless browser, port 3000,
   # svc 9222), meilisearch (port 7700). Secrets + ConfigMap stay kubectl-managed.
   - hoarder/namespace.yaml
+  # Phase 12 wave 12-07 — was secret-hoarder.template (kubectl apply).
+  - hoarder/secret-hoarder.enc.yaml
   - hoarder/ingressroute.yaml
   # hoarder/web/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - hoarder/web/pvc.yaml

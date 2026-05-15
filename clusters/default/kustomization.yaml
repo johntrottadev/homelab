@@ -149,6 +149,10 @@ resources:
   # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC).
   # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.
   - fitjat/namespace.yaml
+  # Phase 12 wave 12-07 — was secret-fitjat.template (kubectl apply).
+  # NOTE: live secret has only CF_ACCESS_AUD; template's GITHUB_CLIENT_ID/etc.
+  # was never deployed. Plan 12-08 to update or note the obsolete template.
+  - fitjat/secret-fitjat.enc.yaml
   # fitjat/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - fitjat/pvc.yaml
   - fitjat/deployment.yaml

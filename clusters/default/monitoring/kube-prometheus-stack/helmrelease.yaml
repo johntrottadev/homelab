@@ -436,16 +436,32 @@ spec:
           - targets: [__LAN-IP__:9100]
             labels:
               instance: app-vm
+          # Rewrite job=dock-hosts -> job=node-exporter so the default
+          # kube-prometheus-stack `Node Exporter / *` Grafana dashboards
+          # pick these hosts up alongside the k3s DaemonSet targets.
+          # Original job kept in source_job for filtering.
+          relabel_configs:
+          - source_labels: [job]
+            target_label: source_job
+          - target_label: job
+            replacement: node-exporter
         # macOS workstations running brew-managed node_exporter bound to
         # 0.0.0.0:9100. Initial target: TB-M-2 laptop. DNS via Pi-hole
-        # (tb-m-2.__BASE-DOMAIN__ -> __LAN-IP__). Cross-subnet scrape from
-        # k3s-1-7 (__LAN-SVC-CIDR__) may require a PA firewall rule.
+        # (tb-m-2.__BASE-DOMAIN__ -> __LAN-IP__).
         - job_name: macos-hosts
           scrape_interval: 30s
           static_configs:
           - targets: [tb-m-2.__BASE-DOMAIN__:9100]
             labels:
               instance: tb-m-2
+          # Rewrite job=macos-hosts -> job=node-exporter (same reason as
+          # dock-hosts above). source_job=macos-hosts preserved so macOS
+          # vs Linux can still be distinguished by query.
+          relabel_configs:
+          - source_labels: [job]
+            target_label: source_job
+          - target_label: job
+            replacement: node-exporter
         replicas: 1
         storageSpec:
           volumeClaimTemplate:

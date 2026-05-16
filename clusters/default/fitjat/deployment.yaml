@@ -39,7 +39,7 @@ spec:
           # `0.1.0` (Phase 1) → `1.0.0` on 2026-05-16 after fitjat closed out
           # v1.0 milestone (Phase 7). Built from fitjat repo SHA 2ebffc8; see
           # runbooks/deploy.md in the fitjat repo for the round-trip procedure.
-          image: docker.io/blueboy8888/fitjat:1.0.0@sha256:1322f7f159f8495dc1cc815971ca08cde652c734a70da9aa6198e00ce59d4789
+          image: docker.io/blueboy8888/fitjat:1.0.0@sha256:35428d0025b671bc510122371f4df3dc4cbf4a5ec65b058a1c775c27befcfd97
           imagePullPolicy: IfNotPresent
           envFrom:
             # ConfigMap and Secret stay kubectl-managed (the migration is

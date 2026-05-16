@@ -7,11 +7,16 @@
 # Privileged: required by buildkitd to mount overlayfs / mknod for the build sandbox.
 # `--allow-insecure-entitlement=network.host` lets builds use host-network for fetching
 # private registries / network-restricted RUN commands during image build.
+#
+# Phase 13 NS-02 (2026-05-16): namespace moved default -> k3s-builder per
+# per-app namespace pattern. Operator may need to refresh local buildx context:
+#   docker buildx rm k3s-builder; docker buildx create --driver kubernetes \
+#     --namespace k3s-builder --name k3s-builder
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: k3s-builder0
-  namespace: default
+  namespace: k3s-builder
   labels:
     app: k3s-builder0
 spec:

@@ -358,8 +358,9 @@ resources:
   # created manually by `docker buildx create --driver kubernetes --name k3s-builder`
   # (12h before adoption). Byte-faithful capture so first reconcile is a no-op SSA
   # upsert — zero pod churn. Privileged + network.host insecure-entitlement preserved
-  # verbatim (required for buildkitd build sandbox). Lives in `default` ns to match
-  # the buildx driver's default; namespace move is a follow-up if desired.
+  # verbatim (required for buildkitd build sandbox). Phase 13 NS-02 (2026-05-16):
+  # moved out of default ns into own k3s-builder ns.
+  - k3s-builder/namespace.yaml
   - k3s-builder/deployment.yaml
 
   # JT-34 — adopt kube-prometheus-stack (monitoring ns) into Flux. Was kubectl-applied

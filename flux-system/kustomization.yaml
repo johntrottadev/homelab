@@ -3,8 +3,10 @@
 #   .planning/phases/03-parameterize-site-values/baselines/baseline-wrapper.yaml
 # (path/prune/sourceRef/interval mirror that captured object verbatim).
 #
-# Cutover sequence (Plan 03-02):
-#   1. Apply cluster-vars ConfigMap from off-tree YAML.
+# Cutover sequence (Plan 12.1 — replaces Plan 03-02 cluster-vars ConfigMap step):
+#   1. Bootstrap encrypted cluster-vars Secret (one-time per cluster lifecycle):
+#        sops --decrypt clusters/default/flux-system/secret-cluster-vars.enc.yaml \
+#          | kubectl apply -f -
 #   2. kubectl apply -f this file (still suspended).
 #   3. flux resume kustomization flux-system -n flux-system  <-- live point.
 #   4. flux get kustomization flux-system --watch  <-- confirm Ready: True.
@@ -47,7 +49,7 @@ spec:
   suspend: false
   postBuild:
     substituteFrom:
-      - kind: ConfigMap
+      - kind: Secret
         name: cluster-vars
         # optional: false (default) — reconcile fails if ConfigMap absent.
         # Desired: cluster-vars is load-bearing (RESEARCH Pitfall 9).

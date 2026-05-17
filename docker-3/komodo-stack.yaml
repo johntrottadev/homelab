@@ -40,7 +40,7 @@
 
 services:
   postgres:
-    image: ghcr.io/ferretdb/postgres-documentdb@sha256:2386795ec2aa7ae559304361979f1dc5708d383ee9020ae63dadc2940dfe58f7
+    image: ghcr.io/ferretdb/postgres-documentdb:17@sha256:8c7e8288d069990bc1939bfe40c132075ad90e38d68da9264c018b4139b4fd5d
     # ^ resolves to ghcr.io/ferretdb/postgres-documentdb:latest captured 2026-05-14 on docker-3 (cloned from docker-1)
     labels:
       komodo.skip: ""
@@ -53,7 +53,7 @@ services:
       POSTGRES_DB: postgres
 
   ferretdb:
-    image: ghcr.io/ferretdb/ferretdb@sha256:5706414241eb84f0515512c37b46db0f1b1eac9e5ceb7e4c2523211c184b1985
+    image: ghcr.io/ferretdb/ferretdb:2.7@sha256:5d8966f7ec1267d35fc61acc56fd9f3f62f22b4baf65ecb6c331b63b86a52aac
     # ^ resolves to ghcr.io/ferretdb/ferretdb:latest captured 2026-05-14 on docker-3 (cloned from docker-1)
     labels:
       komodo.skip: ""
@@ -66,7 +66,7 @@ services:
       FERRETDB_POSTGRESQL_URL: postgres://${KOMODO_DATABASE_USERNAME}:${KOMODO_DATABASE_PASSWORD}@postgres:5432/postgres
 
   core:
-    image: ghcr.io/moghtech/komodo-core@sha256:7afbcfa99674bf3f51539ec3aa7235795e9b994af9b7099a6c4c654d5d8a5b6b
+    image: ghcr.io/moghtech/komodo-core:2.2.0@sha256:74af88fff97e820aab111349292d227c1eab2720fb439ec96c19e86d1617248a
     # ^ resolves to ghcr.io/moghtech/komodo-core:2.2.0 captured 2026-05-14 on docker-3 (v2.2.0)
     labels:
       komodo.skip: ""

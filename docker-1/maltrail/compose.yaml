@@ -13,7 +13,7 @@
 
 services:
   maltrail-sensor:
-    image: tomdesinto/maltrail:latest
+    image: tomdesinto/maltrail:latest@sha256:f136d50d16261db5ac824bc22eb3428284abcde1c28069abc9024343b17500c7
     container_name: maltrail-sensor
     restart: unless-stopped
     network_mode: host
@@ -28,7 +28,7 @@ services:
       - /mnt/kub/homelab/maltrail/maltrail.conf:/opt/maltrail/maltrail.conf:ro
 
   maltrail-server:
-    image: tomdesinto/maltrail:latest
+    image: tomdesinto/maltrail:latest@sha256:f136d50d16261db5ac824bc22eb3428284abcde1c28069abc9024343b17500c7
     container_name: maltrail-server
     restart: unless-stopped
     depends_on:

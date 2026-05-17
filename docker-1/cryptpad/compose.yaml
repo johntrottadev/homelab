@@ -16,7 +16,7 @@
 
 services:
   cryptpad:
-    image: cryptpad/cryptpad:version-2026.2.2
+    image: cryptpad/cryptpad:version-2026.2.2@sha256:918b216f015f55ba758b1eb8dec81be5d6fa0e0501fa683e87e33e11754d8213
     container_name: cryptpad
     hostname: cryptpad
     restart: unless-stopped

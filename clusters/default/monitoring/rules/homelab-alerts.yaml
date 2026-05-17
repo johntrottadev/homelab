@@ -456,3 +456,43 @@ spec:
       labels:
         component: storage
         severity: critical
+  - interval: 1m
+    name: homelab.bastion.rules
+    rules:
+    - alert: OpsmanDown
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: Prometheus has been unable to scrape bastion at __LAN-IP__:9090 for
+          5+ minutes. bastion is the homelab Day-2 ops loop — while it is down, nightly
+          drift / cve / patches / backup-freshness / cert-expiry sweeps are NOT running.
+          From the bastion LXC (CT 121 on __PVE-NODE-3__) check `systemctl status bastion.service`.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#opsmandown
+        summary: bastion is down on {{ $labels.instance }}
+      expr: up{job="bastion"} == 0
+      for: 5m
+      labels:
+        component: bastion
+        severity: critical
+    - alert: OpsmanMissedNightlySweep
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: bastion's journal at /opt/bastion/data/journal.db has not received
+          a row in {{ $value | printf "%.0f" }} minutes (>25h). bastion runs its 8
+          scheduled jobs (drift, cve, exposed-ports, backup-freshness, cert-expiry,
+          health, patches, test-restore) overnight between 03:11–05:13 UTC; each emits
+          thousands of events. A 25h+ gap means yesterday's overnight sweep did NOT
+          execute — the "nothing rots silently" core value is itself rotting. From the
+          bastion LXC check `sqlite3 /opt/bastion/data/scheduler.db 'SELECT id,
+          datetime(next_run_time, "unixepoch") FROM apscheduler_jobs;'` to see whether
+          the scheduler is alive but stalled, or `systemctl status bastion.service` to
+          confirm the process is up. Fast-lane (Kuma /health 503) catches journal-DB-
+          unreadable in ~3 min; if Kuma stayed silent and only this fired, the SELECT
+          path works — the scheduler is the failure mode.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#opsmanmissednightlysweep
+        summary: bastion has not written a journal event in {{ $value | printf "%.0f" }}
+          minutes — likely missed nightly sweep
+      expr: opsman_journal_lag_minutes > 1500
+      for: 30m
+      labels:
+        component: bastion
+        severity: warning

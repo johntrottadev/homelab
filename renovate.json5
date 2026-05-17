@@ -1,0 +1,88 @@
+{
+  // Renovate config for this repository (private origin; sanitize.yml
+  // force-publishes a derived public mirror — see CLAUDE.md §Workflow).
+  // Phase 14 (PIN-02). Locked decisions referenced as D-NN from
+  // .planning/phases/14-image-digest-pinning-renovate/14-CONTEXT.md.
+
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+
+  extends: [
+    'config:recommended',
+  ],
+
+  // Repository-level digest pinning. Cascades to docker-compose and
+  // github-actions managers (both honor pinDigests). PIN-02.
+  pinDigests: true,
+
+  // ROADMAP impl note literals — PR-storm prevention on first run.
+  // Defaults are 10 / 0; we explicitly clamp to 3 / 1.
+  prConcurrentLimit: 3,
+  prHourlyLimit: 1,
+
+  // Single-repo scope is enforced at the workflow level via
+  // RENOVATE_REPOSITORIES env var (see .github/workflows/renovate.yml).
+  // autodiscover left at default (false) for defense-in-depth.
+
+  // D-01: enable docker-compose AND github-actions managers.
+  // No `dockerfile` manager — periphery dirs ship config + systemd only.
+  // docker-1/legacy-vm/ has a Dockerfile but the resulting image is local-only (D-07).
+  // Renovate's default config already enables both managers; we extend them.
+
+  // D-02: extend docker-compose manager's fileMatch / managerFilePatterns
+  // to include Komodo Stack manifests (docker-1/komodo-stack.yaml,
+  // docker-3/komodo-stack.yaml). We use `fileMatch` here because the locally
+  // pip/npm-installed `renovate-config-validator` (Renovate v37 lineage)
+  // does NOT yet accept `managerFilePatterns` as a key inside a manager
+  // block, while the production runner uses
+  // renovatebot/github-action@v46.1.14 which natively understands
+  // `managerFilePatterns` AND auto-migrates legacy `fileMatch` to it on
+  // load (Renovate config-migration §fileMatch -> managerFilePatterns).
+  // `fileMatch` is therefore the forward-compatible spelling that
+  // validates locally today and keeps working under the v46 action with
+  // the auto-migration applied at runtime — both names work identically
+  // at execution time per research §managerFilePatterns vs fileMatch.
+  // Renovate's default docker-compose pattern set:
+  //   /(^|/)(?:docker-)?compose[^/]*\.ya?ml$/
+  // does NOT match `komodo-stack.yaml`. The Renovate docs §file-matching
+  // confirm this list is ADDITIVE — our entry extends the defaults.
+  // Both Komodo Stack files have standard top-level `services:` blocks
+  // (verified by research §extract.ts), so docker-compose manager parses
+  // them correctly. No regexManagers block needed.
+  'docker-compose': {
+    fileMatch: ['(^|/)komodo-stack\\.yaml$'],
+  },
+
+  // D-01 (explicit-evidence half): make github-actions manager visible by
+  // surface inspection of renovate.json5. `config:recommended` already
+  // auto-enables this manager — the empty block below is defensive
+  // documentation so D-01's "Enable Renovate's docker-compose AND
+  // github-actions managers in renovate.json5" is satisfied literally,
+  // not just transitively via the preset.
+  'github-actions': {},
+
+  // D-07: silently exclude jt-lab/* packages. Renovate already auto-skips
+  // services with `build:` field (verified research §extract.ts), so
+  // docker-1/legacy-vm/compose.yaml's `jt-lab/legacy-vm-kasm:1.0` line never enters
+  // extraction. This rule is DEFENSIVE documentation — makes intent
+  // explicit and survives any future refactor that might split `build:`
+  // and `image:` across files.
+  // D-08: backlog seed only — out of scope for Phase 14. PIN-04 will
+  // migrate legacy-vm-kasm to ghcr.io so Renovate can track it like every
+  // other image. Captured as a deferred forward-pointer only.
+  packageRules: [
+    {
+      matchPackagePatterns: ['^jt-lab/'],
+      enabled: false,
+      description: 'D-07: jt-lab/* are local-build images; no upstream registry to pin. See PIN-04 backlog.',
+    },
+  ],
+
+  // Deferred to backlog (intentionally omitted; documented for future planners):
+  //   RNV-01: grouped digest updates + business-hours schedule.
+  //   RNV-02: automerge for digest-only PRs (after 2-4 week observation).
+  //   RNV-03: hostRules for registry.community.greenbone.net.
+  //           D-05 explicitly defers — ship Phase 14 with ZERO hostRules
+  //           entries; D-06's empirical-first-run protocol may pull it forward
+  //           as Phase 14.1 hotfix only if greenbone digest resolution errors
+  //           on the first Renovate run AND no other manager produces PRs.
+}

@@ -1,13 +1,13 @@
 # JT-40 follow-up — Komodo Core UI exposure on https://komodo.__BASE-DOMAIN__.
 # Pattern 5 (external-IP-backend bundle): Service + EndpointSlice + IngressRoute,
-# all in kube-system. HTTP upstream on docker-1:9120 (Komodo Core's container port);
-# Traefik fronts it with the wildcard *.__BASE-DOMAIN__ cert at :443.
+# all in kube-system. HTTP upstream on __LAN-IP__:9120 (new control-plane host;
+# Komodo Core moved off docker-1). Traefik fronts it with the wildcard
+# *.__BASE-DOMAIN__ cert at :443.
 #
-# Note: Komodo Core's KOMODO_HOST in /opt/komodo/.env is still set to
-# http://__LAN-IP__:9120 (legacy LAN-direct value). After this lands, consider
-# updating KOMODO_HOST=https://komodo.__BASE-DOMAIN__ so OAuth callback URLs and
-# webhook URLs the UI suggests use the public ingress instead. That edit is
-# out-of-band on docker-1 (the .env is host-only) — not in this commit.
+# Note: Komodo Core's KOMODO_HOST in /opt/komodo/.env on the new host should be
+# set to https://komodo.__BASE-DOMAIN__ so OAuth callback URLs and webhook URLs the
+# UI suggests use the public ingress instead. That edit is out-of-band on the
+# host (the .env is host-only) — not in this commit.
 apiVersion: v1
 kind: Service
 metadata:

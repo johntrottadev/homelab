@@ -43,7 +43,7 @@ services:
       - scap_data_vol:/mnt
 
   cert-bund-data:
-    image: registry.community.greenbone.net/community/cert-bund-data:latest@sha256:3431a8cb5f8fb22afaccfe387be438e62aabc820902064dcdb75019225c1911d
+    image: registry.community.greenbone.net/community/cert-bund-data:latest@sha256:4006b690f2709f0497d56d8c0ecdd57dd54e2e0bcbe296996423502d3b6c5424
     environment:
       KEEP_ALIVE: 1
     volumes:

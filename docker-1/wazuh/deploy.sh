@@ -22,16 +22,39 @@
 #   credentials from the source-tree file — NOT from any env var. The
 #   upstream wazuh.yml ships with the default `MyS3cr37P450r.*-` password
 #   and is not templated by the entrypoint. Without this script, rotating
-#   API_PASSWORD in .env never reaches the dashboard.
+#   API_PASSWORD never reaches the dashboard.
 #
 #   Symptom: dashboard shows "Server API not connected" / "Server API down"
 #   even though manager + indexer + TLS are all healthy.
 #
+# SOPS hardening (2026-05-23):
+#   Earlier versions of this script read INDEXER_PASSWORD / API_PASSWORD from
+#   a plaintext `.env` co-located with the compose stack on the CIFS NAS
+#   mount (//__NAS-IP__/kub). The CIFS mount forces `file_mode=0755`, which
+#   made `.env` world-readable to anyone with SMB access to the share — and
+#   `chmod 600` was a no-op against the mount option. Two changes fixed this:
+#     1. The plaintext was first moved to `/etc/wazuh/wazuh.env` on docker-1
+#        local disk (root:root 0600, off CIFS).
+#     2. That file was then SOPS-encrypted to `/etc/wazuh/wazuh.env.enc` and
+#        the plaintext shredded. Plaintext now exists only transiently in
+#        `/run/wazuh.env.XXXXXX` (tmpfs) during the lifetime of this script.
+#
+# PROVISIONING REQUIRED on a fresh docker-1 (one-time, out-of-band — not in git):
+#   /etc/wazuh/age.key         age private key, root:root 0600
+#   /etc/wazuh/wazuh.env.enc   SOPS-encrypted dotenv with INDEXER_PASSWORD + API_PASSWORD
+#   /etc/wazuh/age.pub         age public recipient (informational)
+#   Tools: age (apt) + sops (GitHub binary v3.9.4+)
+#   Backup the age key off-device — if lost, the encrypted env is unrecoverable.
+#
+# Override knobs:
+#   ENV_FILE_ENC          default /etc/wazuh/wazuh.env.enc
+#   SOPS_AGE_KEY_FILE     default /etc/wazuh/age.key
+#
 # What this script does:
-#   1. Reads INDEXER_PASSWORD and API_PASSWORD from .env
+#   1. Decrypts ENV_FILE_ENC to /run (tmpfs) via sops, trap-shreds on exit
 #   2. TRUNCATE-rewrites config/wazuh_dashboard/wazuh.yml so the dashboard
 #      sees the rotated value on next start (CIFS-safe — preserves inode)
-#   3. docker compose up -d (no-op if already up + matching env)
+#   3. docker compose --env-file <decrypted> up -d (no-op if already up + matching env)
 #   4. Re-applies API_PASSWORD to the manager's wazuh-wui user via
 #      create_user.py (idempotent — updates if user exists, creates otherwise)
 
@@ -39,16 +62,35 @@ set -euo pipefail
 
 cd /mnt/kub/homelab/wazuh/single-node
 
-if [[ ! -f .env ]]; then
-  echo "ERROR: .env not found in /mnt/kub/homelab/wazuh/single-node. Expected INDEXER_PASSWORD and API_PASSWORD." >&2
+# --- SOPS-encrypted env: decrypt to /run (tmpfs) at start, shred on exit ---
+ENV_FILE_ENC="${ENV_FILE_ENC:-/etc/wazuh/wazuh.env.enc}"
+export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-/etc/wazuh/age.key}"
+
+if [[ ! -f "$ENV_FILE_ENC" ]]; then
+  echo "ERROR: encrypted env not found at $ENV_FILE_ENC. See PROVISIONING block above." >&2
+  exit 1
+fi
+if [[ ! -f "$SOPS_AGE_KEY_FILE" ]]; then
+  echo "ERROR: age key not found at $SOPS_AGE_KEY_FILE. See PROVISIONING block above." >&2
+  exit 1
+fi
+if ! command -v sops >/dev/null 2>&1; then
+  echo "ERROR: sops binary not in PATH. Install from https://github.com/getsops/sops/releases" >&2
   exit 1
 fi
 
-INDEXER_PW=$(grep '^INDEXER_PASSWORD=' .env | cut -d= -f2-)
-API_PW=$(grep '^API_PASSWORD=' .env | cut -d= -f2-)
+ENV_FILE=$(mktemp --tmpdir=/run wazuh.env.XXXXXX)
+chmod 600 "$ENV_FILE"
+trap 'shred -u "$ENV_FILE" 2>/dev/null || rm -f "$ENV_FILE"' EXIT
+sops --decrypt --input-type dotenv --output-type dotenv "$ENV_FILE_ENC" > "$ENV_FILE"
+
+COMPOSE="docker compose --env-file $ENV_FILE"
+
+INDEXER_PW=$(grep '^INDEXER_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)
+API_PW=$(grep '^API_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)
 
 if [[ -z "$INDEXER_PW" || -z "$API_PW" ]]; then
-  echo "ERROR: INDEXER_PASSWORD or API_PASSWORD missing from .env." >&2
+  echo "ERROR: INDEXER_PASSWORD or API_PASSWORD missing from decrypted env." >&2
   exit 1
 fi
 
@@ -58,18 +100,16 @@ if [[ ! -f "$WAZUH_YML" ]]; then
   exit 1
 fi
 
-# Rewrite dashboard wazuh.yml from .env. CRITICAL: must be a TRUNCATE
+# Rewrite dashboard wazuh.yml from decrypted env. CRITICAL: must be a TRUNCATE
 # in-place (preserves inode), NOT sed-with-rename. The compose bind-mounts
 # this file's inode into the dashboard container; sed -i creates a new
 # inode and renames it over the old, leaving the container's bind-mount
 # pointing at a stale handle. On CIFS this manifests as "Stale file
-# handle" errors and the dashboard fails to read its API config —
-# symptom: dashboard logs spam `UNKNOWN: unknown error, open` for
-# wazuh.yml and the UI shows "Server API not connected" indefinitely.
+# handle" errors and the dashboard fails to read its API config.
 #
 # Stop the dashboard before write so any cached file handle is released,
 # then restart with `compose up -d` below.
-docker compose stop wazuh.dashboard >/dev/null 2>&1 || true
+$COMPOSE stop wazuh.dashboard >/dev/null 2>&1 || true
 
 # Use python to dodge shell-quoting hell with $API_PW (which may contain
 # special chars like `.`, `!`, `*`).
@@ -88,37 +128,37 @@ content = (
 with open(target, 'w') as f:
     f.write(content)
 PY_EOF
-echo "[deploy] dashboard wazuh.yml rewritten in-place from .env"
+echo "[deploy] dashboard wazuh.yml rewritten in-place from decrypted env"
 
-docker compose up -d
+$COMPOSE up -d
 
 # After stack-up, ensure manager's wazuh-wui API user matches API_PASSWORD.
 # Required because the manager's first-boot init only runs against an empty
 # user store; on subsequent restarts (or when the user was created with a
 # different password earlier), the env var alone won't propagate.
-if docker compose ps --status running --quiet wazuh.manager >/dev/null 2>&1; then
+if $COMPOSE ps --status running --quiet wazuh.manager >/dev/null 2>&1; then
   # Wait for the API user store to be writable (manager init can take a moment)
   for i in 1 2 3 4 5 6 7 8 9 10; do
-    if docker compose exec -T wazuh.manager test -d /var/ossec/api/configuration; then
+    if $COMPOSE exec -T wazuh.manager test -d /var/ossec/api/configuration; then
       break
     fi
     sleep 3
   done
 
-  docker compose exec -T wazuh.manager sh -c "cat > /var/ossec/api/configuration/admin.json <<EOF
+  $COMPOSE exec -T wazuh.manager sh -c "cat > /var/ossec/api/configuration/admin.json <<EOF
 {
   \"username\": \"wazuh-wui\",
   \"password\": \"$API_PW\"
 }
 EOF"
-  if docker compose exec -T wazuh.manager \
+  if $COMPOSE exec -T wazuh.manager \
        /var/ossec/framework/python/bin/python3 \
        /var/ossec/framework/scripts/create_user.py; then
-    echo "[deploy] manager wazuh-wui API user password synced to .env"
+    echo "[deploy] manager wazuh-wui API user password synced to encrypted env"
   else
     echo "[deploy] WARNING: create_user.py exited non-zero — check manager logs" >&2
   fi
 fi
 
 echo "[deploy] done. Stack state:"
-docker compose ps
+$COMPOSE ps

@@ -29,3 +29,12 @@ rules:
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch"]
+  # Phase 16 — Flux/ArgoCD reconciliation observer (audit_reconciliation_status).
+  # Required for the scheduled 0 */4 * * * run to populate flux_kustomizations +
+  # flux_helm_releases inventory and emit reconciliation_stuck findings.
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["kustomizations"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["helmreleases"]
+    verbs: ["get", "list", "watch"]

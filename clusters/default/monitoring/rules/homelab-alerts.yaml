@@ -462,7 +462,7 @@ spec:
     - alert: OpsmanDown
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
-        description: Prometheus has been unable to scrape bastion at __LAN-IP__:9090 for
+        description: Prometheus has been unable to scrape bastion at __LAN-IP__:8080 for
           5+ minutes. bastion is the homelab Day-2 ops loop — while it is down, nightly
           drift / cve / patches / backup-freshness / cert-expiry sweeps are NOT running.
           From the bastion LXC (CT 121 on __PVE-NODE-3__) check `systemctl status bastion.service`.

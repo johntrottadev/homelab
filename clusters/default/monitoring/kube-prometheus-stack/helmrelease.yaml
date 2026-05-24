@@ -413,9 +413,10 @@ spec:
             - __PVE1-IP__:9221
         - job_name: bastion
           scrape_interval: 30s
+          metrics_path: /metrics/
           static_configs:
           - targets:
-            - __LAN-IP__:9090
+            - __LAN-IP__:8080
             labels:
               instance: bastion
         # Static node_exporter targets on the Docker hosts. node_exporter ships

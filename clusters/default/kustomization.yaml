@@ -262,8 +262,10 @@ resources:
   - monitoring/speedtest-exporter/grafana-dashboard-cm.yaml
 
   # bastion dashboard — Grafana visualization for the 34 opsman_* metrics
-  # exposed by the LXC at __LAN-IP__:9090 (scraped via additionalScrapeConfigs
-  # in the kube-prometheus-stack helmrelease). Sidecar auto-imports via
+  # exposed by the LXC at __LAN-IP__:8080 (scraped via additionalScrapeConfigs
+  # in the kube-prometheus-stack helmrelease; flipped from :9090 standalone Prom
+  # server to :8080 FastAPI /metrics mount per bastion quick-260523-qzr). Sidecar
+  # auto-imports via
   # `grafana_dashboard: '1'` label. 6 rows / 24 panels covering overview,
   # drift+gitops, task runs, approval gate, audit catalog, subsystem health.
   - monitoring/bastion-dashboard/grafana-dashboard-cm.yaml

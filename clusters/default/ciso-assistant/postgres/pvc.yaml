@@ -1,0 +1,14 @@
+# Dedicated Postgres for CISO Assistant — DB tier on storage-dbs (RWO single-writer).
+# Path: __NAS-IP__:/volume1/kubdbs/ciso-assistant/pgsql-pvc/
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pgsql-pvc
+  namespace: ciso-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: storage-dbs

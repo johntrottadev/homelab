@@ -1,0 +1,81 @@
+# CISO Assistant (intuitem community) — official OCI chart via Flux.
+# Chart 0.10.3 = appVersion v3.16.5. Backend pod runs backend + huey containers.
+# DB: dedicated Postgres (postgres.ciso-assistant.svc) via externalPgsql.
+# Ingress handled out-of-chart by ingressroute.yaml (Traefik websecure).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: ciso-assistant
+  namespace: ciso-assistant
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: ciso-assistant
+      version: "0.10.3"  # appVersion v3.16.5 — pin EXACT for reproducibility
+      sourceRef:
+        kind: HelmRepository
+        name: intuitem
+        namespace: flux-system
+      interval: 24h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    global:
+      domain: ciso.${BASE_DOMAIN}
+      tls: true
+      image:
+        registry: ghcr.io
+        imagePullPolicy: IfNotPresent
+    backend:
+      config:
+        emailAdmin: __ACME-EMAIL__
+        databaseType: externalPgsql
+        # secret key: django-secret-key
+        djangoExistingSecretKey: ciso-assistant-secret
+        djangoDebug: false
+      persistence:
+        # SQLite PVC is REQUIRED for the Huey task queue even with external Postgres.
+        sqlite:
+          enabled: true
+          size: 2Gi
+          storageClass: storage-apps
+          accessMode: ReadWriteMany
+        # Uploaded files / attachments.
+        localStorage:
+          enabled: true
+          size: 10Gi
+          storageClass: storage-apps
+          accessMode: ReadWriteMany
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+    frontend:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+    # Ingress provided by clusters/default/ciso-assistant/ingressroute.yaml instead.
+    ingress:
+      enabled: false
+    # Dedicated Postgres in-namespace; secret key: password
+    externalPgsql:
+      host: postgres
+      port: 5432
+      user: ciso_assistant
+      database: ciso_assistant
+      existingSecret: ciso-assistant-secret
+    # Bundled Bitnami Postgres disabled (chart-deprecated).
+    postgresql:
+      enabled: false

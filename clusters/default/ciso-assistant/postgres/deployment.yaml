@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: ciso-assistant
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  # Recreate: RWO volume is single-writer; never let two pods mount during rollout.
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: POSTGRES_DB
+          value: ciso_assistant
+        - name: POSTGRES_USER
+          value: ciso_assistant
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ciso-assistant-secret
+              key: password
+        # Subdir keeps Postgres off the NFS mount root (lost+found / non-empty dir).
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+      securityContext:
+        fsGroup: 999
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: pgsql-pvc

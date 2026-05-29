@@ -1,0 +1,11 @@
+# intuitem CISO Assistant community chart — OCI registry.
+# First OCI-type HelmRepository in this repo (loki/grafana use https type).
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: intuitem
+  namespace: flux-system
+spec:
+  type: oci
+  interval: 24h
+  url: oci://ghcr.io/intuitem/helm-charts/ce

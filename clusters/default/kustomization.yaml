@@ -223,6 +223,21 @@ resources:
   - paperless/redis/deployment.yaml
   - paperless/redis/service.yaml
 
+  # CISO Assistant (intuitem community GRC) — Flux HelmRelease against the
+  # official OCI chart (oci://ghcr.io/intuitem/helm-charts/ce, chart 0.10.3 =
+  # appVersion v3.16.5). Backend pod = backend + huey containers; frontend pod;
+  # dedicated Postgres on storage-dbs via externalPgsql. Ingress out-of-chart via
+  # Traefik IngressRoute (websecure, wildcard default cert). Host: ciso.${BASE_DOMAIN}.
+  - ciso-assistant/namespace.yaml
+  - ciso-assistant/helmrepository.yaml
+  # keys: password (db) + django-secret-key
+  - ciso-assistant/secret-ciso-assistant.enc.yaml
+  - ciso-assistant/postgres/pvc.yaml
+  - ciso-assistant/postgres/deployment.yaml
+  - ciso-assistant/postgres/service.yaml
+  - ciso-assistant/helmrelease.yaml
+  - ciso-assistant/ingressroute.yaml
+
   # Phase 999.2 plan-03 — guacamole (per-component subdirs). 3 components:
   # guacamole (web, svc named "guacamole-service"), guacd (proxy, port 4822),
   # guacamole-db (postgres, dynamic PVC against storage-dbs SC).

@@ -1,9 +1,29 @@
 # Kubernetes Secrets
 
 This document enumerates every Kubernetes Secret used by this homelab cluster.
-All secrets are applied **out-of-band** (not GitOps-managed) via `kubectl`. The
-GitOps-via-sealed-secrets or sops pattern is tracked as a future milestone (NEXT-01);
-for M1, out-of-band apply is the deliberate, single-operator-appropriate choice.
+
+**Status (2026-05-29):** all 18 application Secrets are SOPS-encrypted in this
+repo (`clusters/default/**/secret-*.enc.yaml`) and applied via Flux. The
+out-of-band `kubectl` pattern below remains documented as historical context
+and as the fallback for break-glass / bootstrap. The Phase 12 SOPS migration
+landed in two waves:
+
+- **Wave 12-04 → 12-07 (2026-04 to 2026-05-23):** 10 template-tracked secrets
+  (1–4, 6–10 below) plus `cluster-vars`. Pattern: `secret-*.enc.yaml` next to
+  the app manifests; Flux's `spec.decryption` (Mode A) decrypts on reconcile.
+- **Bucket A + B (2026-05-29):** 7 kubectl-one-liner secrets (11–17) and
+  `velero-wasabi-creds` (5) migrated using a value-blind extract→sops-encrypt
+  pipeline. See `clusters/default/<app>/secret-<name>.enc.yaml`.
+
+The single `.sops.yaml` `creation_rule` at repo root covers all encrypted
+files via `path_regex: clusters/default/.*/secret-.*\.enc\.yaml$` and
+`encrypted_regex: ^(data|stringData)$`. Adding a new secret = drop a YAML at
+that path and SOPS-encrypt; no rule changes needed.
+
+Cert-manager-issued wildcards (auto-provisioned, auto-rotated) and host-level
+credential files (e.g. `/etc/kopia/env` on the docker hosts) are out of
+scope for this doc — see `standards/security/CRED_BEARING_SURFACES.md` in
+AI-Backbone for the full inventory.
 
 ---
 
@@ -414,34 +434,45 @@ Apply secrets roughly in this dependency order to avoid reconcile failures:
 
 ## Summary Table
 
-| # | Secret | Namespace | Consumer | Template |
-|---|--------|-----------|----------|----------|
-| 1 | `paloarp-credentials` | `netalert` | netalert Deployment | `clusters/default/netalert/secret-paloarp-creds.template` |
-| 2 | `nextcloud-secrets` | `nextcloud` | nextcloud Deployment | `clusters/default/nextcloud/secret-nextcloud.template` |
-| 3 | `nextcloud-rclone-wasabi` | `nextcloud` | rclone-sync CronJob | `clusters/default/nextcloud/secret-rclone-wasabi.template` |
-| 4 | `firefly-secrets` | `firefly` | firefly Deployment | `clusters/default/firefly/secret.template` |
-| 5 | `velero-wasabi-creds` | `velero` | Velero BackupStorageLocation | `velero/wasabi-creds.template` |
-| 6 | `fitjat-secrets` | `fitjat` | fitjat Deployment | `clusters/default/fitjat/secret-fitjat.template` |
-| 7 | `hoarder-secrets` | `hoarder` | web + meilisearch Deployments | `clusters/default/hoarder/secret-hoarder.template` |
-| 8 | `pushover-creds` | `monitoring` | Alertmanager + fitjat backup CronJob | `clusters/default/monitoring/secret-pushover.template` |
-| 9 | `grafana-admin-credentials` | `monitoring` | Grafana (kube-prometheus-stack) | `clusters/default/monitoring/secret-grafana-admin.template` |
-| 10 | `backup-host-exporter-credentials` | `monitoring` | backup-host-exporter Deployment | `clusters/default/monitoring/secret-backup-host-exporter.template` |
-| 11 | `cloudflared-token` | `fitjat` | cloudflared Deployment | kubectl one-liner |
-| 12 | `db-secret` | `homarr` | homarr Deployment | kubectl one-liner |
-| 13 | `guacamole-db-credentials` | `guacamole` | guacamole-db + guacamole Deployments | kubectl one-liner |
-| 14 | `paperless-secret` | `paperless` | paperless Deployment | kubectl one-liner |
-| 15 | `vscode-secret` | `vscode` | vscode Deployment | kubectl one-liner |
-| 16 | `pihole-exporter-credentials` | `monitoring` | pihole-exporter Deployment | kubectl one-liner |
-| 17 | `snmp-exporter-credentials` | `monitoring` | snmp-exporter initContainer | kubectl one-liner |
-| — | `wildcard-<your-domain>` | `cert-manager`, `traefik` | All IngressRoutes | cert-manager auto-issued |
-| — | `wildcard-<your-domain>-staging` | `cert-manager` | Testing | cert-manager auto-issued |
+All application secrets are now SOPS-encrypted at the `Source` path. Live key
+shape (the `Keys` column) is what's actually in-cluster — in some cases this
+differs from the `kubectl one-liner` documented further up because the cluster
+state drifted from the docs over time. The SOPS migration captured ground
+truth.
+
+| # | Secret | Namespace | Source (SOPS-encrypted) | Keys |
+|---|--------|-----------|-------------------------|------|
+| 1 | `paloarp-credentials` | `netalert` | `clusters/default/netalert/secret-paloarp-creds.enc.yaml` | PALO_HOST, PALO_API_KEY, PALO_VERIFY_TLS |
+| 2 | `nextcloud-secrets` | `nextcloud` | `clusters/default/nextcloud/secret-nextcloud.enc.yaml` | POSTGRES_PASSWORD, NEXTCLOUD_ADMIN_USER, NEXTCLOUD_ADMIN_PASSWORD |
+| 3 | `nextcloud-rclone-wasabi` | `nextcloud` | `clusters/default/nextcloud/secret-rclone-wasabi.enc.yaml` | ACCESS_KEY_ID, SECRET_ACCESS_KEY |
+| 4 | `firefly-secrets` | `firefly` | `clusters/default/firefly/secret-firefly.enc.yaml` | APP_KEY, POSTGRES_PASSWORD, STATIC_CRON_TOKEN |
+| 5 | `velero-wasabi-creds` | `velero` | `clusters/default/velero/secret-wasabi-creds.enc.yaml` | cloud (INI bytes) |
+| 6 | `fitjat-secrets` | `fitjat` | `clusters/default/fitjat/secret-fitjat.enc.yaml` | CF_ACCESS_AUD (live differs from template; see Phase 12-08 note) |
+| 7 | `hoarder-secrets` | `hoarder` | `clusters/default/hoarder/secret-hoarder.enc.yaml` | NEXTAUTH_SECRET, MEILI_MASTER_KEY |
+| 8 | `pushover-creds` | `monitoring` | `clusters/default/monitoring/secret-pushover.enc.yaml` | token, user_key |
+| 9 | `grafana-admin-credentials` | `monitoring` | `clusters/default/monitoring/secret-grafana-admin.enc.yaml` | admin-user, admin-password |
+| 10 | `backup-host-exporter-credentials` | `monitoring` | `clusters/default/monitoring/secret-backup-host-exporter.enc.yaml` | username, token-name, token-secret |
+| 11 | `cloudflared-token` | `fitjat` | `clusters/default/fitjat/secret-cloudflared-token.enc.yaml` | token |
+| 12 | `db-secret` | `homarr` | `clusters/default/homarr/secret-db.enc.yaml` | db-encryption-key, db-url, mysql-password, mysql-root-password |
+| 13 | `guacamole-db-credentials` | `guacamole` | `clusters/default/guacamole/secret-guacamole-db.enc.yaml` | postgres-password |
+| 14 | `paperless-secret` | `paperless` | `clusters/default/paperless/secret-paperless.enc.yaml` | admin-user, admin-password, db-password |
+| 15 | `vscode-secret` | `vscode` | `clusters/default/vscode/secret-vscode.enc.yaml` | password, sudo-password |
+| 16 | `pihole-exporter-credentials` | `monitoring` | `clusters/default/monitoring/secret-pihole-exporter.enc.yaml` | pihole1, pihole2 |
+| 17 | `snmp-exporter-credentials` | `monitoring` | `clusters/default/monitoring/secret-snmp-exporter.enc.yaml` | synology-{username,auth-pass,priv-pass}, paloalto-{username,auth-pass,priv-pass} |
+| — | `wildcard-<your-domain>` | `cert-manager`, `traefik` | cert-manager auto-issued | tls.crt, tls.key |
+| — | `wildcard-<your-domain>-staging` | `cert-manager` | cert-manager auto-issued | tls.crt, tls.key |
 
 ---
 
-## Deferred: Secrets as Code
+## Secrets-as-Code — DONE (was NEXT-01)
 
-In-tree encrypted secrets via sealed-secrets or sops are tracked as **NEXT-01**. The current
-out-of-band `kubectl apply` pattern is deliberate for this single-operator deployment.
-
-- Sealed Secrets: <https://github.com/bitnami-labs/sealed-secrets>
+In-tree encrypted secrets via SOPS + age, decrypted by Flux. NEXT-01 is closed.
+- Pattern: `clusters/default/<app>/secret-<name>.enc.yaml`
+- Encryption rule: see `.sops.yaml` (single creation_rule, age recipient
+  `age1neq36mupvqrk7tzcymh8u73f9araq4mffa47azfll7erdvq7tsuqylqrwq`)
+- Adding a new secret: place a YAML at the path above, `cd ~/projects/flux-source && sops --encrypt --in-place <file>`, then reference it in
+  `clusters/default/kustomization.yaml`. Verify with the runbook checks (size
+  > 200B, `^sops:` header, ≥2 `ENC[`) before committing.
+- Migration script reference: `~/AI-Backbone/system/scripts/` (Bucket A
+  value-blind extract-and-encrypt pattern, runnable for future adoptions).
 - SOPS: <https://getsops.io>

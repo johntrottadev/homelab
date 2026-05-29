@@ -142,6 +142,8 @@ resources:
   # Phase 999.2 plan-02 — vscode (deploy "code-server", IR "vs", host vs.__BASE-DOMAIN__,
   # supersedes top-level vs.yaml). Privileged container intentional — IDE.
   - vscode/namespace.yaml
+  # Bucket A — was kubectl one-liner (password + sudo-password).
+  - vscode/secret-vscode.enc.yaml
   # vscode/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - vscode/pvc.yaml
   - vscode/deployment.yaml
@@ -161,8 +163,9 @@ resources:
   - fitjat/service.yaml
 
   # Phase 999.2 spinoff — fitjat continuation (cloudflared tunnel + backups).
-  # cloudflared-token Secret and cloudflared-info ConfigMap stay kubectl-managed
-  # (token is sensitive; CM content is config detail).
+  # Bucket A — cloudflared-token Secret moved from kubectl one-liner to SOPS.
+  # cloudflared-info ConfigMap stays kubectl-managed (config detail, not sensitive).
+  - fitjat/secret-cloudflared-token.enc.yaml
   - fitjat/cloudflared/deployment.yaml
   # fitjat/backups/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
   - fitjat/backups/pvc.yaml
@@ -173,9 +176,11 @@ resources:
   # Phase 999.2 spinoff — homarr (was Helm-managed via homarr-8.9.0 chart;
   # superseded by flat manifests; supersedes top-level homarr.yaml).
   # The 5 sh.helm.release.v1.homarr.* secrets remain in the namespace as
-  # historical record; harmless. db-secret (SECRET_ENCRYPTION_KEY) stays
-  # kubectl-managed (sensitive, scope-out).
+  # historical record; harmless.
   - homarr/namespace.yaml
+  # Bucket A — db-secret (4 keys: db-encryption-key, db-url, mysql-password,
+  # mysql-root-password). Was kubectl one-liner.
+  - homarr/secret-db.enc.yaml
   # homarr/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
   - homarr/pvc.yaml
   - homarr/deployment.yaml
@@ -202,9 +207,10 @@ resources:
 
   # Phase 999.2 plan-03 — paperless (per-component subdirs; supersedes paperless.yaml).
   # 3 components: paperless-ngx (web, port 8000), postgres (port 5432, fsGroup 999),
-  # redis (port 6379, in-memory cache, no PV). Admin/DB credentials are inline env
-  # values in the running spec (pre-existing security debt; out of scope here).
+  # redis (port 6379, in-memory cache, no PV).
   - paperless/namespace.yaml
+  # Bucket A — admin-user, admin-password, db-password. Was kubectl one-liner.
+  - paperless/secret-paperless.enc.yaml
   - paperless/ingressroute.yaml
   # paperless/paperless/pv.yaml + pv-media.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
   - paperless/paperless/pvc.yaml
@@ -224,6 +230,8 @@ resources:
   # stack lives in its own ns alongside everything else; data path on NAS:
   # /volume1/kubdbs/guacamole/guacamole-db-pvc/.
   - guacamole/namespace.yaml
+  # Bucket A — postgres-password. Was kubectl one-liner.
+  - guacamole/secret-guacamole-db.enc.yaml
   - guacamole/ingressroute.yaml
   - guacamole/guacamole/deployment.yaml
   - guacamole/guacamole/service.yaml
@@ -236,11 +244,10 @@ resources:
 
   # Phase 999.2 spinoff — monitoring exporters (4 deployments + services in
   # the existing monitoring ns). ConfigMaps (blackbox-exporter-config,
-  # snmp-exporter-config), Secrets (backup-host-exporter-secrets, pihole-exporter-secrets),
-  # and ServiceMonitors (backup-host-exporter, pihole-exporter — release: prometheus
-  # label preserved) intentionally stay kubectl-managed: cm content is config
-  # detail, secrets are creds, ServiceMonitors are owned by kube-prometheus-stack
-  # adjacent tooling.
+  # snmp-exporter-config) and ServiceMonitors (backup-host-exporter, pihole-exporter —
+  # release: prometheus label preserved) intentionally stay kubectl-managed:
+  # cm content is config detail, ServiceMonitors are owned by
+  # kube-prometheus-stack adjacent tooling. Bucket A migrated remaining secrets.
   - monitoring/blackbox-exporter/deployment.yaml
   - monitoring/blackbox-exporter/service.yaml
   - monitoring/backup-host-exporter/deployment.yaml
@@ -249,8 +256,12 @@ resources:
   - monitoring/secret-backup-host-exporter.enc.yaml
   - monitoring/pihole-exporter/deployment.yaml
   - monitoring/pihole-exporter/service.yaml
+  # Bucket A — pihole1, pihole2 (two Pi-hole admin passwords). Was kubectl one-liner.
+  - monitoring/secret-pihole-exporter.enc.yaml
   - monitoring/snmp-exporter/deployment.yaml
   - monitoring/snmp-exporter/service.yaml
+  # Bucket A — SNMPv3 creds for Synology + Palo Alto (6 keys). Was kubectl one-liner.
+  - monitoring/secret-snmp-exporter.enc.yaml
 
   # speedtest-exporter — Ookla CLI Prometheus exporter. Hourly scrape via
   # ServiceMonitor (Flux-managed unlike the older backup-host/pihole exporters,
@@ -328,8 +339,11 @@ resources:
   # two HelmReleases. Adoption is in place: helm-controller takes ownership of
   # the existing releases (velero rev 2 chart velero-12.0.0; vui rev 4 chart
   # vui-1.0.6) because releaseName + targetNamespace + chart version + values
-  # all match. External dependencies stay kubectl-managed — out of scope:
-  #   - Secret  velero/velero-wasabi-creds         (Wasabi cloud creds)
+  # all match.
+  # Bucket B (2026-05-29) — velero-wasabi-creds migrated to SOPS. The legacy
+  # velero/wasabi-creds.template at repo root + INI-from-file pattern is
+  # superseded by a YAML Secret with `data.cloud` containing the INI bytes.
+  # External dependencies still kubectl-managed — out of scope:
   #   - CM      velero/vui-api-repo-schema-patch   (vui-api schema bug workaround)
   # BSL `wasabi` (CR-based, Available), Schedules, Backups, Restores, kopia
   # maintenance Jobs all stay as-is.
@@ -337,6 +351,7 @@ resources:
   - velero/helmrepository-vui.yaml
   - velero/helmrelease-velero.yaml
   - velero/helmrelease-vui.yaml
+  - velero/secret-wasabi-creds.enc.yaml
 
   # JT-39 — adopt kube-vip (kube-system) into Flux. Was kubectl-applied as plain
   # manifests (Deployment kube-vip-cloud-provider + DaemonSet kube-vip-ds + RBAC

@@ -1,0 +1,55 @@
+# External-IP-backend bundle for bastion (AI ops manager LXC) on __LAN-IP__:8080.
+# Pattern mirrors clusters/default/checkmk.yaml — Service + EndpointSlice +
+# IngressRoute, all in kube-system. Backend is plain HTTP (FastAPI/uvicorn);
+# Traefik terminates TLS at the edge (websecure + *.__BASE-DOMAIN__ wildcard cert).
+# Lets bastion be reached at https://bastion.${BASE_DOMAIN} without :8080.
+# NOTE: the Pi-hole per-host override bastion.__BASE-DOMAIN__ -> __LAN-IP__ must be
+# removed so the *.__BASE-DOMAIN__ wildcard (-> __K3S-VIP__ Traefik VIP) takes effect.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ext-bastion
+  namespace: kube-system
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ext-bastion-1
+  namespace: kube-system
+  labels:
+    kubernetes.io/service-name: ext-bastion
+    endpointslice.kubernetes.io/managed-by: bastion-static
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+endpoints:
+  - addresses:
+      - __LAN-IP__
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bastion-jt-lab-net
+  namespace: kube-system
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`bastion.${BASE_DOMAIN}`)
+      kind: Rule
+      services:
+        - name: ext-bastion
+          port: 8080
+          scheme: http

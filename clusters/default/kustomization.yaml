@@ -553,6 +553,7 @@ resources:
   - wazuh-serverstransport.yaml     # Wazuh-specific ServersTransport (rootCAs + serverName, no insecureSkipVerify)
   - wazuh.yaml            # docker-1:5601 (HTTPS upstream, wazuh-trusted) — first docker-1-backed external-IP HTTPS bundle with proper CA verification
   - checkmk.yaml          # docker-1:5000 — checkmk Raw via Komodo (docker-1/checkmk/compose.yaml)
+  - bastion.yaml           # __LAN-IP__:8080 — bastion AI ops-manager LXC (FastAPI), TLS at edge
   - cryptpad.yaml         # docker-1:3000 — cryptpad via Komodo (docker-1/cryptpad/compose.yaml); main + sandbox hosts to same Service
   - netdata.yaml          # multi-endpoint EndpointSlice → k3s-1/2/5/6 + docker-1, all on :19999
   - maltrail.yaml         # docker-1:8338 — maltrail server (sensor host-net for libpcap)

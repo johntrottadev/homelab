@@ -51,13 +51,16 @@ spec:
           size: 10Gi
           storageClass: storage-apps
           accessMode: ReadWriteMany
+      # First-boot runs ~350 migrations + an "initialize database" startup
+      # handler that loads 180 framework libraries — CPU-bound and slow under
+      # CFS throttling. Generous limits so startup isn't throttled / OOM-killed.
       resources:
         requests:
-          cpu: 100m
-          memory: 512Mi
+          cpu: 250m
+          memory: 768Mi
         limits:
-          cpu: "1"
-          memory: 1Gi
+          cpu: "3"
+          memory: 2Gi
     frontend:
       resources:
         requests:

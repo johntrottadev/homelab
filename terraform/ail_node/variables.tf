@@ -6,17 +6,17 @@ variable "pm_token_secret" {
 
 variable "nodes" {
   description = <<-EOT
-    AIL VMs to provision. Default sizing (4 vCPU / 8 GiB / 60 GiB) is the
-    lean spec for a single AIL Framework node — enough headroom over the
-    ~4-6 GiB working set the upstream installer creates (5 Redis + KVRocks +
-    Python workers). Disk grows with the paste corpus; bump per-node if you
-    feed AIL from a high-volume source.
+    AIL VMs to provision. Default sizing (4 vCPU / 16 GiB / 60 GiB). The
+    8 GiB lean spec ran at ~97% RAM with all modules enabled + concurrent
+    Retro_Hunt jobs and no swap, firing NodeMemoryHighUtilization. Steady
+    real usage is ~7.5 GiB; 16 GiB gives genuine headroom. Disk grows with
+    the paste corpus; bump per-node if you feed AIL from a high-volume source.
   EOT
   type = map(object({
     target_node = string
     ip          = string # e.g. "__LAN-IP__"
     cores       = optional(number, 4)
-    memory      = optional(number, 8192)   # MiB
+    memory      = optional(number, 16384)  # MiB — bumped from 8192 (OOM/alert fix)
     disk_size   = optional(string, "60G")
   }))
   default = {}

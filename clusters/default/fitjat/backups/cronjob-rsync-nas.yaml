@@ -16,7 +16,9 @@ spec:
         metadata:
           labels:
             app: fitjat-rsync-storage
-          annotations:
+            # velero.io/exclude-from-backup is honored only as a LABEL, never an
+            # annotation. As an annotation it was silently ignored, so completed
+            # Succeeded pods kept producing "pod is not running" FSB warnings.
             velero.io/exclude-from-backup: "true"
         spec:
           containers:

@@ -70,13 +70,16 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 512Mi
             limits:
               # nmap scan bursts spike CPU well past the 500m old cap, triggering
               # CPUThrottlingHigh (~53% of CFS periods throttled). Bump to 2000m;
               # idle baseline is ~100m so headroom for bursts, not sustained load.
               cpu: "2000m"
-              memory: 512Mi
+              # nginx + php-fpm + python server + 114k-entry OUI DB exceeded the
+              # old 512Mi cap → OOMKilled (exit 137) ~1154 times, firing
+              # KubePodCrashLooping. Bump to 1Gi; steady-state is ~400-500Mi.
+              memory: 1Gi
           volumeMounts:
             - name: data
               mountPath: /data

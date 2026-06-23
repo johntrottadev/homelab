@@ -60,7 +60,7 @@ services:
         condition: service_healthy
 
   data-objects:
-    image: registry.community.greenbone.net/community/data-objects:latest@sha256:0fec7c3ea4ed111fa9379d18d8a641a826fa22d2bd60b5fc3c5d272ce54f63be
+    image: registry.community.greenbone.net/community/data-objects:latest@sha256:499c0bb4b82218e7a0c4f32ecfa5ca00ea7c178713d161ca30e6d27c8daf92f7
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1

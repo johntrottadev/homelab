@@ -1,5 +1,11 @@
+variable "pm_token_id" {
+  description = "Proxmox API token id, e.g. terraform@pve!<name>. Real value set in a gitignored *.auto.tfvars."
+  type        = string
+  default     = "REPLACE_WITH_PM_TOKEN_ID"
+}
+
 variable "pm_token_secret" {
-  description = "Secret for the bastion@pve!read API token"
+  description = "Secret for the Proxmox API token (var.pm_token_id). Set in a gitignored *.auto.tfvars."
   type        = string
   sensitive   = true
 }

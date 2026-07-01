@@ -55,10 +55,12 @@ resource "proxmox_vm_qemu" "worker" {
   # default) leaves the guest unable to find its root disk.
   scsihw = "virtio-scsi-single"
 
-  # Hardware — matches template sizing
+  # Hardware — per-node sizing via var.workers optionals (defaults 8c / 32768 MiB).
+  # Blue/green rebuild builds small for the migration overlap, then scales RAM
+  # up post-cutover (`qm set <vmid> --memory <MiB>` + reboot).
   sockets  = 1
-  cores    = 8
-  memory   = 32768
+  cores    = each.value.cores
+  memory   = each.value.memory
   cpu_type = "x86-64-v2-aes"
 
   disk {

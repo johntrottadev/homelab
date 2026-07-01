@@ -15,7 +15,10 @@ variable "workers" {
   EOT
   type = map(object({
     target_node = string
-    ip          = string # e.g. "__LAN-IP__"
+    ip          = string                    # e.g. "__LAN-IP__"
+    cores       = optional(number, 8)
+    memory      = optional(number, 32768)   # MiB
+    role        = optional(string, "agent") # "server" | "agent" — documentation only; k3s role is chosen at install time
   }))
   default = {}
 }

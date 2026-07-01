@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# k3s worker post-apply bootstrap — run this on a fresh kub<N> VM after
+# k3s node post-apply bootstrap — run this on a fresh kub<N> VM after
 # `terraform apply` brings it up with cloud-init networking + bastion SSH.
 #
 # Why a script instead of cicustom: PVE's API token can only upload
@@ -8,7 +8,7 @@
 # node or a NAS share already mounted on PVE with snippets content. Sidestep
 # the whole problem by running it post-apply over SSH (idempotent, re-runnable).
 #
-# Usage (from a host that can SSH to the new worker):
+# Usage (from a host that can SSH to the new node):
 #   ssh bastion@<new-ip> 'sudo bash -s' < bootstrap.sh
 #
 # What this DOES configure:
@@ -21,12 +21,30 @@
 #   - nfs-common (required for NFS-backed PVCs; without it pods with NFS
 #     volumes hang in ContainerCreating with "mount.nfs helper missing".
 #     Discovered on k3s-7 post-rebuild 2026-04-27.)
+#   - open-iscsi + iscsid enabled, and a multipathd blacklist for Longhorn —
+#     baked in now so the later Longhorn phase needs no per-node retrofit
+#     (harmless on nodes that never run Longhorn).
+#   - k8s node sysctl tuning: raised fs.inotify limits. The distro default
+#     (max_user_instances=128) is exhausted at high pod density and makes
+#     file-watching pods crash with SIGSEGV / "inotify instance limit reached".
+#     Discovered 2026-07-01 when consolidating the cluster onto 2 nodes during
+#     the blue/green rebuild took jellyfin down.
 #
 # What this does NOT do (operator step after bootstrap):
-#   - install k3s. Run on the new worker after this script:
-#       curl -sfL https://get.k3s.io | K3S_URL=https://__K3S-API-IP__:6443 \
-#         K3S_TOKEN=<server-token> sh -s - agent
-#     (server-token comes from /var/lib/rancher/k3s/server/node-token on k3s-1)
+#   - install k3s. This script is cluster-agnostic; the k3s install differs by
+#     role and by whether you're joining an existing cluster or initializing a
+#     new one:
+#       * NEW cluster, FIRST server (inits etcd):
+#           curl -sfL https://get.k3s.io | sh -s - server --cluster-init \
+#             --disable servicelb
+#       * NEW cluster, ADDITIONAL servers (join etcd quorum):
+#           curl -sfL https://get.k3s.io | K3S_TOKEN=<server-token> sh -s - \
+#             server --server https://<first-server>:6443 --disable servicelb
+#       * agent:
+#           curl -sfL https://get.k3s.io | K3S_URL=https://<server-or-vip>:6443 \
+#             K3S_TOKEN=<agent-token> sh -s - agent
+#     (tokens: /var/lib/rancher/k3s/server/{token,agent-token} on any server.
+#      audit logging config.yaml is delivered separately, see homelab repo.)
 
 set -euo pipefail
 
@@ -35,7 +53,7 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
-echo "[1/4] grow root filesystem to fill disk (idempotent)"
+echo "[1/6] grow root filesystem to fill disk (idempotent)"
 ROOT_SRC="$(findmnt -no SOURCE /)"
 case "${ROOT_SRC}" in
   /dev/mapper/*|/dev/dm-*)
@@ -64,30 +82,52 @@ case "${ROOT_SRC}" in
 esac
 df -h / | tail -1
 
-echo "[2/4] disable cloud-init network re-mutation on subsequent boots"
+echo "[2/6] disable cloud-init network re-mutation on subsequent boots"
 mkdir -p /etc/cloud/cloud.cfg.d
 echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
-echo "[3/4] apt update + install qemu-guest-agent / nfs-common"
+echo "[3/6] apt update + install qemu-guest-agent / nfs-common / open-iscsi"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends \
   qemu-guest-agent \
   nfs-common \
+  open-iscsi \
   curl \
   ca-certificates
 # qemu-guest-agent.service has no [Install] section — it's udev-triggered when
 # /dev/virtio-ports/org.qemu.guest_agent.0 appears. The terraform `agent = 1`
 # flag creates that port; the service auto-starts. Don't `systemctl enable`.
 
-echo "[4/4] bootstrap complete"
+echo "[4/6] Longhorn prerequisites — open-iscsi + multipath blacklist (idempotent)"
+# Longhorn attaches volumes as iSCSI block devices; iscsid must be running.
+systemctl enable --now iscsid
+# multipathd (when present) claims Longhorn's device-mapper devices and breaks
+# volume attach ("device already mounted"). Blacklist sd* so it ignores them.
+# These VMs use virtio-scsi with no real multipath/SAN, so this is safe.
+if systemctl list-unit-files 2>/dev/null | grep -q '^multipathd.service'; then
+  mkdir -p /etc/multipath/conf.d
+  cat > /etc/multipath/conf.d/longhorn.conf <<'MPEOF'
+blacklist {
+    devnode "^sd[a-z0-9]+"
+}
+MPEOF
+  systemctl restart multipathd 2>/dev/null || true
+fi
+
+echo "[5/6] kubernetes node sysctl tuning (inotify limits)"
+# Distro default fs.inotify.max_user_instances=128 is exhausted at high pod
+# density; file-watching pods then crash with SIGSEGV / IOException. Raise it.
+cat > /etc/sysctl.d/99-k8s-node.conf <<'SYSEOF'
+fs.inotify.max_user_instances = 8192
+fs.inotify.max_user_watches = 524288
+SYSEOF
+sysctl --system >/dev/null 2>&1 || true
+
+echo "[6/6] bootstrap complete"
 
 echo
 echo "==== bootstrap.sh complete ===="
-echo "Next operator steps (see README.md \"Post-clone runbook\"):"
-echo "  1. Grab the server node-token from k3s-1:"
-echo "       ssh bastion@__K3S-API-IP__ 'sudo cat /var/lib/rancher/k3s/server/node-token'"
-echo "  2. Install k3s agent on this node:"
-echo "       curl -sfL https://get.k3s.io | K3S_URL=https://__K3S-API-IP__:6443 \\"
-echo "         K3S_TOKEN=<token> sh -s - agent"
-echo "  3. Verify from k3s-1: kubectl get nodes"
+echo "Next operator step: install k3s (see the header comment for the"
+echo "role-specific server/agent commands — a NEW cluster uses --cluster-init"
+echo "on the first server, then joins the other two servers, then the agents)."

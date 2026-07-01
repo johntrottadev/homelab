@@ -7,6 +7,7 @@ metadata:
   name: opendbl-userid-sync
   namespace: netalert
 spec:
+  suspend: false                  # right-sized to registered-IP capacity; re-enabled
   schedule: "17 * * * *"          # hourly at :17 (OpenDBL min poll = 15m; TTL 2h covers gaps)
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
@@ -38,6 +39,8 @@ spec:
                   value: "1"
                 - name: OPENDBL_TTL
                   value: "7200"
+                - name: OPENDBL_MAX
+                  value: "700"       # registered-IP budget (PA-820 ceiling=1000 confirmed; reserve ~300 for wazuh)
                 - name: OPENDBL_DRY_RUN
                   value: "false"     # set "true" for a fetch-only capacity check
               envFrom:

@@ -26,12 +26,20 @@ data:
     CHUNK = int(os.environ.get("OPENDBL_CHUNK", "500"))
     BASE = "https://opendbl.net/lists/"
 
-    # tag -> list files. 'opendbl-block' = bidirectional set; 'opendbl-tor' = inbound-only.
-    LISTS = {
-        "opendbl-block": ["etknown.list", "bruteforce.list", "blocklistde-all.list",
-                          "ipsum.list", "dshield.list", "sslblock.list"],
-        "opendbl-tor":   ["tor-exit.list"],
-    }
+    CAP = int(os.environ.get("OPENDBL_MAX", "700"))  # registered-IP budget; reserve ~300 for wazuh
+
+    # (file, tag) in DESCENDING signal priority. CONFIRMED 2026-06-30: this PA-820's
+    # registered-IP table hard-caps at 1,000 total (empty-table probe registered exactly
+    # 1,000 then rejected), and that budget is SHARED with wazuh-auto-block. So we keep
+    # only the high-signal small feeds (~660 unique IPs) and drop the volume feeds
+    # (blocklistde ~36k, ipsum ~16k) plus tor-exit (~1.2k — too big to fit) entirely.
+    # All map to the 'opendbl-block' bidirectional DAG.
+    LISTS = [
+        ("sslblock.list",   "opendbl-block"),  # abuse.ch SSL/C2 — highest signal
+        ("dshield.list",    "opendbl-block"),  # DShield top attackers
+        ("etknown.list",    "opendbl-block"),  # ET known compromised hosts
+        ("bruteforce.list", "opendbl-block"),  # BruteforceBlocker
+    ]
 
     def log(*a): print(*a, file=sys.stderr, flush=True)
 
@@ -82,30 +90,54 @@ data:
             raise RuntimeError("User-ID API error: %s" % body[:300])
 
     def main():
-        total, failed = 0, 0
-        for tag, files in LISTS.items():
-            ips = []
-            for f in files:
-                try:
-                    got = parse(fetch(f))
-                    log("  %-20s %d entries" % (f, len(got)))
-                    ips += got
-                except Exception as e:
-                    log("  %-20s FETCH FAILED: %s" % (f, e))
-            ips = sorted(set(ips))
-            log("[%s] %d unique entries" % (tag, len(ips)))
-            total += len(ips)
-            if DRY_RUN:
+        # Fill the budget in priority order; dedup globally (first list wins the tag).
+        seen, by_tag, budget = set(), {}, CAP
+        for f, tag in LISTS:
+            if budget <= 0:
+                log("  %-20s SKIPPED (budget exhausted)" % f)
                 continue
+            try:
+                got = parse(fetch(f))
+            except Exception as e:
+                log("  %-20s FETCH FAILED: %s" % (f, e))
+                continue
+            added = 0
+            for ip in got:
+                if budget <= 0:
+                    break
+                if ip in seen:
+                    continue
+                seen.add(ip)
+                by_tag.setdefault(tag, []).append(ip)
+                budget -= 1
+                added += 1
+            log("  %-20s %d fetched -> %d new (budget left %d)" % (f, len(got), added, budget))
+        planned = sum(len(v) for v in by_tag.values())
+        log("[plan] %d IPs across %d tags (cap=%d)" % (planned, len(by_tag), CAP))
+        if DRY_RUN:
+            log("DONE dry_run planned=%d" % planned)
+            return
+        # Register; stop cleanly at the PA registered-IP ceiling instead of spamming.
+        registered, capped = 0, False
+        for tag, ips in by_tag.items():
+            if capped:
+                break
+            done = 0
             for i in range(0, len(ips), CHUNK):
+                batch = ips[i:i + CHUNK]
                 try:
-                    api_userid(build_msg(ips[i:i + CHUNK], tag))
-                except Exception as e:      # don't let one chunk kill the run
-                    failed += 1
-                    log("  chunk %d FAILED: %s" % (i // CHUNK, e))
-            log("[%s] registered %d (ttl=%ds)" % (tag, len(ips), TTL))
-        log("DONE total=%d failed_chunks=%d dry_run=%s" % (total, failed, DRY_RUN))
-        sys.exit(1 if failed else 0)
+                    api_userid(build_msg(batch, tag))
+                    registered += len(batch)
+                    done += len(batch)
+                except Exception as e:      # first rejection = registered-IP ceiling; stop
+                    log("  [%s] chunk %d rejected (registered-IP ceiling?): %s"
+                        % (tag, i // CHUNK, str(e)[:120]))
+                    capped = True
+                    break
+            log("  [%s] registered %d/%d (ttl=%ds)" % (tag, done, len(ips), TTL))
+        log("DONE registered=%d planned=%d capped=%s" % (registered, planned, capped))
+        # registered==0 => systemic failure (auth/network) => alert; capacity boundary => ok.
+        sys.exit(0 if registered > 0 else 1)
 
     if __name__ == "__main__":
         main()

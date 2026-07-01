@@ -1,0 +1,66 @@
+# Hourly OpenDBL -> Palo Alto User-ID sync. Reuses the netalert paloarp-credentials
+# secret (PALO_HOST / PALO_API_KEY / PALO_VERIFY_TLS) via envFrom — no key handling here.
+# Needs egress to opendbl.net:443 and the PA mgmt __LAN-IP__:443.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: opendbl-userid-sync
+  namespace: netalert
+spec:
+  schedule: "17 * * * *"          # hourly at :17 (OpenDBL min poll = 15m; TTL 2h covers gaps)
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            app: opendbl-userid-sync
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: sync
+              image: python:3.12-slim
+              imagePullPolicy: IfNotPresent
+              command: ["python3", "/scripts/sync.py"]
+              env:
+                - name: PYTHONDONTWRITEBYTECODE
+                  value: "1"
+                - name: OPENDBL_TTL
+                  value: "7200"
+                - name: OPENDBL_DRY_RUN
+                  value: "false"     # set "true" for a fetch-only capacity check
+              envFrom:
+                - secretRef:
+                    name: paloarp-credentials   # PALO_HOST / PALO_API_KEY / PALO_VERIFY_TLS
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                  readOnly: true
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              resources:
+                requests:
+                  cpu: 25m
+                  memory: 64Mi
+                limits:
+                  cpu: 250m
+                  memory: 192Mi
+          volumes:
+            - name: script
+              configMap:
+                name: opendbl-sync-script
+                defaultMode: 0555

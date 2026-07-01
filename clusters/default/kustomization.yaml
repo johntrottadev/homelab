@@ -57,6 +57,9 @@ resources:
   - netalert/service.yaml
   - netalert/endpoints.yaml
   - netalert/ingressroute.yaml
+  # OpenDBL -> PA User-ID DAG sync (license-free EDL alternative; reuses netalert paloarp secret).
+  - opendbl-sync/configmap-script.yaml
+  - opendbl-sync/cronjob.yaml
   # freshrss.yaml superseded by freshrss/ subdir below (Phase 999.2 plan-02)
   - grafana.yaml
   # guac.yaml superseded by guacamole/ subdir below (Phase 999.2 plan-03)

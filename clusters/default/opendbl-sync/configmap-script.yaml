@@ -1,0 +1,111 @@
+# OpenDBL -> Palo Alto User-ID DAG sync (license-free EDL alternative).
+# The PA-820 has no Threat Prevention license, so EDLs can't be used. Instead this
+# script fetches the OpenDBL IP lists and registers them as tagged registered-IPs via
+# the PAN-OS User-ID API (a base feature, no license). Dynamic Address Groups filtered
+# on the tag then enforce them in policy. Entries carry a TTL; the hourly CronJob
+# refreshes current IPs and lets removed ones age out. Stdlib-only (no pip).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opendbl-sync-script
+  namespace: netalert
+data:
+  sync.py: |
+    #!/usr/bin/env python3
+    """OpenDBL -> Palo Alto User-ID DAG sync. Reads PALO_HOST / PALO_API_KEY /
+    PALO_VERIFY_TLS from env (netalert paloarp-credentials secret)."""
+    import os, sys, ssl, ipaddress, urllib.request, urllib.parse
+    import xml.etree.ElementTree as ET
+
+    PALO_HOST = os.environ["PALO_HOST"]
+    PALO_API_KEY = os.environ["PALO_API_KEY"]
+    VERIFY_TLS = os.environ.get("PALO_VERIFY_TLS", "false").lower() in ("1", "true", "yes")
+    VSYS = os.environ.get("VSYS", "vsys1")
+    TTL = int(os.environ.get("OPENDBL_TTL", "7200"))
+    DRY_RUN = os.environ.get("OPENDBL_DRY_RUN", "false").lower() in ("1", "true", "yes")
+    CHUNK = int(os.environ.get("OPENDBL_CHUNK", "500"))
+    BASE = "https://opendbl.net/lists/"
+
+    # tag -> list files. 'opendbl-block' = bidirectional set; 'opendbl-tor' = inbound-only.
+    LISTS = {
+        "opendbl-block": ["etknown.list", "bruteforce.list", "blocklistde-all.list",
+                          "ipsum.list", "dshield.list", "sslblock.list"],
+        "opendbl-tor":   ["tor-exit.list"],
+    }
+
+    def log(*a): print(*a, file=sys.stderr, flush=True)
+
+    def fetch(name):
+        req = urllib.request.Request(BASE + name, headers={"User-Agent": "opendbl-sync/1.0"})
+        with urllib.request.urlopen(req, timeout=30, context=ssl.create_default_context()) as r:
+            return r.read().decode("utf-8", "replace").splitlines()
+
+    def parse(lines):
+        out = []
+        for ln in lines:
+            ln = ln.strip()
+            if not ln or ln[0] in "#;/":
+                continue
+            tok = ln.split()[0]
+            try:
+                if "-" in tok:            # range a.b.c.d-e.f.g.h -> CIDRs
+                    lo, hi = tok.split("-", 1)
+                    for net in ipaddress.summarize_address_range(
+                            ipaddress.IPv4Address(lo.strip()), ipaddress.IPv4Address(hi.strip())):
+                        out.append(str(net))
+                elif "/" in tok:          # CIDR
+                    out.append(str(ipaddress.ip_network(tok, strict=False)))
+                else:                     # single IP
+                    out.append(str(ipaddress.ip_address(tok)))
+            except ValueError:
+                continue
+        return out
+
+    def build_msg(entries, tag):
+        reg = "".join(
+            '<entry ip="%s"><tag><member timeout="%d">%s</member></tag></entry>' % (ip, TTL, tag)
+            for ip in entries)
+        return ("<uid-message><version>1.0</version><type>update</type>"
+                "<payload><register>%s</register></payload></uid-message>" % reg)
+
+    def api_userid(cmd):
+        data = urllib.parse.urlencode({"type": "user-id", "action": "set",
+                                       "vsys": VSYS, "key": PALO_API_KEY, "cmd": cmd}).encode()
+        ctx = ssl.create_default_context()
+        if not VERIFY_TLS:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        req = urllib.request.Request("https://%s/api/" % PALO_HOST, data=data)
+        with urllib.request.urlopen(req, timeout=45, context=ctx) as r:
+            body = r.read().decode("utf-8", "replace")
+        if ET.fromstring(body).get("status") != "success":
+            raise RuntimeError("User-ID API error: %s" % body[:300])
+
+    def main():
+        total, failed = 0, 0
+        for tag, files in LISTS.items():
+            ips = []
+            for f in files:
+                try:
+                    got = parse(fetch(f))
+                    log("  %-20s %d entries" % (f, len(got)))
+                    ips += got
+                except Exception as e:
+                    log("  %-20s FETCH FAILED: %s" % (f, e))
+            ips = sorted(set(ips))
+            log("[%s] %d unique entries" % (tag, len(ips)))
+            total += len(ips)
+            if DRY_RUN:
+                continue
+            for i in range(0, len(ips), CHUNK):
+                try:
+                    api_userid(build_msg(ips[i:i + CHUNK], tag))
+                except Exception as e:      # don't let one chunk kill the run
+                    failed += 1
+                    log("  chunk %d FAILED: %s" % (i // CHUNK, e))
+            log("[%s] registered %d (ttl=%ds)" % (tag, len(ips), TTL))
+        log("DONE total=%d failed_chunks=%d dry_run=%s" % (total, failed, DRY_RUN))
+        sys.exit(1 if failed else 0)
+
+    if __name__ == "__main__":
+        main()

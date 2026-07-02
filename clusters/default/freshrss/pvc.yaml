@@ -9,8 +9,8 @@ metadata:
   namespace: rss
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-apps
+  storageClassName: longhorn-ssd

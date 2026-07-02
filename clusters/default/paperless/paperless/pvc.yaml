@@ -1,7 +1,8 @@
-# Dynamic PVCs against storage-apps SC (Wave 1, 260511-utf).
-# Paths:
-#   __NAS-IP__:/volume1/kub/homelab/paperless/paperless-data-pvc/  (config/db state)
-#   __NAS-IP__:/volume1/kub/homelab/paperless/paperless-media-pvc/ (document store)
+# Repointed 2026-07-01 (Longhorn migration):
+#   data → longhorn-ssd (app/index state, RWO single-replica)
+#   media (documents) → STATIC NFS PV, untouched on Synology at
+#     __NAS-IP__:/volume1/kub/homelab/paperless/paperless-media-pvc
+#   (documents deliberately not migrated — same pattern as jellyfin movies)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -9,11 +10,30 @@ metadata:
   namespace: paperless
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-  storageClassName: storage-apps
+  storageClassName: longhorn-ssd
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: paperless-media-pv
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  # Pre-bind to defeat the wrong-PVC-capture pitfall (same as jellyfin-movies-pv).
+  claimRef:
+    namespace: paperless
+    name: paperless-media-pvc
+  nfs:
+    server: __NAS-IP__
+    path: /volume1/kub/homelab/paperless/paperless-media-pvc
+    readOnly: false
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -23,7 +43,8 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
+  storageClassName: ""
+  volumeName: paperless-media-pv
   resources:
     requests:
       storage: 100Gi
-  storageClassName: storage-apps

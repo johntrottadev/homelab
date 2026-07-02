@@ -7,8 +7,8 @@ metadata:
   namespace: dashy
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 1Gi
-  storageClassName: storage-apps
+  storageClassName: longhorn-ssd

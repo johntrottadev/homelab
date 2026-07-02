@@ -11,4 +11,4 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  storageClassName: storage-apps
+  storageClassName: longhorn-ssd

@@ -7,8 +7,8 @@ metadata:
   namespace: libre
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
-  storageClassName: storage-apps
+  storageClassName: longhorn-ssd

@@ -26,7 +26,7 @@ spec:
       labels:
         app: netalert
     spec:
-      nodeName: k3s-1                  # pin to control-plane (__K3S-API-IP__)
+      nodeName: k3s-wkr-1            # pin to new-cluster worker (__LAN-IP__)
       hostNetwork: true               # required for ARP/mDNS
       dnsPolicy: ClusterFirstWithHostNet  # let pod still resolve cluster DNS
       containers:

@@ -408,17 +408,14 @@ resources:
   - monitoring/kube-prometheus-stack/helmrepository.yaml
   - monitoring/kube-prometheus-stack/helmrelease.yaml
 
-  # Phase 10 wave 10-01 — adopt monitoring static PVs (alertmanager-pv,
-  # grafana-pv, prometheus-pv) under Flux via SSA. Captured byte-faithful
-  # from the live cluster; each PV carries the `kustomize.toolkit.fluxcd.io/ssa:
-  # Merge` annotation so kustomize-controller preserves the in-cluster PV
-  # controller's claimRef.uid across reconciles (fluxcd/flux2#2250 mitigation).
-  # spec.claimRef preserved so existing PVC bindings survive first reconcile
-  # (GOC-01); reclaim policy Retain. Per D-05/D-11 — PVs go first because
-  # they are binding-critical (data-loss risk on bad adoption).
-  - monitoring/static-pvs/alertmanager-pv.yaml
-  - monitoring/static-pvs/grafana-pv.yaml
-  - monitoring/static-pvs/prometheus-pv.yaml
+  # Monitoring static NFS PVs (alertmanager-pv, grafana-pv, prometheus-pv)
+  # REMOVED 2026-07-02 (blue/green migration): prometheus/alertmanager/grafana
+  # repointed to longhorn-ssd dynamic PVCs for a fresh start on SSD. The old
+  # static NFS PVs are no longer referenced by any PVC. NFS data retained
+  # (reclaim Retain) but the PV objects are pruned from the new cluster.
+  # - monitoring/static-pvs/alertmanager-pv.yaml
+  # - monitoring/static-pvs/grafana-pv.yaml
+  # - monitoring/static-pvs/prometheus-pv.yaml
 
   # Phase 10 wave 10-02 — adopt 9 Grafana dashboard ConfigMaps under Flux via SSA.
   # 8 are byte-faithful captures of CMs previously kubectl-applied from

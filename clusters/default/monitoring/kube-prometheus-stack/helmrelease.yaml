@@ -52,12 +52,11 @@ spec:
           volumeClaimTemplate:
             spec:
               accessModes:
-              - ReadWriteMany
+              - ReadWriteOnce
               resources:
                 requests:
                   storage: 5Gi
-              storageClassName: monitoring
-              volumeName: alertmanager-pv
+              storageClassName: longhorn-ssd
       config:
         global:
           resolve_timeout: 5m
@@ -207,14 +206,13 @@ spec:
         tag: 12.4.3
       persistence:
         accessModes:
-        - ReadWriteMany
+        - ReadWriteOnce
         enabled: true
         finalizers:
         - kubernetes.io/pvc-protection
         size: 10Gi
-        storageClassName: monitoring
+        storageClassName: longhorn-ssd
         type: sts
-        volumeName: grafana-pv
       serviceMonitor:
         enabled: true
     kube-state-metrics:
@@ -470,12 +468,11 @@ spec:
               name: prometheus-pvc
             spec:
               accessModes:
-              - ReadWriteMany
+              - ReadWriteOnce
               resources:
                 requests:
-                  storage: 50Gi
-              storageClassName: monitoring
-              volumeName: prometheus-pv
+                  storage: 20Gi
+              storageClassName: longhorn-ssd
     prometheus-node-exporter:
       extraArgs:
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)

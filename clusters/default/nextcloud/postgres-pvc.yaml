@@ -1,8 +1,7 @@
-# Postgres data on local-path (node-local SSD). WaitForFirstConsumer binds
-# the PV to whichever node the postgres pod first lands on; subsequent
-# rescheduling stays pinned to that node. Node-death recovery is via the
-# pg_dump CronJob (postgres-backup-cronjob.yaml) which writes daily dumps
-# to NFS for Velero to pick up.
+# Postgres data on longhorn-ssd (replica-3, resilient) — moved off node-local
+# local-path 2026-07-03 (blue/green migration): Longhorn handles node-death
+# recovery natively via replicas, so no single-node pinning. The pg_dump CronJob
+# (postgres-backup-cronjob.yaml) still writes daily dumps to NFS for Velero.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,7 +10,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: longhorn-ssd
   resources:
     requests:
       storage: 20Gi

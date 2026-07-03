@@ -22,26 +22,23 @@ spec:
     spec:
       containers:
         - name: chrome
-          # Mirrors running spec — :latest is intentional for now (cluster pod
-          # has been on this for ~13 months without restart). Pin to a digest
-          # in a future hardening pass.
-          image: browserless/chrome:latest
-          imagePullPolicy: Always
-          env:
-            - name: PORT
-              value: "3000"
-            - name: ENABLE_DEBUGGER
-              value: "true"
-            - name: FUNCTION_ENABLE_INCOGNITO_MODE
-              value: "true"
-            - name: DEFAULT_STEALTH
-              value: "true"
-            - name: CONNECTION_TIMEOUT
-              value: "60000"
-            - name: WORKSPACE_DIR
-              value: /tmp/workspace
+          # karakeep's officially-tested crawler image (headless Chromium exposing
+          # CDP on :9222). Migrated off the deprecated, floating browserless/chrome:latest
+          # on 2026-07-03. Browserless v2 was rejected: it needs a token + native
+          # Playwright endpoint that is version-coupled to karakeep's Playwright and
+          # breaks on karakeep upgrades. This CDP path is what karakeep ships/tests.
+          # Note: gcr.io/zenika-hub/alpine-chrome is amd64-only (our nodes are amd64).
+          image: gcr.io/zenika-hub/alpine-chrome:124
+          imagePullPolicy: IfNotPresent
+          args:
+            - --no-sandbox
+            - --disable-gpu
+            - --disable-dev-shm-usage
+            - --remote-debugging-address=0.0.0.0
+            - --remote-debugging-port=9222
+            - --hide-scrollbars
           ports:
-            - containerPort: 3000
+            - containerPort: 9222
               protocol: TCP
           resources:
             requests:

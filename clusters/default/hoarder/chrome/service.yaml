@@ -11,5 +11,5 @@ spec:
     app: chrome
   ports:
     - port: 9222
-      targetPort: 3000
+      targetPort: 9222
       protocol: TCP

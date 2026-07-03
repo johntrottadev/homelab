@@ -456,6 +456,73 @@ spec:
       labels:
         component: storage
         severity: critical
+    - alert: CoreDNSDown
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: No CoreDNS pod is answering for 2m+. Cluster-internal name resolution
+          is down — pods cannot reach Services by name (caused the 2026-07-03 outage).
+          Check `kubectl -n kube-system get pods -l k8s-app=kube-dns`.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#corednsdown
+        summary: In-cluster DNS is down — no CoreDNS replica is up
+      expr: absent(up{job="coredns"} == 1)
+      for: 2m
+      labels:
+        component: dns
+        severity: critical
+    - alert: CoreDNSNoRedundancy
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: Fewer than 2 CoreDNS replicas are up ({{ $value }}) for 15m+. DNS
+          still works but a single node failure could take it down. Expected 2 replicas
+          with hostname anti-affinity.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#corednsnoredundancy
+        summary: CoreDNS lost HA redundancy ({{ $value }} replica up)
+      expr: count(up{job="coredns"} == 1) < 2
+      for: 15m
+      labels:
+        component: dns
+        severity: warning
+    - alert: K3sNodeNotReady
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: k3s node {{ $labels.node }} has been NotReady for 5m+. Check the
+          node's k3s/kubelet service and the PVE guest.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#k3snodenotready
+        summary: k3s node {{ $labels.node }} is NotReady
+      expr: |
+        kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 5m
+      labels:
+        component: k8s
+        severity: critical
+    - alert: K3sNodeMemoryHigh
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: Node {{ $labels.instance }} memory at {{ $value | printf "%.1f" }}%
+          for 10m+. Risk of OOM (the install-storm OOM on 2026-07-02 prompted a RAM bump).
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#k3snodememoryhigh
+        summary: k3s node {{ $labels.instance }} memory >88%
+      expr: |
+        100 * (1 - node_memory_MemAvailable_bytes{job="node-exporter"}
+          / node_memory_MemTotal_bytes{job="node-exporter"}) > 88
+      for: 10m
+      labels:
+        component: k8s
+        severity: warning
+    - alert: K3sNodeMemoryCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: Node {{ $labels.instance }} memory at {{ $value | printf "%.1f" }}%
+          for 5m+. OOM imminent — kubelet may evict or the kernel OOM-killer may fire.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#k3snodememorycritical
+        summary: k3s node {{ $labels.instance }} memory >94%
+      expr: |
+        100 * (1 - node_memory_MemAvailable_bytes{job="node-exporter"}
+          / node_memory_MemTotal_bytes{job="node-exporter"}) > 94
+      for: 5m
+      labels:
+        component: k8s
+        severity: critical
   - interval: 1m
     name: homelab.bastion.rules
     rules:

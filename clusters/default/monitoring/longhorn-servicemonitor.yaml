@@ -1,0 +1,23 @@
+# Scrape Longhorn manager metrics (longhorn-backend :9500/metrics) into
+# kube-prometheus-stack. Added 2026-07-03 — Longhorn had no ServiceMonitor, so
+# volume/disk/node health was unmonitored. `release: prometheus` matches the
+# stack's serviceMonitorSelector (same convention as homelab-alerts.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: longhorn-manager
+  namespaceSelector:
+    matchNames:
+      - longhorn-system
+  endpoints:
+    - port: manager
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 15s

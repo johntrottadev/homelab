@@ -22,6 +22,8 @@ kind: Kustomization
 resources:
   # CoreDNS HA — PDB keeps >=1 DNS pod during node drains (2026-07-03).
   - coredns-pdb.yaml
+  # Longhorn metrics scrape (2026-07-03) — feeds homelab.longhorn.rules alerts.
+  - monitoring/longhorn-servicemonitor.yaml
   # Wave 1 — cert-manager + Traefik shared
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml

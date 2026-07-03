@@ -22,7 +22,7 @@ spec:
         fsGroup: 33
       containers:
         - name: firefly
-          image: fireflyiii/core:version-6.1.21
+          image: fireflyiii/core:version-6.6.6
           imagePullPolicy: IfNotPresent
           env:
             - name: APP_ENV

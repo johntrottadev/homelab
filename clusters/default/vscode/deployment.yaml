@@ -8,10 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+    type: Recreate  # single RWO longhorn PVC: avoid Multi-Attach deadlock on rollout
   selector:
     matchLabels:
       app: code-server
@@ -32,7 +29,7 @@ spec:
           - 1000
       containers:
         - name: code-server
-          image: lscr.io/linuxserver/code-server:4.117.0-ls334
+          image: lscr.io/linuxserver/code-server:4.127.0-ls350
           imagePullPolicy: Always
           securityContext:
             privileged: true

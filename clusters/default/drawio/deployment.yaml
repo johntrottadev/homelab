@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: drawio
-          image: jgraph/drawio:24.7.17
+          image: jgraph/drawio:30.2.7
           imagePullPolicy: IfNotPresent
           env:
             - name: PUBLIC_DNS

@@ -8,10 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+    type: Recreate  # single RWO longhorn PVC: avoid Multi-Attach deadlock on rollout
   selector:
     matchLabels:
       app: libreoffice
@@ -30,7 +27,7 @@ spec:
         - name: libreoffice
           # T-999.2-07: image already version-pinned (linuxserver follows
           # upstream LibreOffice releases via semantic tags).
-          image: linuxserver/libreoffice:25.8.1
+          image: linuxserver/libreoffice:25.8.7
           imagePullPolicy: IfNotPresent
           env:
             - name: PUID

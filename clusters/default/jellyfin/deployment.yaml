@@ -7,11 +7,11 @@ metadata:
     app: jellyfin
 spec:
   replicas: 1
+  # Recreate (not RollingUpdate): jellyfin has a single RWO longhorn-ssd config
+  # PVC. A rolling update spins a 2nd pod that can't attach the volume (Multi-Attach
+  # deadlock). Recreate stops the old pod first, releasing the volume. (2026-07-03)
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+    type: Recreate
   selector:
     matchLabels:
       app: jellyfin

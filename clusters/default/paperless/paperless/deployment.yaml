@@ -10,11 +10,10 @@ spec:
   selector:
     matchLabels:
       app: paperless-ngx
+  # Recreate: single RWO longhorn-ssd data PVC — a rolling update would Multi-Attach
+  # deadlock (2nd pod can't attach the volume while the old one holds it). (2026-07-03)
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       annotations:
@@ -49,7 +48,7 @@ spec:
             secretKeyRef:
               key: db-password
               name: paperless-secret
-        image: ghcr.io/paperless-ngx/paperless-ngx:2.20.14
+        image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15
         imagePullPolicy: Always
         name: paperless-ngx
         ports:

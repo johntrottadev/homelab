@@ -8,10 +8,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
+    type: Recreate  # single RWO longhorn PVC (SQLite DB): avoid Multi-Attach deadlock
   selector:
     matchLabels:
       app: n8n
@@ -40,7 +37,7 @@ spec:
       containers:
         - name: n8n
           # T-999.2-07: image already version-pinned.
-          image: docker.n8n.io/n8nio/n8n:1.123.34
+          image: docker.n8n.io/n8nio/n8n:2.28.6
           imagePullPolicy: Always
           # T-999.2-04: container-level non-root via runAsUser/runAsGroup.
           # Safe here because the initContainer (running as root) chowns

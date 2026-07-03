@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: meilisearch
-          image: getmeili/meilisearch:v1.42.1
+          image: getmeili/meilisearch:v1.48.3
           imagePullPolicy: Always
           envFrom:
             # Secret stays kubectl-managed (out-of-band; matches web/deployment.yaml).
@@ -29,6 +29,10 @@ spec:
           env:
             - name: MEILI_ENV
               value: production
+            # In-place DB migration across the v1.42->v1.48 index-format change
+            # (2026-07-03 upgrade). Safe to remove once migrated.
+            - name: MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE
+              value: "true"
           ports:
             - containerPort: 7700
               protocol: TCP

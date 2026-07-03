@@ -20,6 +20,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
+  # CoreDNS HA — PDB keeps >=1 DNS pod during node drains (2026-07-03).
+  - coredns-pdb.yaml
   # Wave 1 — cert-manager + Traefik shared
   - cert-manager/cluster-issuer-prod.yaml
   - cert-manager/cluster-issuer-staging.yaml

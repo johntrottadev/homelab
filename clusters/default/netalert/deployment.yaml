@@ -1,6 +1,6 @@
-# Image pinned to digest captured 2026-04-29 from Docker Hub.
-# Tag jokobsk/netalertx:26.4.6 == :26.4 == :26 == :latest at capture time.
-# Re-pin via `crane digest jokobsk/netalertx:latest` for security/feature updates.
+# Image pinned to digest captured 2026-07-03 from Docker Hub.
+# Tag jokobsk/netalertx:26.7.1 (upgraded from 26.4.6 in the upgrade campaign).
+# Re-pin via `crane digest jokobsk/netalertx:<tag>` for security/feature updates.
 # Project policy: never `:latest` in production manifests.
 #
 # hostNetwork: true is REQUIRED for ARP/mDNS LAN discovery.
@@ -31,7 +31,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet  # let pod still resolve cluster DNS
       containers:
         - name: netalert
-          image: jokobsk/netalertx@sha256:27cbad41464d54bdc2a6ba59b4c1f961ace847918b234b6afe66baebe9262a75
+          image: jokobsk/netalertx@sha256:ffab3346b7a924b47bf6b992f369241801b736e54087011047e227937969532f
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

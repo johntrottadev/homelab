@@ -1,0 +1,12 @@
+# Longhorn in-cluster snapshot class for pre-upgrade rollback points (2026-07-03).
+# type: snap = fast local Longhorn snapshot on the volume (not a Wasabi backup).
+# Take a VolumeSnapshot of an app's PVC before a risky upgrade; restore by
+# creating a new PVC with dataSource referencing the snapshot.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: longhorn-snapshot
+driver: driver.longhorn.io
+deletionPolicy: Delete
+parameters:
+  type: snap

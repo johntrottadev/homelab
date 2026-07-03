@@ -524,6 +524,62 @@ spec:
         component: k8s
         severity: critical
   - interval: 1m
+    name: homelab.longhorn.rules
+    rules:
+    - alert: LonghornVolumeFaulted
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Longhorn volume {{ $labels.volume }} (PVC {{ $labels.pvc }}) is
+          FAULTED — all replicas down, data unavailable. Immediate action required.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#longhornvolumefaulted
+        summary: Longhorn volume {{ $labels.volume }} faulted (data unavailable)
+      expr: |
+        max by (volume, pvc) (longhorn_volume_robustness) == 3
+      for: 2m
+      labels:
+        component: storage
+        severity: critical
+    - alert: LonghornVolumeDegraded
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Longhorn volume {{ $labels.volume }} (PVC {{ $labels.pvc }}) degraded
+          for 15m+ (a replica is down/rebuilding). Brief during node reboots; persistent
+          means a replica can't rebuild — check Longhorn disk space and node scheduling.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#longhornvolumedegraded
+        summary: Longhorn volume {{ $labels.volume }} degraded (replica down)
+      expr: |
+        max by (volume, pvc) (longhorn_volume_robustness) == 2
+      for: 15m
+      labels:
+        component: storage
+        severity: warning
+    - alert: LonghornNodeNotReady
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Longhorn node {{ $labels.node }} has been not-ready for 10m+ — it
+          cannot host volume replicas. Check longhorn-manager on that node.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#longhornnodenotready
+        summary: Longhorn node {{ $labels.node }} not ready
+      expr: |
+        longhorn_node_status{condition="ready"} == 0
+      for: 10m
+      labels:
+        component: storage
+        severity: warning
+    - alert: LonghornDiskSpaceHigh
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Longhorn disk on node {{ $labels.node }} is {{ $value | printf "%.1f"
+          }}% full for 30m+. When full, replicas can't schedule and volumes degrade.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#longhorndiskspacehigh
+        summary: Longhorn disk on {{ $labels.node }} >80% full
+      expr: |
+        100 * longhorn_disk_usage_bytes / longhorn_disk_capacity_bytes > 80
+      for: 30m
+      labels:
+        component: storage
+        severity: warning
+  - interval: 1m
     name: homelab.bastion.rules
     rules:
     - alert: OpsmanDown

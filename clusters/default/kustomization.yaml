@@ -310,9 +310,11 @@ resources:
   # Nextcloud — filesystem-primary on NFS (cutover 2026-05-04 from MinIO-
   # primary, which itself replaced Wasabi-primary on 2026-04-30; the MinIO
   # ns + replicate-cronjob were removed in this same change). User uploads
-  # land at /var/www/html/data/<user>/files/ on nextcloud-data-pv; the
-  # nextcloud-rclone-wasabi CronJob mirrors that tree to Wasabi every
-  # 15 min as real-named S3 objects (Wasabi is standalone-restorable).
+  # land at /var/www/html/data/<user>/files/ on nextcloud-data-pv.
+  # NOTE (2026-07-04): the nextcloud-rclone-wasabi mirror was KILLED — it ran
+  # every 15 min 24/7 with no bwlimit and saturated the home uplink during
+  # the day. To be re-engineered from the ground up; rclone-cronjob.yaml is
+  # removed from resources below. secret-rclone-wasabi retained for the rebuild.
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for
   # safety. Redis ephemeral (file locking + memcache).
   # Secrets applied manually (paloarp pattern); see clusters/default/nextcloud/README.md.
@@ -336,7 +338,7 @@ resources:
   - nextcloud/service.yaml
   - nextcloud/ingressroute.yaml
   - nextcloud/cronjob.yaml
-  - nextcloud/rclone-cronjob.yaml
+  # - nextcloud/rclone-cronjob.yaml   # KILLED 2026-07-04 — re-engineering the Wasabi mirror (see note above)
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.

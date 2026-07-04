@@ -23,7 +23,7 @@ flowchart TB
     end
 
     storage[(Synology NAS<br/>storage.<your-domain>)]
-    pbsdisk[(PBS local disk<br/><b>⚠ needs 2nd disk</b>)]
+    pbsdisk[(PBS 8TB primary<br/>+ 5TB cold copy)]
     wasabi[(Wasabi S3)]
 
     PVE --> VMs
@@ -35,17 +35,15 @@ flowchart TB
     other -->|per-host Kopia<br/>staggered| wasabi
 
     classDef planned stroke-dasharray: 5 5,stroke:#999,color:#666;
-    classDef warn fill:#fff3cd,stroke:#d97706;
-    class pbsdisk warn;
 ```
 
 ### Layer 1 — VM-level (Proxmox Backup Server)
 
 | What | Covers | Target | Status |
 |---|---|---|---|
-| PBS VM | All VMs (k3s nodes, services, PBS itself) | Local physical disk | ⚠ Single disk, needs mirror |
+| PBS VM | All VMs (k3s nodes, services, PBS itself) | 8 TB primary datastore + 5 TB second disk (cold copy) | ✓ Redundant |
 
-**Action item**: Add a second physical disk to the PBS VM for redundancy (ZFS mirror or equivalent).
+The PBS VM now has a **second 5 TB datastore** that holds a **cold replicated copy of all backups** (daily sync from the 8 TB primary). Single-disk risk resolved.
 
 ### Layer 2 — Filesystem-level (Synology Hyper Backup)
 
@@ -116,7 +114,7 @@ All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT w
   - `/volume1/kub/homelab/*` — app config and small data (NFS)
   - `/volume1/kubdbs/*` — database volumes (NFS)
   - `/volume1/storage/media/*` — media libraries (jellyfin, paperless docs)
-- **PBS local disk** — Proxmox backup target
+- **PBS datastores** — 8 TB primary + 5 TB cold copy (daily replicated) on the PBS VM
 - **Wasabi S3** — off-site backup target (Layers 2 and 3)
 
 ### k3s Storage Classes (in-cluster)

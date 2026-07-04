@@ -364,7 +364,6 @@ Adoption. The cluster predated Flux for several apps; pruning would have deleted
 |---|---|---|
 | Old cluster (5 nodes, VIP `.50`) still powered on | Instant blue/green rollback until __PVE-NODE-1__ is cleared | Decommission after __PVE-NODE-1__ thermal fix (see below) |
 | Postgres majors partially migrated (firefly/nextcloud on pg16) | guacamole/ciso/paperless already on pg18; deferred the rest for a stable window | Migrate the remaining two once the cluster is calm |
-| PBS local disk single (no ZFS mirror yet) | Risk acknowledged; secondary off-site is filesystem-primary to Wasabi via Kopia | Next disk procurement cycle |
 | Velero + Kopia restore-drill cadence not yet automated | Backups run (overnight schedule) + are the sole offsite for volume data; scheduled restore tests still manual | Next monitoring-stack milestone |
 | Single operator, single physical site | Geo-failover would dilute learning focus | Out of scope for this lab |
 | DNS-side decoupling means `dig <host>` returns Traefik VIP | Intentional — backends can move without DNS churn | `INFRASTRUCTURE.md` carries the real-backend table for moments Traefik is down |

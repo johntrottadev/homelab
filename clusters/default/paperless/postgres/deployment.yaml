@@ -9,10 +9,8 @@ spec:
     matchLabels:
       app: postgres
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+    # RWO PVC + single replica: Recreate avoids the Multi-Attach deadlock.
+    type: Recreate
   template:
     metadata:
       labels:
@@ -29,7 +27,11 @@ spec:
             secretKeyRef:
               key: db-password
               name: paperless-secret
-        image: postgres:15
+        # Subdir PGDATA: pg15->18 logical migration 2026-07-03 inits pg18 in a
+        # fresh subdir; old pg15 cluster stays at the volume root for rollback.
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        image: postgres:18
         imagePullPolicy: IfNotPresent
         name: postgres
         ports:

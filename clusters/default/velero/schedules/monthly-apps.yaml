@@ -18,7 +18,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/ssa: Merge
 spec:
   paused: false
-  schedule: 0 5 1 * *
+  schedule: 45 5 1 * *   # 1st 01:45 EDT — after weekly; Kopia dedups so upload is near-free
   skipImmediately: true
   template:
     defaultVolumesToFsBackup: true

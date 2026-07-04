@@ -362,15 +362,15 @@ Adoption. The cluster predated Flux for several apps; pruning would have deleted
 
 | Cost | Why accepted | When to revisit |
 |---|---|---|
-| k3s version drift across nodes (1.34.2 vs 1.32.3) | No blocking issues; upgrade cadence intentionally slow | Cluster-wide bump as part of next quarterly milestone |
-| Terraform coverage incomplete (k3s-5 only) | Other nodes pre-date IaC adoption; not retro-fitting | When a node next needs to be replaced |
+| Old cluster (5 nodes, VIP `.50`) still powered on | Instant blue/green rollback until __PVE-NODE-1__ is cleared | Decommission after __PVE-NODE-1__ thermal fix (see below) |
+| Postgres majors partially migrated (firefly/nextcloud on pg16) | guacamole/ciso/paperless already on pg18; deferred the rest for a stable window | Migrate the remaining two once the cluster is calm |
 | PBS local disk single (no ZFS mirror yet) | Risk acknowledged; secondary off-site is filesystem-primary to Wasabi via Kopia | Next disk procurement cycle |
-| Velero + Kopia partially deployed | CRs exist; restore drill cadence not yet automated | Next monitoring-stack milestone |
+| Velero + Kopia restore-drill cadence not yet automated | Backups run (overnight schedule) + are the sole offsite for volume data; scheduled restore tests still manual | Next monitoring-stack milestone |
 | Single operator, single physical site | Geo-failover would dilute learning focus | Out of scope for this lab |
 | DNS-side decoupling means `dig <host>` returns Traefik VIP | Intentional — backends can move without DNS churn | `INFRASTRUCTURE.md` carries the real-backend table for moments Traefik is down |
 | `prune: false` allows git/cluster drift | Adoption guarantee for out-of-band resources; pruning would have deleted real running state on first reconcile | Per-Kustomization `prune: true` opt-in as each subtree is audited; until then `flux diff ks` is the manual drift-detection tool |
 | No compliance posture (SOC2/HIPAA/PCI) | Personal lab; production workloads have different requirements | Never within this scope |
-| k3s-6 lacks `nfs-common` | Pods needing NFS PVs pinned to k3s-2 via `nodeSelector` | Reinstall k3s-6 with the right base image |
+| __PVE-NODE-1__ thermal instability (dead chassis fans) | Room cooling holds it at ~60–65 °C; k3s-ctl-1 runs there but etcd stays 3/3 | Fan replacement + ventilation, then decommission the old cluster |
 
 The full ledger lives in `PROJECT.md` (private) under "Out of scope / lessons" — including the rolled-back v1.0 single-repo public-flip attempt that motivated the current two-repo design.
 

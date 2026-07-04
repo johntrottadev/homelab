@@ -1,6 +1,6 @@
 # Homelab Infrastructure
 
-## Backup Strategy — 3 Layers of Redundancy
+## Backup Strategy — Layered Redundancy
 
 ```mermaid
 flowchart TB
@@ -14,8 +14,8 @@ flowchart TB
     subgraph VMs["VMs on PVE"]
         direction LR
         backup-host[PBS VM]
-        k3s[k3s VMs<br/>k3s-1 / k3s-2 / k3s-5 / k3s-6]
-        other[Other VMs<br/>pihole, netbird, docker-1, ...]
+        k3s[k3s VMs<br/>k3s-ctl-1/02/03<br/>k3s-wkr-1/02/03]
+        other[Docker hosts<br/>docker-1 / docker-2 / docker-3<br/>+ pihole, netbird, ...]
     end
 
     subgraph K8s["k3s Applications"]
@@ -31,7 +31,8 @@ flowchart TB
     backup-host --> pbsdisk
     pods -->|PVC → NFS mount| storage
     storage -.->|Hyper Backup nightly<br/>file-level| wasabi
-    pods -.->|Velero + Kopia<br/><b>planned</b>| wasabi
+    pods -->|Velero + Kopia<br/>overnight| wasabi
+    other -->|per-host Kopia<br/>staggered| wasabi
 
     classDef planned stroke-dasharray: 5 5,stroke:#999,color:#666;
     classDef warn fill:#fff3cd,stroke:#d97706;
@@ -58,27 +59,42 @@ Every k3s PVC is backed by an NFS path on the NAS, so this layer catches all app
 
 | What | Covers | Target | Status |
 |---|---|---|---|
-| Velero with Kopia node-agent | App manifests + PVC data per namespace, app-consistent via hooks | Wasabi S3 | 🔜 Planned |
+| Velero with Kopia node-agent | App manifests + PVC data per namespace, app-consistent via hooks | Wasabi S3 | ✓ Active |
 
-Enables per-app point-in-time restore through `velero restore create`. Replaces Kasten K10 (removed due to GSB license gate in v7.x).
+Enables per-app point-in-time restore through `velero restore create`. Replaces Kasten K10 (removed due to GSB license gate in v7.x). **This is now the sole offsite copy of in-cluster (Longhorn) volume data** — the redundant Longhorn→Wasabi block-level backup was dropped 2026-07-04 (consolidated here). Schedules run in the overnight window (see "Backup scheduling" below): `daily-apps` 04:30 UTC (TTL 7d), `weekly-apps` Sun 05:30 (TTL 28d), `monthly-apps` 1st 05:45 (TTL 365d).
 
-### Layer 4 — App-level object mirror (rclone)
-
-| What | Covers | Target | Status |
-|---|---|---|---|
-| `nextcloud-rclone-wasabi` CronJob | Per-user file tree at `data/<user>/files/**` | `wasabi:nextcloud-mirror` (real path keys, browsable) | ✓ Every 15 min |
-
-### Layer 5 — Single-purpose VM Kopia repos
+### Layer 4 — In-cluster snapshots (Longhorn, local only)
 
 | What | Covers | Target | Status |
 |---|---|---|---|
-| app-vm Kopia | `/opt/app-vm/configs`, `/opt/app-vm/PASTES`, `/opt/app-vm/DATA_KVROCKS` | `s3://<your-s3-bucket>/vm/app-vm/` (separate prefix from `dock/dockN/`) | ✓ Daily 03:30 |
+| Longhorn `snapshot-6h` recurring job | All Longhorn volumes | In-cluster (no offsite) | ✓ Every 6h |
 
-Same machinery as docker-1/docker-2 (`terraform/dock_nodes/cloud-init/kopia-backup.sh`),
-just different `KOPIA_PATHS` + `KOPIA_S3_PREFIX`. Read-only browse UI at
-`https://kopia-app-vm.<your-domain>`.
+Fast in-cluster restore points. Longhorn's own Wasabi backup (`backup-daily`) was **removed** — offsite for this data is Layer 3 (Velero+Kopia).
 
-Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is **standalone-restorable**: pull from Wasabi to any disk and the file tree is usable as-is. Added 2026-05-04 with the filesystem-primary cutover (replaced MinIO + the prior `mc mirror` cronjob, which mirrored opaque `urn:oid` blobs).
+> **Removed 2026-07-04 — `nextcloud-rclone-wasabi` object mirror.** Ran every 15 min, 24/7, with no bandwidth cap and saturated the home uplink during the day. To be re-engineered from the ground up (nightly + bwlimit). Nextcloud file data is still covered by Layer 2 (NFS→Hyper Backup) and Layer 3.
+
+### Layer 5 — Docker-host & single-purpose VM Kopia repos
+
+| What | Covers | Target | Status |
+|---|---|---|---|
+| docker-1 / docker-2 / docker-3 Kopia | Each host's docker volumes + Komodo stacks + local bind-mount data (dynamic discovery) | `s3://<your-s3-bucket>/dock/dock{1,2,3}/` (per-host prefix) | ✓ Daily, staggered 06:30 / 07:00 / 07:30 UTC |
+| app-vm Kopia | `/opt/app-vm/configs`, `/opt/app-vm/PASTES`, `/opt/app-vm/DATA_KVROCKS` | `s3://<your-s3-bucket>/vm/app-vm/` | ✓ Daily |
+
+The three **Komodo-managed** docker hosts (docker-1, docker-2, docker-3 — docker-3 also runs the Komodo Core) each run a systemd `kopia-backup.timer`. As of 2026-07-04 the source list is **dynamic**: `/usr/local/bin/kopia-sources.sh` enumerates every running container's local volumes + bind mounts, excludes NAS-CIFS (covered by Layer 2) and ephemeral paths, so **new containers are backed up automatically** with no config edits. Read-only browse UIs at `https://kopia-<host>.<your-domain>`.
+
+Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 5 repos are **standalone-restorable**. (The former nextcloud object mirror added 2026-05-04 with the filesystem-primary cutover is retired — see the removal note above.)
+
+### Backup scheduling (home uplink)
+
+All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT window** so nothing overlaps the upload:
+
+| Local (EDT) | UTC | Job |
+|---|---|---|
+| 11:00 PM | 03:00 | Synology Hyper Backup → Wasabi (Layer 2, external anchor) |
+| 12:30 AM | 04:30 | Velero `daily-apps` |
+| 1:30 AM Sun | 05:30 | Velero `weekly-apps` |
+| 1:45 AM 1st | 05:45 | Velero `monthly-apps` |
+| 2:30 / 3:00 / 3:30 AM | 06:30 / 07:00 / 07:30 | docker-1 / docker-2 / docker-3 Kopia |
 
 ## Component Inventory
 
@@ -87,10 +103,13 @@ Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is
 
 ### VMs
 - **PBS**: Proxmox Backup Server — sink for all VM backups
-- **k3s control plane**: k3s-1 @ <your-svc-subnet>.41 (example) (master, v1.34.2)
-- **k3s workers**: k3s-2 @ <your-svc-subnet>.42, k3s-5 @ <your-svc-subnet>.45, k3s-6 @ <your-svc-subnet>.46 (examples) (all v1.32.3 — version drift to monitor)
-- **Other services**: docker-1 (<your-svc-subnet>.40, Docker host), pihole1 (<your-svc-subnet>.20), netbird-exit-1/2 (<your-svc-subnet>.48/49)
+- **k3s control plane** (v1.35.3+k3s1, embedded etcd, 3/3 quorum — one server per PVE host): k3s-ctl-1 @ <your-svc-subnet>.140, k3s-ctl-2 @ <your-svc-subnet>.141, k3s-ctl-3 @ <your-svc-subnet>.142. Control-plane API VIP <your-svc-subnet>.146 (kube-vip).
+- **k3s workers**: k3s-wkr-1 @ <your-svc-subnet>.143, k3s-wkr-2 @ <your-svc-subnet>.144, k3s-wkr-3 @ <your-svc-subnet>.145. Traefik LoadBalancer VIP <your-svc-subnet>.147 (kube-vip). Storage: Longhorn (replica-3 on the workers) + Synology NFS.
+- **Docker hosts (Komodo-managed)**: docker-1 (<your-svc-subnet>.40, on __PVE-NODE-1__, periphery), docker-2 (<your-svc-subnet>.39, on __PVE-NODE-3__, periphery), docker-3 (<your-svc-subnet>.37, on __PVE-NODE-2__, **Komodo Core** — core/ferretdb/postgres)
+- **Other services**: pihole1/2 (<your-svc-subnet>.20/.21), netbird-exit-1/2 (<your-svc-subnet>.48/.49)
 - **Single-purpose app VMs**: app-vm (<your-svc-subnet>.70, AIL Framework — bare-metal upstream installer, no docker; managed via `terraform/app-vm-node/`)
+
+> **Blue/green note:** the current cluster (above) is the *new* rebuild and serves all traffic. The *old* 5-node cluster (k3s-1/k3s-2/… on VIP <your-svc-subnet>.50) is kept powered on as an instant rollback until __PVE-NODE-1__ is cleared and decommissioned.
 
 ### Storage
 - **Synology NAS** — `storage.<your-domain>` / <your-storage-ip>
@@ -101,15 +120,16 @@ Layer 2/3 require Postgres + cluster to make sense of restored bytes. Layer 4 is
 - **Wasabi S3** — off-site backup target (Layers 2 and 3)
 
 ### k3s Storage Classes (in-cluster)
-| Class | Provisioner | Used for |
-|---|---|---|
-| `storage` | nfs.csi.k8s.io (static PVs) | App config/data |
-| `storage-db` | nfs.csi.k8s.io (static PVs) | Database volumes |
-| `monitoring` | nfs.csi.k8s.io | Prometheus, Grafana, Alertmanager |
-| `jellyfin` | nfs.csi.k8s.io (dynamic) | Jellyfin config |
-| `local-path` | rancher.io/local-path | Ephemeral (it-tools) |
+| Class | Provisioner | Reclaim | Used for |
+|---|---|---|---|
+| `longhorn-ssd` | driver.longhorn.io | Retain | **Primary hot tier (default)** — app state + databases, replica-3 on worker SSDs (RWO) |
+| `longhorn` / `longhorn-static` | driver.longhorn.io | Delete | Generic / static Longhorn (unused by apps) |
+| `storage-apps` | nfs.csi.k8s.io (dynamic) | Retain | RWX bulk app data on Synology NFS |
+| `storage-dbs` | nfs.csi.k8s.io (dynamic) | Retain | Legacy DB volumes on NFS (DBs now prefer `longhorn-ssd`) |
+| `monitoring` | nfs.csi.k8s.io | Retain | Legacy NFS (prometheus/loki moved to `longhorn-ssd`) |
+| `local-path` | rancher.io/local-path | Delete | Ephemeral node-local |
 
-All NFS-backed PVs are **static** (hand-written `spec.nfs.path/server`) — they bypass the CSI driver for provisioning, which is why Kasten couldn't snapshot them. Velero's Kopia uploader works on any PVC type so it sidesteps this entirely.
+The blue/green rebuild moved the primary tier to **Longhorn** (replica-3 across the three workers, RWO); bulk RWX data stays on Synology NFS, and 5 TB media + paperless archival stay on static NFS deliberately. Velero's Kopia uploader works on any PVC type (Longhorn or NFS), so it snapshots everything regardless of provisioner — unlike Kasten, which couldn't handle the old static NFS PVs.
 
 ### Flux Helm machinery
 
@@ -228,7 +248,8 @@ the Traefik VIP.
 
 ## Known Constraints
 
-- **k3s-6 lacks `nfs-common`** — pods using NFS PVs fail to mount here. Pin NFS-dependent workloads to `k3s-2` via `nodeSelector: { kubernetes.io/hostname: k3s-2 }` (pattern used by jellyfin and paperless).
-- **k3s version drift**: k3s-1 on v1.34.2, others on v1.32.3. No active issues, but upgrade path needed.
-- **DNS gotcha**: every external-IP-backend hostname resolves to the Traefik VIP (`<k3s-vip>`) on internal DNS, not the real backend. This is intentional — Traefik serves the LE wildcard cert. For the actual backend behind any hostname (recon, troubleshooting, emergency direct access), see the *External-IP-backend bundles* section above.
-- **Terraform coverage**: only `k3s-5` is managed by `terraform/k3s_nodes/`. k3s-4 was manually provisioned and got decommissioned 2026-04-22 (chronic flapping).
+- **__PVE-NODE-1__ hardware (decommission blocker)**: the old cluster on VIP `<your-svc-subnet>.50` can't be retired until __PVE-NODE-1__ is stable. Root cause is now understood as **thermal** — dead chassis fans; a hot room drove the i7-5930K node to instability (crash-looped `kube-vip` → two cluster-wide VIP outages). Room cooling brought it to ~60–65 °C; permanent fix is fan replacement + ventilation. __PVE-NODE-1__ also runs non-ECC RAM. k3s-ctl-1 lives on __PVE-NODE-1__ but etcd stays 3/3.
+- **Postgres majors partially migrated**: guacamole, ciso-assistant, paperless are on **pg18** (logical dump/restore, subdir PGDATA for instant rollback). firefly + nextcloud are still on **pg16-alpine** — deferred (healthy), to be migrated in a stable window.
+- **nextcloud object mirror removed** — the `nextcloud-rclone-wasabi` CronJob was killed (saturated the uplink); a bandwidth-capped nightly replacement is to be re-engineered.
+- **DNS gotcha**: every external-IP-backend hostname resolves to the Traefik VIP (`<k3s-vip>`) on internal DNS, not the real backend. Intentional — Traefik serves the LE wildcard cert. For the actual backend behind a hostname, see *External-IP-backend bundles* above.
+- **Terraform coverage**: the new k3s nodes are provisioned by `terraform/k3s_nodes/` on the bastion bastion. The Komodo docker hosts (docker-1/2/3) are managed by Komodo, not this repo's Terraform.

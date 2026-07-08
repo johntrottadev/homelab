@@ -3,7 +3,7 @@
 # Committed example for the cluster-vars ConfigMap consumed by
 # flux-system/kustomization.yaml's postBuild.substituteFrom.
 #
-# 21-key cluster-side surface — 1:1 with .env.example at repo root.
+# 22-key cluster-side surface — 1:1 with .env.example at repo root.
 #
 # Real-values copy lives off-tree at:
 #   /Volumes/code/secrets/homelab/cluster-vars.yaml
@@ -13,7 +13,7 @@
 # Variable name validation (Flux postBuild): ^[_[:alpha:]][_[:alpha:][:digit:]]*$
 # Numbers and dotted strings MUST be quoted (RESEARCH Pitfall 4).
 #
-# This file's key set MUST match .env.example at repo root (21 keys). Plan
+# This file's key set MUST match .env.example at repo root (22 keys). Plan
 # 03-05 audits the two with a sorted-key diff for drift.
 apiVersion: v1
 kind: ConfigMap
@@ -33,6 +33,7 @@ data:
   # NAS
   NAS_HOST: __NAS-HOST__
   NAS_IP: "__NAS-IP__"
+  TRUENAS_IP: "__LAN-IP__"
 
   # Canonical role IPs (D-09)
   K3S_VIP: "__K3S-VIP__"

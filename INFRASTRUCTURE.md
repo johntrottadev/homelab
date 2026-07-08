@@ -197,6 +197,7 @@ serves itself, which is usually self-signed).
 | __PVE-MGMT-1__.<your-domain> | __PVE-NODE-1__ BMC — <your-mgmt-subnet>.14 (example) | 443 https |
 | backup-host.<your-domain> | PBS — <your-svc-subnet>.19 (example) | 8007 https |
 | storage.<your-domain> + synology.<your-domain> | Synology DSM — <your-storage-ip> | 5001 https |
+| nas2.<your-domain> | TrueNAS SCALE UI — <your-svc-subnet>.101 (example) (`clusters/default/truenas.yaml`) | 443 https (lan-self-signed) |
 | dns.<your-domain> | pihole1 — <your-svc-subnet>.20 (example) | 80 http |
 | dns2.<your-domain> | pihole2 — <your-svc-subnet>.21 (example) | 80 http |
 | sw.<your-domain> | network switch — <your-mgmt-subnet>.3 (example) | 80 http |

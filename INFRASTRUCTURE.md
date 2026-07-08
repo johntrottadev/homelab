@@ -50,6 +50,7 @@ The PBS VM now has a **second 5 TB datastore** that holds a **cold replicated co
 | What | Covers | Target | Status |
 |---|---|---|---|
 | Synology Hyper Backup | All NFS shares on NAS — `/volume1/kub/homelab/*`, `/volume1/kubdbs/*`, `/volume1/storage/media/*` | Wasabi S3 | ✓ Nightly |
+| TrueNAS config exports | /volume1/storage/backups/truenas-config/ (weekly tarball: config db + secret seed) | Wasabi S3 (via same Hyper Backup task) | ✓ Weekly |
 
 Every k3s PVC is backed by an NFS path on the NAS, so this layer catches all application data at rest.
 
@@ -114,6 +115,12 @@ All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT w
   - `/volume1/kub/homelab/*` — app config and small data (NFS)
   - `/volume1/kubdbs/*` — database volumes (NFS)
   - `/volume1/storage/media/*` — media libraries (jellyfin, paperless docs)
+- **TrueNAS SCALE NAS** — `truenas` @ <your-svc-subnet>.101 (bare metal, SCALE 25.10.4)
+  - Pool `movies`: 2× 8TB HDD ZFS mirror (~7.3 TiB usable)
+  - `/mnt/movies/data` — movies library (NFS v3+v4.1; export restricted to the six k3s nodes + docker-1)
+  - Consumers: jellyfin (static PV, mounted read-only, `mountOptions: [nfsvers=4.1, noatime, ro]`) and qbittorrent on docker-1 (host fstab mount `/mnt/movies`, rw as uid 1000)
+  - DR: weekly config export (cron Sun 03:00, `/mnt/movies/scripts/backup-truenas-config.sh`) → Synology `/volume1/storage/backups/truenas-config/` → rides Hyper Backup to Wasabi. Restore = fresh SCALE install → upload config → import pool.
+  - Media has NO offsite backup by design; the Synology copy of the library is the rollback until its maintenance-week reformat.
 - **PBS datastores** — 8 TB primary + 5 TB cold copy (daily replicated) on the PBS VM
 - **Wasabi S3** — off-site backup target (Layers 2 and 3)
 
@@ -127,7 +134,7 @@ All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT w
 | `monitoring` | nfs.csi.k8s.io | Retain | Legacy NFS (prometheus/loki moved to `longhorn-ssd`) |
 | `local-path` | rancher.io/local-path | Delete | Ephemeral node-local |
 
-The blue/green rebuild moved the primary tier to **Longhorn** (replica-3 across the three workers, RWO); bulk RWX data stays on Synology NFS, and 5 TB media + paperless archival stay on static NFS deliberately. Velero's Kopia uploader works on any PVC type (Longhorn or NFS), so it snapshots everything regardless of provisioner — unlike Kasten, which couldn't handle the old static NFS PVs.
+The blue/green rebuild moved the primary tier to **Longhorn** (replica-3 across the three workers, RWO); bulk RWX data stays on Synology NFS. The movies library now lives on TrueNAS static NFS (mounted read-only by jellyfin), while paperless archival remains on Synology static NFS deliberately. Velero's Kopia uploader works on any PVC type (Longhorn or NFS), so it snapshots everything regardless of provisioner — unlike Kasten, which couldn't handle the old static NFS PVs.
 
 ### Flux Helm machinery
 

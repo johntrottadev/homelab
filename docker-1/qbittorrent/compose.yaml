@@ -59,8 +59,8 @@ services:
       WEBUI_PORT: ${WEBUI_PORT}
     volumes:
       - /mnt/kub/homelab/qbittorrent/qbittorrent:/config
-      # Downloads directory — currently a host bind on docker-1 (not NAS-backed
-      # for performance; movies share lives at /mnt/storage/media/movies, which is
-      # a separate mount on docker-1, NOT the same as the homelab NAS share).
-      - /mnt/storage/media/movies:/downloads
+      # Downloads directory — TrueNAS NFS movies share mounted on the docker-1
+      # host at /mnt/movies (fstab-managed; cutover from Synology 2026-07-07).
+      # NOT the same as the homelab NAS share.
+      - /mnt/movies:/downloads
     restart: unless-stopped

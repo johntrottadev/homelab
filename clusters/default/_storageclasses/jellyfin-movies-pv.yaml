@@ -1,8 +1,9 @@
-# Static PV for jellyfin's movie library — external 5TB Synology share at
-# /volume1/storage/media/movies (distinct from /volume1/kub/homelab where every
-# other k8s PVC lives). Brought under Flux 2026-05-12; was kubectl-managed
-# previously. Permanent exception: not a candidate for dynamic provisioning
-# since it points at a curated media tree, not a per-PVC managed subdir.
+# Static PV for jellyfin's movie library — TrueNAS NFS share at
+# /mnt/movies/data (cutover from Synology 2026-07-07; distinct from the
+# homelab share where every other k8s PVC lives). Brought under Flux
+# 2026-05-12; was kubectl-managed previously. Permanent exception: not a
+# candidate for dynamic provisioning since it points at a curated media
+# tree, not a per-PVC managed subdir.
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -17,7 +18,11 @@ spec:
   claimRef:
     namespace: jellyfin
     name: jellyfin-movies-pvc
+  mountOptions:
+    - nfsvers=4.1
+    - noatime
+    - ro
   nfs:
-    server: __NAS-IP__
-    path: /volume1/storage/media/movies
+    server: __LAN-IP__
+    path: /mnt/movies/data
     readOnly: false

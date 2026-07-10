@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pihole-exporter
+  namespace: monitoring
+  labels:
+    app: pihole-exporter
+    # `release: prometheus` is what kube-prometheus-stack's ServiceMonitor
+    # selector matches; same convention as the speedtest exporter.
+    release: prometheus
+spec:
+  endpoints:
+    # The pihole-exporter Service fronts 2 pihole pods; a ServiceMonitor
+    # scrapes each backing endpoint individually, so each pihole's own
+    # `hostname` metric label survives.
+    - interval: 60s
+      path: /metrics
+      port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter

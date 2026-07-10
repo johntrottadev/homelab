@@ -268,18 +268,21 @@ resources:
 
   # Phase 999.2 spinoff — monitoring exporters (4 deployments + services in
   # the existing monitoring ns). ConfigMaps (blackbox-exporter-config,
-  # snmp-exporter-config) and ServiceMonitors (backup-host-exporter, pihole-exporter —
-  # release: prometheus label preserved) intentionally stay kubectl-managed:
-  # cm content is config detail, ServiceMonitors are owned by
-  # kube-prometheus-stack adjacent tooling. Bucket A migrated remaining secrets.
+  # snmp-exporter-config) intentionally stay kubectl-managed: cm content is
+  # config detail. ServiceMonitors (backup-host-exporter, pihole-exporter — release:
+  # prometheus label preserved) moved to Flux management after the cluster
+  # rebuild dropped the kubectl-applied copies (quick task 260710-r0m).
+  # Bucket A migrated remaining secrets.
   - monitoring/blackbox-exporter/deployment.yaml
   - monitoring/blackbox-exporter/service.yaml
   - monitoring/backup-host-exporter/deployment.yaml
   - monitoring/backup-host-exporter/service.yaml
+  - monitoring/backup-host-exporter/servicemonitor.yaml
   # Phase 12 wave 12-07 — was secret-backup-host-exporter.template (kubectl apply).
   - monitoring/secret-backup-host-exporter.enc.yaml
   - monitoring/pihole-exporter/deployment.yaml
   - monitoring/pihole-exporter/service.yaml
+  - monitoring/pihole-exporter/servicemonitor.yaml
   # Bucket A — pihole1, pihole2 (two Pi-hole admin passwords). Was kubectl one-liner.
   - monitoring/secret-pihole-exporter.enc.yaml
   - monitoring/snmp-exporter/deployment.yaml

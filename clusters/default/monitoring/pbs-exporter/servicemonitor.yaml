@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backup-host-exporter
+  namespace: monitoring
+  labels:
+    app: backup-host-exporter
+    # `release: prometheus` is what kube-prometheus-stack's ServiceMonitor
+    # selector matches; same convention as the speedtest exporter.
+    release: prometheus
+spec:
+  endpoints:
+    - interval: 60s
+      path: /metrics
+      port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backup-host-exporter

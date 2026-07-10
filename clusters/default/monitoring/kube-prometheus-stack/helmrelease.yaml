@@ -470,6 +470,7 @@ spec:
           metrics_path: /snmp
           params:
             module: [synology]
+            auth: [synology_v3]
           static_configs:
           - targets:
             - __NAS-IP__
@@ -484,6 +485,7 @@ spec:
           metrics_path: /snmp
           params:
             module: [paloalto_fw]
+            auth: [paloalto_v3]
           static_configs:
           - targets:
             - __LAN-IP__
@@ -498,6 +500,7 @@ spec:
           metrics_path: /snmp
           params:
             module: [if_mib]
+            auth: [paloalto_v3]
           static_configs:
           - targets:
             - __LAN-IP__

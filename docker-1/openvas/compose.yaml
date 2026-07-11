@@ -21,7 +21,7 @@ name: greenbone-community-edition
 
 services:
   vulnerability-tests:
-    image: registry.community.greenbone.net/community/vulnerability-tests:latest@sha256:4f368f9ae4043ea36e10fd79913e6060c7af6fe4ff044ae22118f31c3ae24ec8
+    image: registry.community.greenbone.net/community/vulnerability-tests:latest@sha256:52f2dfb1f970c5eb8715734eabcb34cd9531ff878b2947445845ef8299a147ab
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1
@@ -29,14 +29,14 @@ services:
       - vt_data_vol:/mnt
 
   notus-data:
-    image: registry.community.greenbone.net/community/notus-data:latest@sha256:87ab837d275ae0ceadd3a4bc3b9d331a547bb32a575afe4f55e4bde4cfbe34bf
+    image: registry.community.greenbone.net/community/notus-data:latest@sha256:0970d70e3e5b92ca9f4b610558d7d0762030707e5e66d4d8750193a2a881673a
     environment:
       KEEP_ALIVE: 1
     volumes:
       - notus_data_vol:/mnt
 
   scap-data:
-    image: registry.community.greenbone.net/community/scap-data:latest@sha256:eeb99b83e456ae8fc60c8c825d19a10348d264b2f3741d3a0c53d8bea88ce293
+    image: registry.community.greenbone.net/community/scap-data:latest@sha256:8df3703ce980ca29b9ac595bdd09bdd187a3a66ddb98e1f00be363c6c7afcaaa
     environment:
       KEEP_ALIVE: 1
     volumes:
@@ -50,7 +50,7 @@ services:
       - cert_data_vol:/mnt
 
   dfn-cert-data:
-    image: registry.community.greenbone.net/community/dfn-cert-data:latest@sha256:401cb3c6c1911c175e98ec77a7fc1a219adc8e35d8cb09c0f194dd61a6d662cd
+    image: registry.community.greenbone.net/community/dfn-cert-data:latest@sha256:f029884031cff05570acacf3034d793ba85e3e8561cd0e2ec33fad98186c82ae
     environment:
       KEEP_ALIVE: 1
     volumes:
@@ -68,7 +68,7 @@ services:
       - data_objects_vol:/mnt
 
   report-formats:
-    image: registry.community.greenbone.net/community/report-formats:latest@sha256:412e70e2a3514d619b57c1b824f5a6e3ef6b9ed0229cf6919e323b76c2a11120
+    image: registry.community.greenbone.net/community/report-formats:latest@sha256:60bdf802b0393eeface449cef38014d8e6e71e7ac6d746e0ad90fbcdcf14d035
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1
@@ -79,12 +79,12 @@ services:
         condition: service_healthy
 
   gpg-data:
-    image: registry.community.greenbone.net/community/gpg-data:latest@sha256:44d991ab377309d530e9d8e8b23d9d6ca1a1136f044a962658fe0b6f831969c6
+    image: registry.community.greenbone.net/community/gpg-data:latest@sha256:3cec7306e00e1db5204e2b8b3ab0215533780d47ef74c55e895db8f0476a4b12
     volumes:
       - gpg_data_vol:/mnt
 
   redis-server:
-    image: registry.community.greenbone.net/community/redis-server:latest@sha256:b4c26eaf547ff91dc417e5d75690b2017890bf7ac8c6090c352739efb00260ff
+    image: registry.community.greenbone.net/community/redis-server:latest@sha256:6da6a7c7221aa3ab231961fd6ca001d552b6a2c7727ac6201c6d8a360baa963a
     deploy:
       restart_policy:
         condition: any
@@ -315,7 +315,7 @@ services:
         condition: service_healthy
 
   gvm-tools:
-    image: registry.community.greenbone.net/community/gvm-tools:latest@sha256:49e1fb5efaf9af8489d0021cd4ebdea6477603e69b95652b32851f8fc0b49cef
+    image: registry.community.greenbone.net/community/gvm-tools:latest@sha256:e5257e43fa164dea118c2b96477381a7d03b9fc46ab71e4ae7bf56d2919ef9b7
     volumes:
       - gvmd_socket_vol:/run/gvmd
       - ospd_openvas_socket_vol:/run/ospd

@@ -619,3 +619,43 @@ spec:
       labels:
         component: bastion
         severity: warning
+  - interval: 1m
+    name: homelab.enclosure-temp.rules
+    rules:
+    - alert: USBEnclosureDriveTempHigh
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Drive {{ $labels.device }} ({{ $labels.model }}) on {{ $labels.host
+          }} at {{ $value }}C for 15m+. Improve enclosure airflow before it throttles
+          or drops the bus.
+        summary: 'USB enclosure drive hot: {{ $labels.host }}/{{ $labels.device }} at
+          {{ $value }}C'
+      expr: usb_enclosure_drive_temp_celsius > 55
+      for: 15m
+      labels:
+        component: storage
+        severity: warning
+    - alert: USBEnclosureDriveTempCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Drive {{ $labels.device }} ({{ $labels.model }}) on {{ $labels.host
+          }} at {{ $value }}C — above rated operating ceiling. The 2026-07-11 PBS enclosure
+          bus-drop was thermal; act now.
+        summary: 'USB enclosure drive OVER SPEC: {{ $labels.host }}/{{ $labels.device
+          }} at {{ $value }}C'
+      expr: usb_enclosure_drive_temp_celsius > 60
+      for: 5m
+      labels:
+        component: storage
+        severity: critical
+    - alert: USBEnclosureTempCollectorStale
+      annotations:
+        description: usb_drive_temps.prom on __PVE-NODE-1__ has not updated in 30m+ — the temp
+          collector cron or the nas2 SSH path is broken. Enclosure temps are blind.
+        summary: USB enclosure temperature collector is stale
+      expr: |
+        time() - node_textfile_mtime_seconds{file="usb_drive_temps.prom"} > 1800
+      for: 5m
+      labels:
+        component: storage
+        severity: warning

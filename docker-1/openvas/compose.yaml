@@ -92,7 +92,7 @@ services:
       - redis_socket_vol:/run/redis/
 
   pg-gvm:
-    image: registry.community.greenbone.net/community/pg-gvm:stable@sha256:b07b2c458734c285f8b4ad65ff852335a53d4cdb61c8a4f41ff4da136d75762a
+    image: registry.community.greenbone.net/community/pg-gvm:stable@sha256:b81bc5d7a750203ea25c6e4dd086751ecee8e388d1cb2501c60b3805e0056204
     deploy:
       restart_policy:
         condition: any
@@ -104,7 +104,7 @@ services:
         condition: service_completed_successfully
 
   pg-gvm-migrator:
-    image: registry.community.greenbone.net/community/pg-gvm-migrator:stable@sha256:7e81ae8defb8017c8731c84f941100d5054c7c24deb6bd66ebdc0f839bfb5c9b
+    image: registry.community.greenbone.net/community/pg-gvm-migrator:stable@sha256:201da953f12dd26c84db8aa0117465de0aac9916f4e1d2d60b4fcb6f86176d4e
     deploy:
       restart_policy:
         condition: none
@@ -113,7 +113,7 @@ services:
       - psql_socket_vol:/var/run/postgresql
 
   gvmd:
-    image: registry.community.greenbone.net/community/gvmd:stable@sha256:0bc7ae3d4a3d0eb15b3e0823188e37980f016582dbfe468f8c91e4ff6d4a1244
+    image: registry.community.greenbone.net/community/gvmd:stable@sha256:02916ad75d626e6f342731eec6e71e64cb0b9b5f4a09dc38df7022101a0267b4
     deploy:
       restart_policy:
         condition: any
@@ -142,7 +142,7 @@ services:
         condition: service_healthy
 
   gsa:
-    image: registry.community.greenbone.net/community/gsa:stable-slim@sha256:d61a0be90c74761972bdd77c9039a14c1365f925cc13d44fcc9ec54793477517
+    image: registry.community.greenbone.net/community/gsa:stable-slim@sha256:fd72a7fd91eea311d4bd5cc4d07c4f7723c4fa42730a1ce9ec5222ac073f48f1
     environment:
       MOUNT_PATH: "/mnt/web"
       KEEP_ALIVE: 1
@@ -153,7 +153,7 @@ services:
       - gsa_data_vol:/mnt/web
 
   gsad:
-    image: registry.community.greenbone.net/community/gsad:stable@sha256:24c36e536de059b1609cedfc2280826d4793a2151ba43a2dbfc9af4d6975b614
+    image: registry.community.greenbone.net/community/gsad:stable@sha256:7ce6fe04bb898cafeae0a372fd129070921ff7a263d06979bb0e728b968f105b
     deploy:
       restart_policy:
         condition: any
@@ -168,7 +168,7 @@ services:
         condition: service_started
 
   gvm-config:
-    image: registry.community.greenbone.net/community/gvm-config:latest@sha256:db42b420bef118e55ab5cc65d673698402c5d1f658059cc3c3a60b40e717a908
+    image: registry.community.greenbone.net/community/gvm-config:latest@sha256:1e8267b2cfba5586ff621b5ea47ba9c7c25ff993e177c081f5c00d3e19512f75
     environment:
       ENABLE_NGINX_CONFIG: true
       ENABLE_TLS_GENERATION: true
@@ -177,7 +177,7 @@ services:
       - nginx_certificates_vol:/mnt/nginx/certs
 
   nginx:
-    image: registry.community.greenbone.net/community/nginx:latest@sha256:49e99f6212c9dd167b66fd0c002280127bed6f5e5f3383053256986042ee1183
+    image: registry.community.greenbone.net/community/nginx:latest@sha256:a1606ec2332eb69bb952ac6b6a22a06c450d05ca1bb70d6d4f880b519d1657a5
     ports:
       # jt-lab customization: upstream binds 443+9392 to localhost only.
       # 9392 is just a 301-redirector that returns Location: https://$host:443/,
@@ -207,7 +207,7 @@ services:
   # and changes log output to /var/log/openvas instead /var/log/gvm
   # to reduce likelihood of unwanted log interferences
   configure-openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:be163e54638b3bb48a352fa3ab84dfea5b375c01d5792fd8c72c58b9e18c4103
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:0241142f429cb74b935649b58aa46821371d5399e4714ac51b80da826b23b25c
     volumes:
       - openvas_data_vol:/mnt
       - openvas_log_data_vol:/var/log/openvas
@@ -224,7 +224,7 @@ services:
 
   # shows logs of openvas
   openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:be163e54638b3bb48a352fa3ab84dfea5b375c01d5792fd8c72c58b9e18c4103
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:0241142f429cb74b935649b58aa46821371d5399e4714ac51b80da826b23b25c
     volumes:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas
@@ -239,7 +239,7 @@ services:
         condition: service_completed_successfully
 
   openvasd:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:be163e54638b3bb48a352fa3ab84dfea5b375c01d5792fd8c72c58b9e18c4103
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:0241142f429cb74b935649b58aa46821371d5399e4714ac51b80da826b23b25c
     deploy:
       restart_policy:
         condition: any
@@ -272,7 +272,7 @@ services:
           - openvasd
 
   ospd-openvas:
-    image: registry.community.greenbone.net/community/ospd-openvas:stable@sha256:9928adeaec0fccb109bf5747711552be449bf214103d4e559bc4d10490f78e05
+    image: registry.community.greenbone.net/community/ospd-openvas:stable@sha256:b8507be8e4cf34a84cc02c216817f86b347a984ecdbe0b68c759b094efd626c9
     deploy:
       restart_policy:
         condition: any

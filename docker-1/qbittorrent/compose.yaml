@@ -18,7 +18,7 @@
 # /mnt/kub/homelab/qbittorrent/.env (mode 0600 by intent; CIFS reports 0755).
 services:
   gluetun:
-    image: qmcgaw/gluetun:latest@sha256:f3cc8108b0e1ca965e73c6799f8a7e61a639bfbe676afadeb4ebedfe9dbac640
+    image: qmcgaw/gluetun:latest@sha256:6b7e41ac1005d5f060de67cbd268883ca90d43c7c231112639c0e7601dd5c0a3
     container_name: gluetun
     cap_add:
       - NET_ADMIN

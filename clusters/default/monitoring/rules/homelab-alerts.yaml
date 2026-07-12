@@ -197,8 +197,19 @@ spec:
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsbackupverifyfailed
         summary: PBS verify failed on last backup of VM {{ $labels.vm_id }} ({{ $labels.vm_name
           }})
-      expr: pbs_snapshot_vm_last_verify == 0
+      expr: pbs_snapshot_vm_last_verify{datastore="1tb"} == 0
       for: 30m
+      labels:
+        component: backup-host
+        severity: warning
+    - alert: PBSArchiveVerifyFailed
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Newest snapshot of VM {{ $labels.vm_id }} on the 2tb archive is
+          unverified/failed beyond the normal daily sync(06:00)-to-verify(09:30) window.
+        summary: PBS archive verify failed or overdue for VM {{ $labels.vm_id }}
+      expr: pbs_snapshot_vm_last_verify{datastore="2tb"} == 0
+      for: 6h
       labels:
         component: backup-host
         severity: warning

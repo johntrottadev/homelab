@@ -659,3 +659,16 @@ spec:
       labels:
         component: storage
         severity: warning
+    - alert: USBEnclosureTempSeriesMissing
+      annotations:
+        description: No temperature series from {{ $labels.host }} enclosure drives for
+          20m+ while the collector file stays fresh — host-side SMART reads are failing
+          (VM IO contention or enclosure trouble).
+        summary: Enclosure temp series missing for a host
+      expr: |
+        (count by (host) (usb_enclosure_drive_temp_celsius offset 1d) or vector(0))
+          unless on (host) count by (host) (usb_enclosure_drive_temp_celsius)
+      for: 20m
+      labels:
+        component: storage
+        severity: warning

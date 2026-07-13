@@ -1,0 +1,66 @@
+# crowdsec — behavioral IPS baseline. The agent DaemonSet tails container logs
+# (Traefik ingress + k8s), ships parsed events to the LAPI, and the LAPI holds
+# ban decisions. This baseline gives immediate detection + CrowdSec console
+# enrollment. Two follow-ups (both need your input):
+#   1. Traefik acquisition tuning — point the agent at Traefik access logs with
+#      the traefik parser collection for HTTP-layer scenarios.
+#   2. Palo Alto bouncer — a remote bouncer + PA API key so decisions become
+#      firewall blocks (the enforcement half; the reason CrowdSec > maltrail).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec
+  namespace: crowdsec
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: crowdsec
+      version: "0.24.0"
+      sourceRef:
+        kind: HelmRepository
+        name: crowdsec
+        namespace: flux-system
+      interval: 24h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    container_runtime: containerd
+    agent:
+      # Acquire logs from Traefik + high-value app namespaces. Broad to start;
+      # tighten once scenarios are validated.
+      acquisition:
+        - namespace: kube-system
+          podName: traefik-*
+          program: traefik
+      env:
+        - name: COLLECTIONS
+          value: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/base-http-scenarios crowdsecurity/linux"
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 256Mi
+    lapi:
+      persistentVolume:
+        data:
+          enabled: true
+          storageClassName: longhorn-ssd
+          size: 2Gi
+        config:
+          enabled: true
+          storageClassName: longhorn-ssd
+          size: 100Mi
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi

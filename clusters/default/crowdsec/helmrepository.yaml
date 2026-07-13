@@ -1,0 +1,10 @@
+# CrowdSec Helm chart repository — behavioral IPS. Agent parses logs, LAPI holds
+# decisions; a Palo Alto bouncer (follow-up, needs a PA API key) enforces them.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: crowdsec
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://crowdsecurity.github.io/helm-charts

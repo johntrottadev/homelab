@@ -1,0 +1,102 @@
+# authentik — SSO / identity provider. Brings the bundled PostgreSQL + Redis
+# subcharts (single-replica, homelab scale). After first reconcile, log in at
+# authentik.__BASE-DOMAIN__ as `akadmin` with the bootstrap password from the
+# authentik-secrets Secret, then wire Traefik forward-auth per app (follow-up).
+# Secrets (secret_key, bootstrap password, pg password) come from the SOPS
+# Secret `authentik-secrets` via existingSecret / env — never inline here.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: authentik
+  namespace: authentik
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: authentik
+      version: "2026.5.4"
+      sourceRef:
+        kind: HelmRepository
+        name: authentik
+        namespace: flux-system
+      interval: 24h
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+  values:
+    global:
+      env:
+        - name: AUTHENTIK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: secret-key
+        - name: AUTHENTIK_BOOTSTRAP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: bootstrap-password
+        - name: AUTHENTIK_BOOTSTRAP_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: bootstrap-token
+    authentik:
+      error_reporting:
+        enabled: false
+    server:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      ingress:
+        enabled: false
+    worker:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 100m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    postgresql:
+      enabled: true
+      auth:
+        existingSecret: authentik-secrets
+        secretKeys:
+          adminPasswordKey: pg-password
+          userPasswordKey: pg-password
+      primary:
+        persistence:
+          enabled: true
+          storageClass: longhorn-ssd
+          size: 8Gi
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+    redis:
+      enabled: true
+      master:
+        persistence:
+          enabled: true
+          storageClass: longhorn-ssd
+          size: 2Gi
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi

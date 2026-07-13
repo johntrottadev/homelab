@@ -61,10 +61,11 @@ spec:
       enabled: false
     metrics:
       enabled: true
+      # ServiceMonitor disabled: the chart already stamps a `release` label, and
+      # additionalLabels.release collides (duplicate map key in post-render). The
+      # metrics endpoints stay exposed; add a standalone ServiceMonitor later if wanted.
       serviceMonitor:
-        enabled: true
-        additionalLabels:
-          release: prometheus
+        enabled: false
     core:
       resources:
         requests:

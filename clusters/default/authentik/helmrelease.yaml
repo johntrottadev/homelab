@@ -44,6 +44,11 @@ spec:
             secretKeyRef:
               name: authentik-secrets
               key: bootstrap-token
+        - name: AUTHENTIK_POSTGRESQL__PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: authentik-secrets
+              key: pg-password
     authentik:
       error_reporting:
         enabled: false
@@ -70,6 +75,8 @@ spec:
     postgresql:
       enabled: true
       auth:
+        username: authentik
+        database: authentik
         existingSecret: authentik-secrets
         secretKeys:
           adminPasswordKey: pg-password

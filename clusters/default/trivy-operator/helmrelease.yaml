@@ -1,0 +1,57 @@
+# trivy-operator — continuous in-cluster image/CVE, config-audit, and exposed-secret
+# scanning. Complements OpenVAS (host/network) by covering CONTAINER IMAGES, which
+# nothing else in the lab scans. Findings surface as VulnerabilityReport CRDs and are
+# exported to Prometheus via the built-in metrics endpoint (ServiceMonitor below picks
+# them up — release: prometheus). No ingress: this is a controller, viewed via Grafana
+# or `kubectl get vulnerabilityreports -A`.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: trivy-operator
+  namespace: trivy-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: trivy-operator
+      version: "0.34.0"
+      sourceRef:
+        kind: HelmRepository
+        name: aqua
+        namespace: flux-system
+      interval: 24h
+  install:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  upgrade:
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  values:
+    trivy:
+      # Pull the DB once and cache it in-cluster; avoids per-scan rate-limit pain.
+      ignoreUnfixed: true
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+    operator:
+      scannerReportTTL: "168h"
+      # Scan on a cadence rather than on every change — kinder to the single worker fleet.
+      vulnerabilityScannerScanOnlyCurrentRevisions: true
+      configAuditScannerScanOnlyCurrentRevisions: true
+    serviceMonitor:
+      enabled: true
+      labels:
+        release: prometheus
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi

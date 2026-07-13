@@ -1,0 +1,10 @@
+# Aqua Security Helm chart repository — hosts trivy-operator.
+# Version bumps are a single-line change in the HelmRelease.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: aqua
+  namespace: flux-system
+spec:
+  interval: 24h
+  url: https://aquasecurity.github.io/helm-charts/

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stirling-pdf
+  namespace: stirling-pdf
+  labels:
+    app: stirling-pdf
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: stirling-pdf
+  template:
+    metadata:
+      labels:
+        app: stirling-pdf
+    spec:
+      containers:
+        - name: stirling-pdf
+          image: stirlingtools/stirling-pdf:1.4.0@sha256:e03d391d74aa642fb00ae4d7416d7c9e686c96d124e18dbd4d57575256a85d58
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DISABLE_ADDITIONAL_FEATURES
+              value: "false"
+            - name: SYSTEM_DEFAULTLOCALE
+              value: en-US
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/v1/info/status
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/info/status
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          volumeMounts:
+            - name: tessdata
+              mountPath: /usr/share/tessdata
+            - name: configs
+              mountPath: /configs
+      volumes:
+        - name: tessdata
+          persistentVolumeClaim:
+            claimName: stirling-pdf-tessdata
+        - name: configs
+          emptyDir: {}

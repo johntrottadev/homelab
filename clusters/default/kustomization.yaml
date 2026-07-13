@@ -140,13 +140,8 @@ resources:
   - jellyfin/service.yaml
   - jellyfin/ingressroute.yaml
 
-  # Phase 999.2 plan-02 — freshrss (in ns "rss", supersedes top-level freshrss.yaml).
-  - freshrss/namespace.yaml
-  # freshrss/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
-  - freshrss/pvc.yaml
-  - freshrss/deployment.yaml
-  - freshrss/service.yaml
-  - freshrss/ingressroute.yaml
+  # freshrss removed 2026-07-12 — consolidated read-later onto Hoarder (overlap).
+  # Namespace "rss" pruned by Flux; manifests deleted from clusters/default/freshrss/.
 
   # Phase 999.2 plan-02 — vscode (deploy "code-server", IR "vs", host vs.__BASE-DOMAIN__,
   # supersedes top-level vs.yaml). Privileged container intentional — IDE.
@@ -182,19 +177,9 @@ resources:
   - fitjat/backups/cronjob-backup-health.yaml
   - fitjat/backups/cronjob-rsync-storage.yaml
 
-  # Phase 999.2 spinoff — homarr (was Helm-managed via homarr-8.9.0 chart;
-  # superseded by flat manifests; supersedes top-level homarr.yaml).
-  # The 5 sh.helm.release.v1.homarr.* secrets remain in the namespace as
-  # historical record; harmless.
-  - homarr/namespace.yaml
-  # Bucket A — db-secret (4 keys: db-encryption-key, db-url, mysql-password,
-  # mysql-root-password). Was kubectl one-liner.
-  - homarr/secret-db.enc.yaml
-  # homarr/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-dbs SC.
-  - homarr/pvc.yaml
-  - homarr/deployment.yaml
-  - homarr/service.yaml
-  - homarr/ingressroute.yaml
+  # homarr removed 2026-07-12 — consolidated dashboards onto Dashy (two dashboards).
+  # Namespace "homarr" + leftover sh.helm.release.v1.homarr.* secrets pruned by Flux;
+  # manifests deleted from clusters/default/homarr/.
 
   # Phase 999.2 plan-03 — hoarder (per-component subdirs; supersedes hoarder.yaml).
   # 3 components: web (port 3000, svc 80), chrome (headless browser, port 3000,
@@ -511,6 +496,30 @@ resources:
   - drawio/deployment.yaml
   - drawio/service.yaml
   - drawio/ingressroute.yaml
+
+  # New-app deploy 2026-07-12 (Wave 1 of the security/hygiene expansion).
+  # vaultwarden — self-hosted Bitwarden; remediates plaintext-secret sprawl
+  # (SSH keys in the Guacamole DB, hand-managed device creds). ADMIN_TOKEN in
+  # SOPS secret; SIGNUPS_ALLOWED=false (invite-only). vault.__BASE-DOMAIN__.
+  - vaultwarden/namespace.yaml
+  - vaultwarden/secret-vaultwarden-admin.enc.yaml
+  - vaultwarden/pvc.yaml
+  - vaultwarden/deployment.yaml
+  - vaultwarden/service.yaml
+  - vaultwarden/ingressroute.yaml
+
+  # stirling-pdf — self-hosted PDF toolkit; pairs with Paperless. stirling.__BASE-DOMAIN__.
+  - stirling-pdf/namespace.yaml
+  - stirling-pdf/pvc.yaml
+  - stirling-pdf/deployment.yaml
+  - stirling-pdf/service.yaml
+  - stirling-pdf/ingressroute.yaml
+
+  # trivy-operator — continuous container-image CVE scanning (the gap OpenVAS
+  # doesn't cover). HelmRelease; findings as CRDs + Prometheus. No ingress.
+  - trivy-operator/namespace.yaml
+  - trivy-operator/helmrepository.yaml
+  - trivy-operator/helmrelease.yaml
 
   # Wave 2 — netdata DaemonSet (one pod per node, hostNetwork on :19999).
   # Cluster-side IngressRoute lives in clusters/default/netdata.yaml above.

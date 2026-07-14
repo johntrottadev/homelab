@@ -202,6 +202,19 @@ spec:
       forceDeployDashboards: false
       forceDeployDatasources: false
       fullnameOverride: grafana
+      # Anonymous read-only + iframe embedding, added 2026-07-14 so the Dashy
+      # homepage can embed live panels (d-solo). Internal-only (grafana.__BASE-DOMAIN__,
+      # LAN-scoped); org_role Viewer = read-only, no edit/admin. SECURITY NOTE: once
+      # Authentik forward-auth wraps the grafana ingress, keep anon on for embedding
+      # but gate the human-facing route at the proxy.
+      grafana.ini:
+        server:
+          root_url: https://grafana.${BASE_DOMAIN}
+        auth.anonymous:
+          enabled: true
+          org_role: Viewer
+        security:
+          allow_embedding: true
       image:
         tag: 12.4.3
       persistence:

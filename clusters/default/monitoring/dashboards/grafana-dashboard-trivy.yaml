@@ -16,18 +16,18 @@ data:
       "templating": {"list": []},
       "panels": [
         {
-          "type": "stat", "title": "Critical", "id": 1,
+          "type": "stat", "title": "Critical (deduped)", "id": 1,
           "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Critical\"})", "refId": "A"}],
+          "targets": [{"expr": "sum(max by (image_digest)(trivy_image_vulnerabilities{severity=\"Critical\"}))", "refId": "A"}],
           "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "unit": "short"}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
         {
-          "type": "stat", "title": "High", "id": 2,
+          "type": "stat", "title": "High (deduped)", "id": 2,
           "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"High\"})", "refId": "A"}],
+          "targets": [{"expr": "sum(max by (image_digest)(trivy_image_vulnerabilities{severity=\"High\"}))", "refId": "A"}],
           "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "orange"}, "unit": "short"}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
@@ -35,7 +35,7 @@ data:
           "type": "stat", "title": "Medium", "id": 3,
           "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Medium\"})", "refId": "A"}],
+          "targets": [{"expr": "sum(max by (image_digest)(trivy_image_vulnerabilities{severity=\"Medium\"}))", "refId": "A"}],
           "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "yellow"}, "unit": "short"}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
@@ -43,7 +43,7 @@ data:
           "type": "stat", "title": "Low", "id": 4,
           "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
           "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Low\"})", "refId": "A"}],
+          "targets": [{"expr": "sum(max by (image_digest)(trivy_image_vulnerabilities{severity=\"Low\"}))", "refId": "A"}],
           "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short"}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
@@ -54,6 +54,34 @@ data:
           "targets": [{"expr": "sort_desc(sum by (namespace) (trivy_image_vulnerabilities{severity=~\"Critical|High\"}))", "refId": "A", "legendFormat": "{{namespace}}", "instant": true}],
           "fieldConfig": {"defaults": {"color": {"mode": "continuous-YlOrRd"}, "unit": "short"}, "overrides": []},
           "options": {"orientation": "horizontal", "displayMode": "gradient", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "row", "title": "Docker hosts (docker-1/docker-2 — outside k8s)", "id": 200,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13}, "collapsed": false
+        },
+        {
+          "type": "stat", "title": "Docker Critical", "id": 20,
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 14},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(max by (host,image)(docker_image_vulnerabilities{severity=\"CRITICAL\"}))", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "stat", "title": "Docker High", "id": 21,
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 14},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(max by (host,image)(docker_image_vulnerabilities{severity=\"HIGH\"}))", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "orange"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "table", "title": "Docker images by Critical+High (triage)", "id": 22,
+          "gridPos": {"h": 9, "w": 16, "x": 8, "y": 14},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sort_desc(sum by (host,image)(docker_image_vulnerabilities{severity=~\"CRITICAL|HIGH\"}))", "refId": "A", "format": "table", "instant": true}],
+          "options": {"showHeader": true},
+          "transformations": [{"id": "organize", "options": {"excludeByName": {"Time": true, "job": true, "instance": true, "severity": true}, "renameByName": {"host": "Host", "image": "Image", "Value": "Crit+High"}}}]
         },
         {
           "type": "table", "title": "Most vulnerable images (Critical+High)", "id": 6,

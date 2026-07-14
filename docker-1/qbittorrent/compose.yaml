@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest@sha256:4e665d7a597acf308aa01d84d7a378abd285982cd793785042c2f4110280b620
+    image: lscr.io/linuxserver/qbittorrent:latest@sha256:9e4c557088833fb49c6d933c2c5cfefe73240687aaa29cefa1fbfceaef13979d
     container_name: qbittorrent
     # All network traffic (peer + Web UI) routes through gluetun's network
     # namespace. qbittorrent has no ports of its own — they're published on

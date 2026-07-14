@@ -52,6 +52,16 @@
     fileMatch: ['(^|/)komodo-stack\\.yaml$'],
   },
 
+  // 2026-07-14: enable the `kubernetes` manager so raw Deployment/StatefulSet/
+  // DaemonSet image pins under clusters/default/ get update PRs too — closing the
+  // gap where only docker-compose images were tracked. Renovate's kubernetes
+  // manager only extracts files containing a k8s `kind:` + `image:`, so a broad
+  // fileMatch is safe (non-workload YAML is skipped). Flux HelmRelease chart
+  // versions are handled by the built-in `flux` manager (config:recommended).
+  kubernetes: {
+    fileMatch: ['clusters/default/.+\\.ya?ml$'],
+  },
+
   // D-01 (explicit-evidence half): make github-actions manager visible by
   // surface inspection of renovate.json5. `config:recommended` already
   // auto-enables this manager — the empty block below is defensive
@@ -74,6 +84,32 @@
       matchPackagePatterns: ['^jt-lab/'],
       enabled: false,
       description: 'D-07: jt-lab/* are local-build images; no upstream registry to pin. See PIN-04 backlog.',
+    },
+    {
+      // GUARDRAIL: never auto-propose a DATABASE major bump. A postgres/redis/
+      // mariadb major jump makes the on-disk data dir unreadable and takes the
+      // app down — those upgrades need a manual dump/restore or pg_upgrade.
+      // Renovate still offers minor/patch/digest for these; majors are blocked.
+      matchDatasources: ['docker'],
+      matchPackageNames: ['postgres', 'redis', 'mariadb', 'mysql', 'mongo'],
+      matchUpdateTypes: ['major'],
+      enabled: false,
+      description: 'Block DB major bumps — data-dir incompatibility risk; do these by hand.',
+    },
+    {
+      // Apps whose majors require sequential/manual upgrade steps: surface the
+      // major as a dashboard entry needing explicit approval, don't open it as a
+      // ready-to-merge PR. Minor/patch/digest still flow normally.
+      matchPackageNames: ['nextcloud', 'guacamole/guacamole', 'guacamole/guacd', 'fireflyiii/core'],
+      matchUpdateTypes: ['major'],
+      dependencyDashboardApproval: true,
+      description: 'Major upgrades for stateful apps need manual approval (schema/upgrade steps).',
+    },
+    {
+      // Everything else: group minor+patch+digest into tidy per-manager PRs so
+      // "keep images current" is a small review, not a PR storm.
+      matchUpdateTypes: ['minor', 'patch', 'digest'],
+      groupName: 'image updates (non-major)',
     },
   ],
 

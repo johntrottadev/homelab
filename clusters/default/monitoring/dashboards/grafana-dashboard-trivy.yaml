@@ -1,0 +1,73 @@
+# Trivy Operator — container-image CVE posture for THIS cluster's running images.
+# Data source: trivy_image_vulnerabilities (trivy-operator ServiceMonitor -> Prometheus).
+# Panels 1-4 are compact stat tiles embedded into the Dashy homepage (d-solo).
+apiVersion: v1
+data:
+  trivy.json: |
+    {
+      "title": "Homelab — Trivy Image CVEs",
+      "uid": "homelab-trivy",
+      "schemaVersion": 39,
+      "editable": true,
+      "timezone": "",
+      "tags": ["trivy", "security", "cve", "homelab"],
+      "time": {"from": "now-6h", "to": "now"},
+      "refresh": "5m",
+      "templating": {"list": []},
+      "panels": [
+        {
+          "type": "stat", "title": "Critical", "id": 1,
+          "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Critical\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "stat", "title": "High", "id": 2,
+          "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"High\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "orange"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "stat", "title": "Medium", "id": 3,
+          "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Medium\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "yellow"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "stat", "title": "Low", "id": 4,
+          "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(trivy_image_vulnerabilities{severity=\"Low\"})", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "bargauge", "title": "Critical + High by namespace", "id": 5,
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sort_desc(sum by (namespace) (trivy_image_vulnerabilities{severity=~\"Critical|High\"}))", "refId": "A", "legendFormat": "{{namespace}}", "instant": true}],
+          "fieldConfig": {"defaults": {"color": {"mode": "continuous-YlOrRd"}, "unit": "short"}, "overrides": []},
+          "options": {"orientation": "horizontal", "displayMode": "gradient", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "table", "title": "Most vulnerable images (Critical+High)", "id": 6,
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 4},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "topk(15, sum by (image_repository, image_tag) (trivy_image_vulnerabilities{severity=~\"Critical|High\"}))", "refId": "A", "format": "table", "instant": true}],
+          "options": {"showHeader": true},
+          "transformations": [{"id": "organize", "options": {"excludeByName": {"Time": true, "job": true, "instance": true}, "renameByName": {"image_repository": "Image", "image_tag": "Tag", "Value": "Crit+High"}}}]
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: grafana-trivy-dashboard
+  namespace: monitoring

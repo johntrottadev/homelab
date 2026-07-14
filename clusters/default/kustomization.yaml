@@ -426,6 +426,7 @@ resources:
   - monitoring/dashboards/grafana-dashboard-pihole.yaml
   - monitoring/dashboards/grafana-dashboard-pve.yaml
   - monitoring/dashboards/grafana-dashboard-storage.yaml
+  - monitoring/dashboards/grafana-dashboard-trivy.yaml
   - monitoring/dashboards/grafana-dashboard-velero.yaml
   - monitoring/dashboards/grafana-dashboard-velero-per-app.yaml
   - monitoring/dashboards/grafana-velero-native-dashboard.yaml

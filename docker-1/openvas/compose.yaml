@@ -79,7 +79,7 @@ services:
         condition: service_healthy
 
   gpg-data:
-    image: registry.community.greenbone.net/community/gpg-data:latest@sha256:3cec7306e00e1db5204e2b8b3ab0215533780d47ef74c55e895db8f0476a4b12
+    image: registry.community.greenbone.net/community/gpg-data:latest@sha256:b8c0434c1ed5cbc41aafdb7db1b72433467b42440c22625aa2132e42fb58b722
     volumes:
       - gpg_data_vol:/mnt
 

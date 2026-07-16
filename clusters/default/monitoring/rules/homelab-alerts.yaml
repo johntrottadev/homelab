@@ -235,7 +235,11 @@ spec:
           via DSM Storage Manager.
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologydiskunhealthy
         summary: Synology disk reports non-normal health
-      expr: diskHealthStatus{job="snmp-synology"} > 1
+      # 'Cache device 1-1' excluded 2026-07-16: known-failing cache NVMe, accepted
+      # and left physically installed-but-unused until the planned NAS cache swap
+      # (2x1TB -> 2x256GB, see hardware-maintenance runbook). Re-include when the
+      # drive is pulled. Any OTHER disk going unhealthy still alerts.
+      expr: diskHealthStatus{job="snmp-synology", diskID!="Cache device 1-1"} > 1
       for: 15m
       labels:
         component: synology
@@ -247,9 +251,11 @@ spec:
           before <10%.
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologydiskremainlifelow
         summary: 'Synology SSD wear: {{ $labels.diskID }} at {{ $value }}% lifetime'
+      # 'Cache device 1-1' excluded 2026-07-16 — same accepted/parked drive as
+      # SynologyDiskUnhealthy above. Re-include when physically removed.
       expr: |
-        diskRemainLife{job="snmp-synology"} >= 0
-          and diskRemainLife{job="snmp-synology"} < 20
+        diskRemainLife{job="snmp-synology", diskID!="Cache device 1-1"} >= 0
+          and diskRemainLife{job="snmp-synology", diskID!="Cache device 1-1"} < 20
       for: 1h
       labels:
         component: synology

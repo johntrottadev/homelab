@@ -677,7 +677,7 @@ spec:
           (VM IO contention or enclosure trouble).
         summary: Enclosure temp series missing for a host
       expr: |
-        (count by (host) (usb_enclosure_drive_temp_celsius offset 1d) or vector(0))
+        count by (host) (usb_enclosure_drive_temp_celsius offset 1d)
           unless on (host) count by (host) (usb_enclosure_drive_temp_celsius)
       for: 20m
       labels:

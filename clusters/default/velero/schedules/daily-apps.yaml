@@ -26,12 +26,12 @@ spec:
       - events.events.k8s.io
       - events
     includedNamespaces:
+      - authentik
       - dashy
       - drawio
       - firefly
       - fitjat
       - hoarder
-      - homarr
       - it-tools-namespace
       - jellyfin
       - libre
@@ -41,8 +41,8 @@ spec:
       - netalert
       - nextcloud
       - paperless
-      - rss
       - uptime-kuma
+      - vaultwarden
       - vscode
     snapshotVolumes: false
     storageLocation: wasabi

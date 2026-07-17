@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: stirling-pdf
-          image: stirlingtools/stirling-pdf:1.4.0@sha256:e03d391d74aa642fb00ae4d7416d7c9e686c96d124e18dbd4d57575256a85d58
+          image: stirlingtools/stirling-pdf:1.6.0@sha256:1f73a8f898fe269cbbccea3be577064dd87fc4334de349fcc5b1afa1bcebf240
           imagePullPolicy: IfNotPresent
           env:
             - name: DISABLE_ADDITIONAL_FEATURES

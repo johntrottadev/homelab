@@ -31,7 +31,7 @@ spec:
           # T-999.2-07: pin tag (3.1.1 from planner does not exist on Docker Hub;
           # 3.3.1 is the latest 3.x release, matches version family the running
           # :latest pod was on at cutover time).
-          image: lissy93/dashy:4.3.0
+          image: lissy93/dashy:4.4.5@sha256:ccfcb23451e202455a490b08f911566e433b2fc30d9afa815d5169d904bd970c
           imagePullPolicy: IfNotPresent
           env:
             - name: NODE_ENV

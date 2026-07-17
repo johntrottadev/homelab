@@ -17,7 +17,7 @@ spec:
       labels:
         app: uptime-kuma
     spec:
-      # Note: louislam/uptime-kuma:2.4.0 runs as root by design — its entrypoint
+      # Note: louislam/uptime-kuma:1.23.17 runs as root by design — its entrypoint
       # does its own chown on /app/data, then drops privileges internally.
       # Setting pod-level runAsUser/runAsGroup breaks the container's startup
       # ("chown: changing ownership of '/app/data': Operation not permitted").
@@ -39,7 +39,7 @@ spec:
               mountPath: /app/data
       containers:
         - name: uptime-kuma
-          image: louislam/uptime-kuma:2.4.0
+          image: louislam/uptime-kuma:1.23.17
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

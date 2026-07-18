@@ -42,7 +42,7 @@ spec:
           # data from this pod, only push it outward.
           containers:
             - name: rclone
-              image: rclone/rclone:1.69
+              image: rclone/rclone:1.74@sha256:c61954aaa32328a5486715dd063a81c7879f5195ad3505cd362deddd509dc4a1
               imagePullPolicy: IfNotPresent
               env:
                 - name: RCLONE_CONFIG_WASABI_TYPE

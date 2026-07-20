@@ -48,3 +48,21 @@ spec:
   resources:
     requests:
       storage: 100Gi
+---
+# Consume/watch folder — dynamic storage-apps (NFS) so it SURVIVES pod restarts
+# (unlike the ephemeral /tmp web-upload path that ate the 2026-07-19 queue).
+# Provisions to __NAS-IP__:/volume1/kub/homelab/paperless/paperless-consume-pvc
+# — reachable over the NAS share to drop/rsync PDFs; paperless polls + imports.
+# RWX + polling because inotify is unreliable over NFS.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: paperless-consume-pvc
+  namespace: paperless
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: storage-apps
+  resources:
+    requests:
+      storage: 20Gi

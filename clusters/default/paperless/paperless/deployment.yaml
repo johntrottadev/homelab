@@ -61,6 +61,16 @@ spec:
           value: "2"
         - name: PAPERLESS_THREADS_PER_WORKER
           value: "2"
+        # Persistent consume folder (storage-apps NFS) — poll every 30s since
+        # inotify is unreliable over NFS. RETRY_COUNT waits for slow/large
+        # files to finish copying before consuming. Files here survive pod
+        # restarts, unlike the ephemeral /tmp web-upload staging path.
+        - name: PAPERLESS_CONSUMER_POLLING
+          value: "30"
+        - name: PAPERLESS_CONSUMER_POLLING_RETRY_COUNT
+          value: "5"
+        - name: PAPERLESS_CONSUMER_RECURSIVE
+          value: "true"
         image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15
         imagePullPolicy: Always
         name: paperless-ngx
@@ -72,6 +82,8 @@ spec:
           name: media-volume
         - mountPath: /usr/src/paperless/data
           name: data-volume
+        - mountPath: /usr/src/paperless/consume
+          name: consume-volume
       securityContext: {}
       volumes:
       - name: media-volume
@@ -80,4 +92,7 @@ spec:
       - name: data-volume
         persistentVolumeClaim:
           claimName: paperless-data-pvc
+      - name: consume-volume
+        persistentVolumeClaim:
+          claimName: paperless-consume-pvc
 

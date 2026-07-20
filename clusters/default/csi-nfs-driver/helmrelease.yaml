@@ -14,7 +14,7 @@ spec:
   chart:
     spec:
       chart: csi-driver-nfs
-      version: "4.11.0"  # pin EXACT for reproducibility — match running release
+      version: "4.13.4"  # pin EXACT for reproducibility — match running release
       sourceRef:
         kind: HelmRepository
         name: csi-driver-nfs

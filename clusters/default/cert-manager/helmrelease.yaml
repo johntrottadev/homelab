@@ -16,7 +16,7 @@ spec:
   chart:
     spec:
       chart: cert-manager
-      version: "v1.20.2"  # pin EXACT — match running release; leading `v` matches chart version string
+      version: "v1.21.0"  # pin EXACT — match running release; leading `v` matches chart version string
       sourceRef:
         kind: HelmRepository
         name: jetstack

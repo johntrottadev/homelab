@@ -12,7 +12,7 @@ spec:
   chart:
     spec:
       chart: loki
-      version: "7.0.0"  # appVersion 3.6.7 — pin EXACT for reproducibility
+      version: "7.1.0"  # pin EXACT for reproducibility
       sourceRef:
         kind: HelmRepository
         name: grafana

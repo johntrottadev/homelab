@@ -40,11 +40,12 @@
 #
 # Chart version pinning
 # ---------------------
-# Pinned to 3.7.1 (app v1.17.1, chart published 2026-02-19) — most current
-# release that satisfies the 14-day chart-aging rule (today 2026-05-04).
-# 3.7.2 (2026-04-23) and 3.8.0 (2026-04-29) are too new. Plan originally
-# called for 3.5.2 — selected 3.7.1 for the bumped k8s API support and
-# stable JMESPath time helpers (release-1.17 line, see clusterpolicy yaml).
+# Bumped 3.7.1 -> 3.8.2 (2026-07-19, Class 4 chart pass). Re-verified the
+# forceFailurePolicyIgnore values key still exists in chart 3.8.2
+# (values.yaml: features.forceFailurePolicyIgnore.enabled, default false —
+# we set true below). Resource-validating webhook confirmed failurePolicy:
+# Ignore live before the bump, so admission stays fail-open through upgrade.
+# Prior: 3.7.1 (app v1.17.1) selected for k8s API support + JMESPath time helpers.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -55,7 +56,7 @@ spec:
   chart:
     spec:
       chart: kyverno
-      version: "3.7.1"  # pin EXACT — see chart version pinning rationale above
+      version: "3.8.2"  # pin EXACT — see chart version pinning rationale above
       sourceRef:
         kind: HelmRepository
         name: kyverno

@@ -48,6 +48,19 @@ spec:
             secretKeyRef:
               key: db-password
               name: paperless-secret
+        # OCR tuning (2026-07-19): imports are digital PDFs that already carry a
+        # text layer. Rotation/deskew detection forces per-page rasterization +
+        # re-OCR (~20min/book) even on text pages, so disable both. Parallelize
+        # to 2 workers x 2 threads to use the 4-core box (was serial, ~0.5 core).
+        # Re-enable ROTATE/DESKEW if importing crooked phone-photo scans.
+        - name: PAPERLESS_OCR_ROTATE_PAGES
+          value: "false"
+        - name: PAPERLESS_OCR_DESKEW
+          value: "false"
+        - name: PAPERLESS_TASK_WORKERS
+          value: "2"
+        - name: PAPERLESS_THREADS_PER_WORKER
+          value: "2"
         image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15
         imagePullPolicy: Always
         name: paperless-ngx

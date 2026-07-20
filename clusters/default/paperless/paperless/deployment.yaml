@@ -48,11 +48,21 @@ spec:
             secretKeyRef:
               key: db-password
               name: paperless-secret
-        # OCR tuning (2026-07-19): imports are digital PDFs that already carry a
-        # text layer. Rotation/deskew detection forces per-page rasterization +
-        # re-OCR (~20min/book) even on text pages, so disable both. Parallelize
-        # to 2 workers x 2 threads to use the 4-core box (was serial, ~0.5 core).
-        # Re-enable ROTATE/DESKEW if importing crooked phone-photo scans.
+        # OCR tuning (2026-07-19/20): imports are digital PDFs that already carry
+        # a text layer. Biggest cost was SKIP_ARCHIVE_FILE=never forcing a full
+        # ocrmypdf PDF/A-archive pass (rasterize + re-OCR + unpaper) on every doc
+        # even when it already has text. SKIP_ARCHIVE=with_text skips that pass
+        # for text docs -> seconds/book instead of minutes. CLEAN=none drops the
+        # unpaper rasterization; ROTATE/DESKEW off drops rotation detection.
+        # Scanned image-only pages still OCR normally (MODE=skip only skips text
+        # pages). Re-enable CLEAN/ROTATE/DESKEW if importing crooked photo scans.
+        # Parallelize to 2 workers x 2 threads across the 4-core box.
+        - name: PAPERLESS_OCR_MODE
+          value: "skip"
+        - name: PAPERLESS_OCR_SKIP_ARCHIVE_FILE
+          value: "with_text"
+        - name: PAPERLESS_OCR_CLEAN
+          value: "none"
         - name: PAPERLESS_OCR_ROTATE_PAGES
           value: "false"
         - name: PAPERLESS_OCR_DESKEW

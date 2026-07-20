@@ -3,6 +3,10 @@
 #   media (documents) → STATIC NFS PV, untouched on Synology at
 #     __NAS-IP__:/volume1/kub/homelab/paperless/paperless-media-pvc
 #   (documents deliberately not migrated — same pattern as jellyfin movies)
+# Grown 10Gi -> 30Gi (2026-07-20): the auto-classification model balloons on
+# book-length docs (5.4GB), and a retrain transiently needs old+new (~2x) which
+# overran the 10Gi volume -> [Errno 28], wedging imports + logging. 30Gi gives
+# room for the model swap + index growth. longhorn-ssd allowVolumeExpansion=true.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,7 +17,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 30Gi
   storageClassName: longhorn-ssd
 ---
 apiVersion: v1

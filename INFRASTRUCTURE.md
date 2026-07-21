@@ -105,7 +105,7 @@ All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT w
 - **k3s control plane** (v1.35.3+k3s1, embedded etcd, 3/3 quorum — one server per PVE host): k3s-ctl-1 @ <your-svc-subnet>.140, k3s-ctl-2 @ <your-svc-subnet>.141, k3s-ctl-3 @ <your-svc-subnet>.142. Control-plane API VIP <your-svc-subnet>.146 (kube-vip).
 - **k3s workers**: k3s-wkr-1 @ <your-svc-subnet>.143, k3s-wkr-2 @ <your-svc-subnet>.144, k3s-wkr-3 @ <your-svc-subnet>.145. Traefik LoadBalancer VIP <your-svc-subnet>.147 (kube-vip). Storage: Longhorn (replica-3 on the workers) + Synology NFS.
 - **Docker hosts (Komodo-managed)**: docker-1 (<your-svc-subnet>.40, on __PVE-NODE-1__, periphery), docker-2 (<your-svc-subnet>.39, on __PVE-NODE-3__, periphery), docker-3 (<your-svc-subnet>.37, on __PVE-NODE-2__, **Komodo Core** — core/ferretdb/postgres)
-- **Other services**: pihole1/2 (<your-svc-subnet>.20/.21), netbird-exit-1/2 (<your-svc-subnet>.48/.49)
+- **Other services**: pihole1/2 (<your-svc-subnet>.20/.21), netbird-exit-1/2/3 (<your-svc-subnet>.48/.49/.51 — one LXC per PVE host; NetBird Cloud, enrolled via setup key)
 - **Single-purpose app VMs**: app-vm (<your-svc-subnet>.70, AIL Framework — bare-metal upstream installer, no docker; managed via `terraform/app-vm-node/`)
 
 > **Blue/green note:** the current cluster (above) is the *new* rebuild and serves all traffic. The *old* 5-node cluster (k3s-1/k3s-2/… on VIP <your-svc-subnet>.50) is kept powered on as an instant rollback until __PVE-NODE-1__ is cleared and decommissioned.

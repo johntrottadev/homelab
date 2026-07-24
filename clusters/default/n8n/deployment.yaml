@@ -50,6 +50,14 @@ spec:
               value: n8n.${BASE_DOMAIN}
             - name: N8N_PROTOCOL
               value: https
+            # Explicit external URLs so n8n builds OAuth redirect + webhook URLs
+            # without appending the internal container port (:5678). Without these,
+            # the OAuth2 callback becomes https://n8n.<domain>:5678/... which the
+            # ingress (443 only) can't serve → "unable to connect" on Google callback.
+            - name: N8N_EDITOR_BASE_URL
+              value: https://n8n.${BASE_DOMAIN}/
+            - name: WEBHOOK_URL
+              value: https://n8n.${BASE_DOMAIN}/
             - name: NODE_ENV
               value: production
             - name: N8N_PORT

@@ -416,6 +416,12 @@ spec:
     prometheus:
       enabled: true
       prometheusSpec:
+        # retention: prune by age (10d) OR size (34GB ~80% of the 40Gi PVC),
+        # whichever hits first. retentionSize is the hard guardrail added after
+        # the 2026-08-06 incident where 10d-only retention filled the 20Gi PVC,
+        # wedged WAL writes, and froze alert rules into a false-positive storm.
+        retention: 10d
+        retentionSize: "34GB"
         additionalScrapeConfigs:
         - job_name: proxmox
           metrics_path: /pve
@@ -603,7 +609,7 @@ spec:
               - ReadWriteOnce
               resources:
                 requests:
-                  storage: 20Gi
+                  storage: 40Gi
               storageClassName: longhorn-ssd
     prometheus-node-exporter:
       extraArgs:

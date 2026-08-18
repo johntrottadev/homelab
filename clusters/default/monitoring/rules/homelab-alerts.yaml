@@ -551,6 +551,27 @@ spec:
       labels:
         component: k8s
         severity: critical
+    # Added 2026-08-18 alongside the paperless memory bounding. Rationale: a
+    # container hitting its cgroup limit does NOT reliably produce a visible
+    # CrashLoop. In multi-process containers (paperless runs gunicorn + celery
+    # workers + ocrmypdf/tesseract subprocesses) the kernel kills the largest
+    # process, not PID 1 — you get a failed OCR task or a stuck document and no
+    # pod-level signal at all. Bounding memory without this alert converts loud
+    # node pressure into silent ingestion failure, which is strictly worse.
+    - alert: ContainerOOMKilled
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-overview
+        description: Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod
+          }} was OOMKilled. Check whether the limit is too tight or the workload
+          leaked. For multi-process containers a killed worker may not restart the
+          pod — check the app's own task/error state, not just pod status.
+        summary: Container {{ $labels.namespace }}/{{ $labels.container }} hit its memory limit
+      expr: |
+        kube_pod_container_status_last_terminated_reason{reason="OOMKilled"} == 1
+      for: 1m
+      labels:
+        component: k8s
+        severity: warning
   - interval: 1m
     name: homelab.longhorn.rules
     rules:

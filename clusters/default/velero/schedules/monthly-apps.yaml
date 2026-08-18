@@ -2,11 +2,20 @@
 # Was kubectl-applied via `velero/schedules/monthly.yaml`.
 #
 # Two post-capture injections required:
-#   1. `kustomize.toolkit.fluxcd.io/ssa: Merge` annotation — without it, Flux loops
-#      with the velero controller's reset of spec.skipImmediately.
-#   2. `spec.skipImmediately: true` — velero spurious-trigger mitigation (issues
-#      #2433/#2612/#6517/#6685). velero v1.18 consumes-and-resets the field after
-#      one cron tick; the Merge annotation makes Flux tolerate that reset.
+#   1. `kustomize.toolkit.fluxcd.io/ssa: Merge` annotation — retained. Flux and the
+#      velero controller both write this object; Merge keeps them from looping.
+#
+# REMOVED 2026-08-18: `spec.skipImmediately: true`.
+# It was added as a one-shot mitigation for velero's startup spurious-trigger bug
+# (issues #2433/#2612/#6517/#6685), but a one-shot mitigation cannot live in desired
+# state. Velero consumes the flag, skips whichever backup is next, and resets it to
+# false; Flux then re-applies `true` on its next 10m reconcile. That made every cron
+# tick a race against a flag re-armed six times an hour. All three schedules were
+# observed skipped at 2026-08-18T11:27:19Z — a Tuesday morning matching no cron — and
+# the race ate the 2026-08-16 weekly outright (weekly-apps went 2026-08-09 -> 2026-08-18
+# with nothing in between, confirmed against TTL: 3 weeklies retained where 4 were due).
+# If the startup spurious-trigger ever recurs, set the field imperatively once on the
+# live object; never commit it.
 apiVersion: velero.io/v1
 kind: Schedule
 metadata:
@@ -19,7 +28,6 @@ metadata:
 spec:
   paused: false
   schedule: 45 5 1 * *   # 1st 01:45 EDT — after weekly; Kopia dedups so upload is near-free
-  skipImmediately: true
   template:
     defaultVolumesToFsBackup: true
     excludedResources:

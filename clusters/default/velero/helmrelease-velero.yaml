@@ -86,12 +86,16 @@ spec:
         - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
           operator: Exists
+    # Server sized 2026-08-18 after an OOMKill (exit 137) at 2026-08-17T05:31:47Z took
+    # down daily-apps-20260817043039 at 417/995 items. 14d peak working set was
+    # 437-505Mi against the previous 512Mi limit — it sat at the ceiling every run.
+    # Set to ~4x observed peak so a growing item/PVB count does not re-cross it.
     resources:
       limits:
         cpu: 500m
-        memory: 512Mi
+        memory: 2Gi
       requests:
         cpu: 200m
-        memory: 256Mi
+        memory: 512Mi
     schedules: {}
     upgradeCRDs: false

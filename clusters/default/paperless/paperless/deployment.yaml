@@ -87,6 +87,21 @@ spec:
         ports:
         - containerPort: 8000
           protocol: TCP
+        # Bounded 2026-08-18. Ran 47 days unrestarted with resources:{} and reached
+        # 10805Mi at 8m CPU — retained working set, not demonstrated need — which held
+        # k3s-wkr-2 at 90% memory alongside Prometheus and the Longhorn instance-managers.
+        # The 2Gi request is what actually rebalances this: it lets the scheduler place
+        # the pod honestly instead of treating it as free. The 6Gi limit is ~3x a healthy
+        # paperless and bounds the blast radius; if it proves tight the CrashLoop is loud
+        # and reversible, unlike the silent node pressure it replaces.
+        # CPU limit is generous because OCR is bursty (2 workers x 2 threads).
+        resources:
+          requests:
+            memory: 2Gi
+            cpu: 250m
+          limits:
+            memory: 6Gi
+            cpu: 2000m
         volumeMounts:
         - mountPath: /usr/src/paperless/media
           name: media-volume

@@ -235,22 +235,48 @@ spec:
           via DSM Storage Manager.
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#synologydiskunhealthy
         summary: Synology disk reports non-normal health
-      # Exclusion removed 2026-08-18 — the NAS cache swap happened.
+      # Exclusion removed 2026-08-18 — the NAS now runs with NO cache at all.
       #
       # History: 'Cache device 1-1' was excluded 2026-07-16 as a known-failing NVMe,
-      # accepted and left installed-but-unused pending the swap. On 2026-08-18 a
+      # accepted and left installed-but-unused pending a planned swap. On 2026-08-18 a
       # per-disk sweep found 'Cache device 1-2' ALSO reading health=3 — the second
       # drive had failed behind the exclusion, silently, because the rule only ever
-      # named the first. Both 1TB NVMes were then pulled and replaced with a single
-      # working read-cache drive.
+      # named the first. Both 1TB NVMes were pulled the same day and the read cache
+      # was retired rather than replaced. Post-removal the exporter reports exactly
+      # four series (Disk 1-4, all health=1) and this alert went inactive.
       #
-      # There is no longer a known-bad disk, so there is no exclusion. This is
-      # deliberate: an exclusion scoped to one diskID cannot see the second failure
+      # There is no known-bad disk and no cache device, so there is no exclusion. That
+      # is deliberate: an exclusion scoped to one diskID cannot see the second failure
       # of the same class, which is exactly how this one hid for a month. If a disk
       # must be excluded again, exclude it by ID *and* set a removal date.
       #
-      # Data disks (Disk 1-4) all read health=1 throughout; no data was ever at risk.
+      # Data disks (Disk 1-4) read health=1 throughout; no data was ever at risk.
       expr: diskHealthStatus{job="snmp-synology"} > 1
+      for: 15m
+      labels:
+        component: synology
+        severity: warning
+    # Added 2026-08-18 with the cache retirement. SynologyDiskUnhealthy only fires on
+    # a disk it can SEE. If the OID walk stops returning diskHealthStatus — SNMP perms
+    # changed, MIB moved, exporter misconfigured — the rule matches nothing and looks
+    # identical to a healthy NAS. `up` stays 1 the whole time because the scrape still
+    # succeeds; SynologySNMPDown will not catch this.
+    #
+    # That blind spot is the same class of failure as the exclusion above: not a disk
+    # going bad, but us quietly ceasing to look at it. Four data disks now carry every
+    # PVC on the cluster with no cache layer in front of them, so losing sight of them
+    # is worth paging over.
+    - alert: SynologyDiskMetricsAbsent
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: snmp-synology is scraping (up=1) but returned no diskHealthStatus
+          series for 15m. Disk health is unobserved — this looks like "no unhealthy
+          disks" and is not. Check SNMP community/perms on the NAS and the exporter's
+          module config.
+        summary: Synology disk health metrics have disappeared
+      expr: |
+        absent(diskHealthStatus{job="snmp-synology"}) == 1
+        and on() (up{job="snmp-synology"} == 1)
       for: 15m
       labels:
         component: synology

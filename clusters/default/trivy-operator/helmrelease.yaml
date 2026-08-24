@@ -54,4 +54,7 @@ spec:
         memory: 128Mi
       limits:
         cpu: 500m
-        memory: 512Mi
+        # 512Mi OOMKilled the operator 63 times in ~41d (ContainerOOMKilled fired
+        # 2026-08-24). Doubled 2026-08-24; watch container_memory_working_set_bytes
+        # for trivy-operator before trimming this back.
+        memory: 1Gi

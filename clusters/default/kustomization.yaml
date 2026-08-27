@@ -73,7 +73,6 @@ resources:
   # homarr.yaml superseded by homarr/ subdir below (Phase 999.2 spinoff)
   # ittools.yaml superseded by ittools/ subdir below (Phase 999.2 plan-01)
   # jellyfin.yaml superseded by jellyfin/ subdir below (Phase 999.2 plan-02)
-  # libre.yaml superseded by libre/ subdir below (Phase 999.2 plan-01)
   # n8n.yaml superseded by n8n/ subdir below (Phase 999.2 plan-02)
   # paperless.yaml superseded by paperless/ subdir below (Phase 999.2 plan-03)
   - prometheus.yaml
@@ -107,15 +106,8 @@ resources:
   - ittools/service.yaml
   - ittools/ingressroute.yaml
 
-  # Phase 999.2 plan-01 — libre / libreoffice (per-app subdir; supersedes top-level libre.yaml).
   # linuxserver image — root entrypoint + PUID/PGID env. Multi-port service
   # (80→3000 http, 443→3001 https). PV uses NAS IP, mountOptions preserved.
-  - libre/namespace.yaml
-  # libre/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
-  - libre/pvc.yaml
-  - libre/deployment.yaml
-  - libre/service.yaml
-  - libre/ingressroute.yaml
 
   # Phase 999.2 plan-02 — n8n (per-app subdir; supersedes top-level n8n.yaml).
   # PV file deleted in Wave 1 of PV/PVC standardization (quick-260511-utf);
@@ -539,13 +531,6 @@ resources:
   - crowdsec/helmrepository.yaml
   - crowdsec/helmrelease.yaml
 
-  # harbor — private registry (registry blobs on storage-apps, DBs on longhorn-ssd,
-  # internal trivy off). admin-password + secretKey in SOPS. harbor.__BASE-DOMAIN__.
-  - harbor/namespace.yaml
-  - harbor/secret-harbor.enc.yaml
-  - harbor/helmrepository.yaml
-  - harbor/helmrelease.yaml
-  - harbor/ingressroute.yaml
 
   # Wave 2 — netdata DaemonSet (one pod per node, hostNetwork on :19999).
   # Cluster-side IngressRoute lives in clusters/default/netdata.yaml above.

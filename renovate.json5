@@ -19,6 +19,14 @@
   prConcurrentLimit: 3,
   prHourlyLimit: 1,
 
+  // Three packageRules below use dependencyDashboardApproval, whose approval
+  // surface IS the issue-based dependency dashboard. Repo issues were disabled,
+  // so those majors were silently unapprovable — permanently blocked with no
+  // visible queue. Issues re-enabled 2026-08-27; keep them on, or those rules
+  // become a black hole again.
+  dependencyDashboard: true,
+  dependencyDashboardTitle: 'Renovate Dependency Dashboard',
+
   // Single-repo scope is enforced at the workflow level via
   // RENOVATE_REPOSITORIES env var (see .github/workflows/renovate.yml).
   // autodiscover left at default (false) for defense-in-depth.

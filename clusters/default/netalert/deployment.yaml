@@ -56,7 +56,15 @@ spec:
           ports:
             - name: http
               containerPort: 20211
-              hostPort: 20211        # explicit on hostNetwork — documents the binding
+              # NO hostPort here. With hostNetwork: true the container already
+              # binds 20211 on the node, so hostPort changes nothing at runtime —
+              # but it DOES add a NodePorts scheduling predicate. On every pod
+              # replacement the outgoing pod still holds the claim, the scheduler
+              # rejects the replacement with
+              #   "Predicate NodePorts failed: node(s) didn't have free ports"
+              # and leaves a Failed pod record behind. Those are only GC'd past
+              # terminated-pod-gc-threshold (12500), so they accumulate: this
+              # deployment reached 190 Failed pods after a power loss.
               protocol: TCP
           securityContext:
             capabilities:

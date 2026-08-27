@@ -43,7 +43,7 @@ spec:
             secretKeyRef:
               key: token-secret
               name: backup-host-exporter-credentials
-        image: ghcr.io/natrontech/backup-host-exporter:v0.9.2@sha256:c9be4828f9d0005c088ff9f796f51828529ed40dd5dfd169cd18eead57961409
+        image: ghcr.io/natrontech/backup-host-exporter:v0.9.3@sha256:d8101b91885fbab5d1ac70ba11e78dc52108c91580e5d9f1cd8df8ff1f0a2c68
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3

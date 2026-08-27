@@ -15,7 +15,7 @@
 
 services:
   checkmk:
-    image: checkmk/check-mk-raw:2.3.0p20@sha256:76efc3fe7ba68c00a7699cc4497078d95fd5d598858ba6daa1a3c1a69d103069
+    image: checkmk/check-mk-raw:2.4.0@sha256:e839594494aec19dfa04c236e35ff624f739e1480f237fa52ce8f9afa011cd4c
     container_name: checkmk
     hostname: checkmk
     restart: unless-stopped

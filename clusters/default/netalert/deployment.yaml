@@ -31,7 +31,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet  # let pod still resolve cluster DNS
       containers:
         - name: netalert
-          image: jokobsk/netalertx@sha256:ffab3346b7a924b47bf6b992f369241801b736e54087011047e227937969532f
+          image: jokobsk/netalertx@sha256:e8d800176d35a2fcc856ddc68c354a6b472e535c6ed42c52d040b715ca9bb127
           imagePullPolicy: IfNotPresent
           env:
             - name: TZ

@@ -22,7 +22,7 @@ spec:
             fsGroup: 33
           containers:
             - name: cron
-              image: nextcloud:34.0.1-apache@sha256:b52f7bc0e496f227b0e85e3b88571a42c68b6245ccde29d577e733227715dcf5
+              image: nextcloud:34.0.3-apache@sha256:8e5f49801db0cf4659b3089ce1917728023bb8cba7f93731f2abbdfe3a18df0a
               imagePullPolicy: IfNotPresent
               command: ["/bin/sh", "-c"]
               args:

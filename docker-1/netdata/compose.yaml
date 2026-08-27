@@ -7,7 +7,7 @@
 
 services:
   netdata:
-    image: netdata/netdata:v2.4.0@sha256:99ad366ae2ca587f143145325b329fda2f49853951d42d2401ef827740b716d6
+    image: netdata/netdata:v2.11.0@sha256:d9f6f14c2fb0517168bd9c5da952f6cb735df757919c37172695c2fbb63c3252
     container_name: netdata
     hostname: docker-1
     restart: unless-stopped

@@ -18,7 +18,7 @@
 # /mnt/kub/homelab/qbittorrent/.env (mode 0600 by intent; CIFS reports 0755).
 services:
   gluetun:
-    image: qmcgaw/gluetun:latest@sha256:6b7e41ac1005d5f060de67cbd268883ca90d43c7c231112639c0e7601dd5c0a3
+    image: qmcgaw/gluetun:latest@sha256:953e8d1598c51ba31057b15c3b3860052906de7febb985257cd39d8a2a556b5f
     container_name: gluetun
     cap_add:
       - NET_ADMIN
@@ -43,7 +43,7 @@ services:
     restart: unless-stopped
 
   qbittorrent:
-    image: lscr.io/linuxserver/qbittorrent:latest@sha256:9e4c557088833fb49c6d933c2c5cfefe73240687aaa29cefa1fbfceaef13979d
+    image: lscr.io/linuxserver/qbittorrent:latest@sha256:e99416de7f78ead3818f5fae770eb2286c129f9d876e674ac62f13735bbb6001
     container_name: qbittorrent
     # All network traffic (peer + Web UI) routes through gluetun's network
     # namespace. qbittorrent has no ports of its own — they're published on

@@ -25,7 +25,7 @@ spec:
         # Required: ensures /home/node/.n8n is owned 1000:1000 before the
         # main container starts. Without this, n8n cannot write its config.
         - name: init-chmod
-          image: busybox
+          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
           imagePullPolicy: Always
           command:
             - sh

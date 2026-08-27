@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
       - name: exporter
-        image: amonacoos/pihole6_exporter:latest
+        image: amonacoos/pihole6_exporter:latest@sha256:daedc7f5c52f4a8895bae0c1a044a3428a1e884da7ada038ca8e2f4f6742de69
         imagePullPolicy: IfNotPresent
         env:
         - name: PIHOLE_HOST
@@ -94,7 +94,7 @@ spec:
     spec:
       containers:
       - name: exporter
-        image: amonacoos/pihole6_exporter:latest
+        image: amonacoos/pihole6_exporter:latest@sha256:daedc7f5c52f4a8895bae0c1a044a3428a1e884da7ada038ca8e2f4f6742de69
         imagePullPolicy: IfNotPresent
         env:
         - name: PIHOLE_HOST

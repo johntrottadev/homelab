@@ -23,7 +23,7 @@ spec:
       containers:
         - name: it-tools
           # T-999.2-07: image already digest-pinned (date+sha7 form).
-          image: corentinth/it-tools:2024.10.22-7ca5933
+          image: corentinth/it-tools:2024.10.22-7ca5933@sha256:8b8128748339583ca951af03dfe02a9a4d7363f61a216226fc28030731a5a61f
           imagePullPolicy: Always
           ports:
             - containerPort: 80

@@ -26,7 +26,7 @@ spec:
       - args:
         - --config.file=/etc/snmp_exporter/snmp.yml
         - --web.listen-address=:9116
-        image: quay.io/prometheus/snmp-exporter:v0.27.0
+        image: quay.io/prometheus/snmp-exporter:v0.27.0@sha256:c244ed25aa142e2cfa9faadd98895b2125dae48ba58c55464e81cebf9a43b9fc
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3

@@ -27,7 +27,7 @@ spec:
         - name: libreoffice
           # T-999.2-07: image already version-pinned (linuxserver follows
           # upstream LibreOffice releases via semantic tags).
-          image: linuxserver/libreoffice:25.8.7
+          image: linuxserver/libreoffice:25.8.7@sha256:fd48b8d1e668ed014ca6baffd03119616bb36a9d0188db8ddc98029522a21e9a
           imagePullPolicy: IfNotPresent
           env:
             - name: PUID

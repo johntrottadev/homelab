@@ -1,0 +1,741 @@
+# Wazuh — SIEM alert overview. Data source: the Wazuh indexer (OpenSearch) on docker-1,
+# queried directly by Grafana via the grafana-opensearch-datasource plugin.
+#
+# Index pattern : wazuh-alerts-*        Time field: timestamp
+# Datasource uid: wazuh-indexer         (defined in kube-prometheus-stack helmrelease.yaml)
+#
+# Panels are built around how THIS estate actually behaves: the Pushover threshold is
+# rule.level >= 12, so the critical tiles and the alert table key on that. The
+# "Noisiest single rule (%)" tile exists because a single recurring rule dominating the
+# feed is the failure mode here, not alert volume as such.
+apiVersion: v1
+data:
+  wazuh-siem.json: |
+    {
+      "title": "Wazuh — SIEM Alerts",
+      "uid": "wazuh-siem-alerts",
+      "tags": [
+        "security",
+        "wazuh",
+        "siem"
+      ],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "1m",
+      "time": {
+        "from": "now-24h",
+        "to": "now"
+      },
+      "templating": {
+        "list": [
+          {
+            "name": "agent",
+            "label": "Agent",
+            "type": "query",
+            "datasource": {
+              "type": "grafana-opensearch-datasource",
+              "uid": "wazuh-indexer"
+            },
+            "query": "{\"find\":\"terms\",\"field\":\"agent.name\",\"size\":50}",
+            "multi": true,
+            "includeAll": true,
+            "allValue": "*",
+            "current": {
+              "text": "All",
+              "value": "$__all"
+            }
+          },
+          {
+            "name": "minlevel",
+            "label": "Min rule level",
+            "type": "custom",
+            "query": "0,3,5,7,10,12,15",
+            "current": {
+              "text": "0",
+              "value": "0"
+            }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "row",
+          "title": "Signal",
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Alerts (window)",
+          "description": "Total alerts matching the current filters.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 0,
+            "y": 1
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "background",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Critical (level ≥ 12)",
+          "description": "Level 12+ is the Pushover notification threshold — these reach the phone.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 4,
+            "y": 1
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 1
+                  },
+                  {
+                    "color": "red",
+                    "value": 25
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "background",
+            "graphMode": "area"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=12 AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "Distinct rules firing",
+          "description": "A small number here with high volume usually means one noisy rule, not a busy environment.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 8,
+            "y": 1
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "cardinality",
+                  "field": "rule.id"
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "Reporting agents",
+          "description": "Agents that produced at least one alert. Compare against the enrolled fleet — a silent agent is usually a broken agent.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 12,
+            "y": 1
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "value"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "cardinality",
+                  "field": "agent.id"
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "Auth failures",
+          "description": "Rules in the authentication_failed / invalid_login groups.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 1
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 20
+                  },
+                  {
+                    "color": "red",
+                    "value": 100
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            },
+            "colorMode": "background"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.groups:(authentication_failed OR invalid_login OR authentication_failures) AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Noisiest single rule (%)",
+          "description": "Share of all alerts from the top rule. Above ~40% means one rule is drowning the signal.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 20,
+            "y": 1
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "max"
+              ]
+            },
+            "colorMode": "value"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "rule.description",
+                  "settings": {
+                    "size": "1",
+                    "order": "desc",
+                    "orderBy": "_count"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "type": "row",
+          "title": "Volume and severity",
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 5
+          }
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Alert volume by severity band",
+          "description": "Stacked counts over time. Wazuh levels: 0-6 low, 7-11 medium, 12-15 high.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 16,
+            "x": 0,
+            "y": 6
+          },
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "bars",
+                "stacking": {
+                  "mode": "normal"
+                },
+                "fillOpacity": 70,
+                "lineWidth": 0
+              }
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "3",
+                  "type": "terms",
+                  "field": "rule.level",
+                  "settings": {
+                    "size": "16",
+                    "order": "asc",
+                    "orderBy": "_term"
+                  }
+                },
+                {
+                  "id": "2",
+                  "type": "date_histogram",
+                  "field": "timestamp",
+                  "settings": {
+                    "interval": "auto"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "type": "piechart",
+          "title": "Severity distribution",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 8,
+            "x": 16,
+            "y": 6
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "values": [
+                "value",
+                "percent"
+              ]
+            }
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "rule.level",
+                  "settings": {
+                    "size": "16",
+                    "order": "asc",
+                    "orderBy": "_term"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "type": "row",
+          "title": "What is firing, and from where",
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          }
+        },
+        {
+          "id": 20,
+          "type": "barchart",
+          "title": "Top 15 rules",
+          "description": "Tuning target. The top entry here is usually where your noise lives.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "options": {
+            "orientation": "horizontal",
+            "xTickLabelMaxLength": 46
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "rule.description",
+                  "settings": {
+                    "size": "15",
+                    "order": "desc",
+                    "orderBy": "_count"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "type": "barchart",
+          "title": "Alerts by agent",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "options": {
+            "orientation": "horizontal",
+            "xTickLabelMaxLength": 30
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=$minlevel AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "agent.name",
+                  "settings": {
+                    "size": "25",
+                    "order": "desc",
+                    "orderBy": "_count"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "type": "barchart",
+          "title": "MITRE ATT&CK tactics",
+          "description": "Only populated for rules with MITRE mappings — expect this sparser than the others.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 26
+          },
+          "options": {
+            "orientation": "horizontal",
+            "xTickLabelMaxLength": 34
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.mitre.tactic:* AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "rule.mitre.tactic",
+                  "settings": {
+                    "size": "12",
+                    "order": "desc",
+                    "orderBy": "_count"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "type": "barchart",
+          "title": "Top source IPs",
+          "description": "From data.srcip — populated by firewall, SSH and web decoders.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 26
+          },
+          "options": {
+            "orientation": "horizontal"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "data.srcip:* AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "count"
+                }
+              ],
+              "bucketAggs": [
+                {
+                  "id": "2",
+                  "type": "terms",
+                  "field": "data.srcip",
+                  "settings": {
+                    "size": "15",
+                    "order": "desc",
+                    "orderBy": "_count"
+                  }
+                }
+              ],
+              "timeField": "timestamp"
+            }
+          ]
+        },
+        {
+          "type": "row",
+          "title": "Critical alert stream",
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 34
+          }
+        },
+        {
+          "id": 30,
+          "type": "table",
+          "title": "Level ≥ 12 — the alerts that page you",
+          "description": "Every alert at or above the Pushover threshold, newest first.",
+          "datasource": {
+            "type": "grafana-opensearch-datasource",
+            "uid": "wazuh-indexer"
+          },
+          "gridPos": {
+            "h": 12,
+            "w": 24,
+            "x": 0,
+            "y": 35
+          },
+          "options": {
+            "showHeader": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "query": "rule.level:>=12 AND agent.name:($agent)",
+              "metrics": [
+                {
+                  "id": "1",
+                  "type": "raw_data",
+                  "settings": {
+                    "size": "200"
+                  }
+                }
+              ],
+              "bucketAggs": [],
+              "timeField": "timestamp"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "_id": true,
+                  "_index": true,
+                  "_type": true,
+                  "highlight": true,
+                  "sort": true
+                },
+                "indexByName": {
+                  "timestamp": 0,
+                  "rule.level": 1,
+                  "agent.name": 2,
+                  "rule.description": 3,
+                  "rule.id": 4,
+                  "location": 5
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    grafana_dashboard: "1"
+  name: grafana-wazuh-siem-dashboard
+  namespace: monitoring

@@ -215,6 +215,41 @@ spec:
           org_role: Viewer
         security:
           allow_embedding: true
+      # OpenSearch datasource plugin — lets Grafana query the Wazuh indexer directly
+      # so SIEM alerts live alongside the rest of the homelab dashboards. Added 2026-08-26.
+      plugins:
+      - grafana-opensearch-datasource
+      # Indexer credential injected from a Secret, never inlined here. Create with:
+      #   kubectl create secret generic wazuh-indexer-grafana -n monitoring \
+      #     --from-literal=username=grafana-ro --from-literal=password=<pw>
+      envValueFrom:
+        WAZUH_INDEXER_USER:
+          secretKeyRef:
+            name: wazuh-indexer-grafana
+            key: username
+        WAZUH_INDEXER_PASSWORD:
+          secretKeyRef:
+            name: wazuh-indexer-grafana
+            key: password
+      additionalDataSources:
+      - name: Wazuh Indexer
+        uid: wazuh-indexer
+        type: grafana-opensearch-datasource
+        access: proxy
+        url: https://__LAN-IP__:9200
+        basicAuth: true
+        basicAuthUser: $WAZUH_INDEXER_USER
+        jsonData:
+          database: wazuh-alerts-*
+          flavor: opensearch
+          version: 2.11.0
+          timeField: timestamp
+          maxConcurrentShardRequests: 5
+          # self-signed indexer cert; LAN-scoped, so skip verification rather than
+          # bolting the Wazuh CA into Grafana's trust store for one datasource
+          tlsSkipVerify: true
+        secureJsonData:
+          basicAuthPassword: $WAZUH_INDEXER_PASSWORD
       image:
         tag: 12.4.3
       persistence:

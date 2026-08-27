@@ -21,7 +21,7 @@ name: greenbone-community-edition
 
 services:
   vulnerability-tests:
-    image: registry.community.greenbone.net/community/vulnerability-tests:latest@sha256:24621200b5be409cf3d948fcf9e9da692d2748f82efb4743629142c6a8279272
+    image: registry.community.greenbone.net/community/vulnerability-tests:latest@sha256:bf01053edf8a5692c886f6f4d3f40342c7ee126276c01b67d1006c11a16f5dd8
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1
@@ -29,28 +29,28 @@ services:
       - vt_data_vol:/mnt
 
   notus-data:
-    image: registry.community.greenbone.net/community/notus-data:latest@sha256:fa5be0d81e11dbb44bd9b816e97d2a36234c7294ddaa500a119ecb4304d134d1
+    image: registry.community.greenbone.net/community/notus-data:latest@sha256:867df084653d68b3328a69f6f80ee9cfc90278d782debec58c256f2f36629d2d
     environment:
       KEEP_ALIVE: 1
     volumes:
       - notus_data_vol:/mnt
 
   scap-data:
-    image: registry.community.greenbone.net/community/scap-data:latest@sha256:d8608c38d810bd751c21b9502a72088c6c14efcd356a9859ff6bbf09bc009178
+    image: registry.community.greenbone.net/community/scap-data:latest@sha256:e27c93e9946a9e5e870e3357cf607b6ad089fc1a4ebc0f8151f4a67d45318811
     environment:
       KEEP_ALIVE: 1
     volumes:
       - scap_data_vol:/mnt
 
   cert-bund-data:
-    image: registry.community.greenbone.net/community/cert-bund-data:latest@sha256:95a1104f89209e1b2d8435200a68b532fa149c89df2f61e979dc2cdc5d740cde
+    image: registry.community.greenbone.net/community/cert-bund-data:latest@sha256:755e7909d83feee91f21c8a717d434572439d4d3a98534eef3c6e8ab2422a960
     environment:
       KEEP_ALIVE: 1
     volumes:
       - cert_data_vol:/mnt
 
   dfn-cert-data:
-    image: registry.community.greenbone.net/community/dfn-cert-data:latest@sha256:0130b24bcda0f100bacee0ea978dcd6c4c74738a6bcf168fe670d298dcbe66a1
+    image: registry.community.greenbone.net/community/dfn-cert-data:latest@sha256:7cad80fc6e2de9bead6e74480e2ba2051b3748ebeb5da5a570ce1b6b677e68d1
     environment:
       KEEP_ALIVE: 1
     volumes:
@@ -60,7 +60,7 @@ services:
         condition: service_healthy
 
   data-objects:
-    image: registry.community.greenbone.net/community/data-objects:latest@sha256:959ee7c2b0c809b11d61324308a83ecd81df4d73a5758d9e43238ea829cb04b0
+    image: registry.community.greenbone.net/community/data-objects:latest@sha256:8c9eaee55c1b1cd4137e41f0b08635a3e179bdecd3a8e046aeb46785fe3746f3
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1
@@ -68,7 +68,7 @@ services:
       - data_objects_vol:/mnt
 
   report-formats:
-    image: registry.community.greenbone.net/community/report-formats:latest@sha256:c149566cf8d6e8900eba49261c5f02c5a32fbd9cd05934a6b00702e6e578cc8f
+    image: registry.community.greenbone.net/community/report-formats:latest@sha256:04f8cdf888cd7a3b8740683944d9cb83d719c6b4441e98c722d348264bfd21fd
     environment:
       FEED_RELEASE: "24.10"
       KEEP_ALIVE: 1
@@ -113,7 +113,7 @@ services:
       - psql_socket_vol:/var/run/postgresql
 
   gvmd:
-    image: registry.community.greenbone.net/community/gvmd:stable@sha256:cb82c501ca93809405a8d0ed4c21846703466802ce6462536e985625f102b497
+    image: registry.community.greenbone.net/community/gvmd:stable@sha256:ae7108de2a3eb411cb0ba0fe0efa392732fa4683b0d1c349392713d8178a0f2c
     deploy:
       restart_policy:
         condition: any
@@ -153,7 +153,7 @@ services:
       - gsa_data_vol:/mnt/web
 
   gsad:
-    image: registry.community.greenbone.net/community/gsad:stable@sha256:f9979f2f0a99839d6ea0b0cb646869a0c10330ba92a2f53dc723b2c4bb0f4b3a
+    image: registry.community.greenbone.net/community/gsad:stable@sha256:02619456fd1f97a146cd19a081eae96b3e6e13b097a2f588ce51bf3a0e3a7a3a
     deploy:
       restart_policy:
         condition: any
@@ -207,7 +207,7 @@ services:
   # and changes log output to /var/log/openvas instead /var/log/gvm
   # to reduce likelihood of unwanted log interferences
   configure-openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:31a3262e6cb25063edb79a3814e6d65efbf16e41cc360e7b04619146e2cb2919
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:864784fe9ba3d349aaf737d56bea3691b647ff3d526fe26c7475d74bc70f7860
     volumes:
       - openvas_data_vol:/mnt
       - openvas_log_data_vol:/var/log/openvas
@@ -224,7 +224,7 @@ services:
 
   # shows logs of openvas
   openvas:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:31a3262e6cb25063edb79a3814e6d65efbf16e41cc360e7b04619146e2cb2919
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:864784fe9ba3d349aaf737d56bea3691b647ff3d526fe26c7475d74bc70f7860
     volumes:
       - openvas_data_vol:/etc/openvas
       - openvas_log_data_vol:/var/log/openvas
@@ -239,7 +239,7 @@ services:
         condition: service_completed_successfully
 
   openvasd:
-    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:31a3262e6cb25063edb79a3814e6d65efbf16e41cc360e7b04619146e2cb2919
+    image: registry.community.greenbone.net/community/openvas-scanner:stable@sha256:864784fe9ba3d349aaf737d56bea3691b647ff3d526fe26c7475d74bc70f7860
     deploy:
       restart_policy:
         condition: any

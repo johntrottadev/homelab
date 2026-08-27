@@ -429,6 +429,7 @@ resources:
   - monitoring/dashboards/grafana-dashboard-trivy.yaml
   - monitoring/dashboards/grafana-dashboard-velero.yaml
   - monitoring/dashboards/grafana-dashboard-velero-per-app.yaml
+  - monitoring/dashboards/grafana-dashboard-wazuh-siem.yaml
   - monitoring/dashboards/grafana-velero-native-dashboard.yaml
   # Forked from chart-shipped `prometheus-nodes-darwin` ConfigMap (kube-prometheus-stack
   # node-exporter-mixin) so the macOS dashboard is editable without losing changes on

@@ -29,6 +29,17 @@ spec:
     remediation:
       retries: 3
   values:
+    # NOTE: targetWorkloads is a TOP-LEVEL chart value, NOT under operator:.
+    # Nesting it under operator: is silently accepted by Helm (unknown keys are
+    # not rejected) and does nothing — the release reports "upgrade succeeded"
+    # while OPERATOR_TARGET_WORKLOADS keeps its default. Verify by reading the
+    # env var off the live deployment, never by trusting Ready=True.
+    #
+    # Excludes bare Jobs: velero creates one backup Job per run and each got its
+    # own VulnerabilityReport for the SAME velero/velero image — 63 duplicates,
+    # ~19% of the estate's reported CRITICAL+HIGH. CronJob stays in the list, so
+    # scheduled workloads keep coverage. Default list minus "job".
+    targetWorkloads: "pod,replicaset,replicationcontroller,statefulset,daemonset,cronjob"
     trivy:
       # Pull the DB once and cache it in-cluster; avoids per-scan rate-limit pain.
       ignoreUnfixed: true
@@ -41,13 +52,6 @@ spec:
           memory: 1Gi
     operator:
       scannerReportTTL: "168h"
-      # Exclude bare Jobs from scanning. Velero creates one backup Job per run
-      # and each produced its own VulnerabilityReport for the SAME
-      # velero/velero image — 63 duplicate reports, ~19% of the estate's
-      # reported CRITICAL+HIGH totals, all describing one image. CronJob is
-      # still scanned, so scheduled workloads keep coverage; this only drops
-      # the per-run duplicates. Default list minus "job".
-      targetWorkloads: "pod,replicaset,replicationcontroller,statefulset,daemonset,cronjob"
       # Scan on a cadence rather than on every change — kinder to the single worker fleet.
       vulnerabilityScannerScanOnlyCurrentRevisions: true
       configAuditScannerScanOnlyCurrentRevisions: true

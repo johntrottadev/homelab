@@ -42,13 +42,13 @@ spec:
       - hoarder
       - it-tools-namespace
       - jellyfin
-      - libre
       - loki
       - monitoring
       - n8n
       - netalert
       - nextcloud
       - paperless
+      - stirling-pdf
       - uptime-kuma
       - vaultwarden
       - vscode

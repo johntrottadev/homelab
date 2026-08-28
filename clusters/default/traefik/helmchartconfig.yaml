@@ -55,3 +55,27 @@ spec:
               # always wins over IngressRoute routes (npm-fallback-http has
               # priority: 1; explicit values like 10 would unintentionally
               # demote the redirect below normal route priorities).
+
+    # Access logging in JSON — REQUIRED for CrowdSec to see HTTP traffic.
+    # Without this Traefik emits only startup/error output, so the
+    # crowdsecurity/traefik-logs parser matched 0 of 7.79k lines (100%
+    # unparsed) and no HTTP scenario could ever fire. The collections were
+    # installed and correct the whole time; there was nothing to parse.
+    #
+    # headers.defaultmode: drop is deliberate — access logs ship to Loki, and
+    # keeping headers by default would write Cookie and Authorization values
+    # into the log store. User-Agent is kept because CrowdSec scenarios use it.
+    logs:
+      general:
+        format: json
+        level: INFO
+      access:
+        enabled: true
+        format: json
+        fields:
+          general:
+            defaultmode: keep
+          headers:
+            defaultmode: drop
+            names:
+              User-Agent: keep

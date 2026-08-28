@@ -103,3 +103,19 @@ spec:
       - name: crowdsec-bouncer-key
         mountPath: /etc/crowdsec-bouncer
         readOnly: true
+
+    # Cross-namespace middleware references. Required so a single
+    # kube-system/crowdsec-bouncer Middleware can be attached from IngressRoutes
+    # in any namespace. Without it Traefik refuses the reference with
+    #   "middleware kube-system/crowdsec-bouncer is not in the IngressRoute
+    #    namespace <ns>"
+    # and — importantly — DROPS THE WHOLE ROUTE, returning 404 rather than
+    # proxying without the middleware. A broken middleware ref takes the service
+    # down; it does not fail open.
+    #
+    # The alternative is duplicating the Middleware into all ~20 app namespaces.
+    # Acceptable here because this is a single-tenant cluster; in a multi-tenant
+    # one this flag lets any namespace reference any other namespace's middleware.
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true

@@ -55,6 +55,21 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          # startupProbe MUST exist here. Uptime-Kuma 2.x runs a one-time aggregate
+          # migration over the full heartbeat history on first boot — 5.9M rows / 71
+          # monitors / ~910MB SQLite here. With no startupProbe, livenessProbe governs
+          # from the start and kills the container at ~120s (initialDelay 30 + 3x30),
+          # mid-migration. The interrupted run leaves setting
+          # migrateAggregateTableState='migrating', and every later boot then refuses
+          # with "Aggregate table migration is already in progress" — a crashloop that
+          # does NOT self-heal and needs the key deleted by hand.
+          # 180 x 10s = 30 minutes. liveness/readiness stay parked until this passes.
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3001
+            periodSeconds: 10
+            failureThreshold: 180
           livenessProbe:
             httpGet:
               path: /

@@ -9,6 +9,11 @@ spec:
   routes:
     - match: Host(`dashy.${BASE_DOMAIN}`)
       kind: Rule
+      # CrowdSec bouncer — Traefik consults CrowdSec's decision list before
+      # proxying. Pilot route; roll out to the rest once proven here.
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: dashy
           port: 80

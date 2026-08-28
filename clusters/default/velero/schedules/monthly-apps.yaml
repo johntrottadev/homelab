@@ -35,6 +35,9 @@ spec:
       - events
     includedNamespaces:
       - authentik
+      - ciso-assistant
+      - crowdsec
+      - guacamole
       - dashy
       - drawio
       - firefly

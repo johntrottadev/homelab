@@ -51,7 +51,12 @@ spec:
           cpu: 1000m
           memory: 1Gi
     operator:
-      scannerReportTTL: "168h"
+      # 24h, not 168h. A retired ReplicaSet keeps its VulnerabilityReport for the
+      # full TTL, so for a week after every upgrade the dashboard shows the OLD
+      # image's counts stacked on top of the new one's. stirling-pdf scanned 0
+      # CRITICAL at 2.14.3 while its dead 1.6.0 revision still reported 32.
+      # Shorter TTL means the number tracks what is actually running.
+      scannerReportTTL: "24h"
       # Scan on a cadence rather than on every change — kinder to the single worker fleet.
       vulnerabilityScannerScanOnlyCurrentRevisions: true
       configAuditScannerScanOnlyCurrentRevisions: true

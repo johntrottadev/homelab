@@ -29,7 +29,18 @@ spec:
   chart:
     spec:
       chart: kube-prometheus-stack
-      version: "69.3.1"  # pin EXACT — match running release rev 24 (appVersion v0.80.0)
+      # 88.6.1 (from 69.3.1, 2026-08-28). Carries prometheus-operator v0.80->v0.93,
+      # grafana 12->13, prometheus 3.1->3.14, k8s-sidecar 1.30->2.x — together
+      # ~15 CRITICAL CVEs. All 19 major upgrade notes reviewed; the ones that
+      # could have bitten did not:
+      #   78->79 grafana admin password default removed -> we use existingSecret
+      #   74->75 additionalPrometheusRules renamed       -> not used here
+      #   71->72 podDisruptionBudget needs explicit enable -> not used here
+      #   72->73 drops PSP + old Ingress APIs, needs k8s>=1.25 -> we are past it
+      # CRDs are handled by install/upgrade.crds: CreateReplace above — Helm
+      # itself never upgrades CRDs, which is the trap those notes keep warning
+      # about. Flux covers it, so the chart's crds.upgradeJob is not needed.
+      version: "88.6.1"
       sourceRef:
         kind: HelmRepository
         name: prometheus-community
@@ -243,15 +254,19 @@ spec:
           database: wazuh-alerts-*
           flavor: opensearch
           version: 2.11.0
-          timeField: timestamp
+          # Wazuh alert documents carry @timestamp, not timestamp. The bare
+          # name matched no field, which is why the SIEM panels read empty.
+          timeField: "@timestamp"
           maxConcurrentShardRequests: 5
           # self-signed indexer cert; LAN-scoped, so skip verification rather than
           # bolting the Wazuh CA into Grafana's trust store for one datasource
           tlsSkipVerify: true
         secureJsonData:
           basicAuthPassword: $WAZUH_INDEXER_PASSWORD
-      image:
-        tag: 12.4.3
+      # image tag deliberately NOT pinned — the grafana subchart and its
+      # provisioning templates move together, so pinning the container to a
+      # 12.x tag under a 13.x subchart mixes eras. This pin is what held
+      # grafana back at 12.4.3 while the chart moved on.
       persistence:
         accessModes:
         - ReadWriteOnce

@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`stirling.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: stirling-pdf
           port: 80

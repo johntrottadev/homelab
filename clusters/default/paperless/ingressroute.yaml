@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`paperless.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: paperless-ngx
           port: 8000

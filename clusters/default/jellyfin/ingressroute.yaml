@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`jellyfin.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: jellyfin
           port: 8096

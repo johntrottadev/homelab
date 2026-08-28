@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`authentik.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: authentik-server
           port: 80

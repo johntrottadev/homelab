@@ -50,6 +50,9 @@ spec:
   routes:
     - match: Host(`app-vm.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-app-vm
           port: 7000

@@ -49,6 +49,9 @@ spec:
   routes:
     - match: Host(`bastion.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-bastion
           port: 8080

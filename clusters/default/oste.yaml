@@ -56,6 +56,9 @@ spec:
   routes:
     - match: Host(`legacy-vm.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-legacy-vm
           port: 6901

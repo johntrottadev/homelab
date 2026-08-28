@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`vault.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: vaultwarden
           port: 80

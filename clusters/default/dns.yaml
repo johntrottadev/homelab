@@ -42,6 +42,9 @@ spec:
   routes:
   - match: Host(`dns.${BASE_DOMAIN}`)
     kind: Rule
+    middlewares:
+      - name: crowdsec-bouncer
+        namespace: kube-system
     services:
     - name: ext-dns
       port: 80

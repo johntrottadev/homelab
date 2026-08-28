@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`ittools.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: it-tools
           port: 80

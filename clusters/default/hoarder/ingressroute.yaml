@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`hoarder.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: web
           port: 80

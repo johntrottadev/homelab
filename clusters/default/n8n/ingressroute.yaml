@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`n8n.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: n8n
           port: 80

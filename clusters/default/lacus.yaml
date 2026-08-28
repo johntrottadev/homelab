@@ -47,6 +47,9 @@ spec:
   routes:
     - match: Host(`lacus.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-lacus
           port: 7100

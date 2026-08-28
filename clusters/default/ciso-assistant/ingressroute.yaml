@@ -12,11 +12,17 @@ spec:
   routes:
     - match: Host(`ciso.${BASE_DOMAIN}`) && PathPrefix(`/api`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ciso-assistant-backend
           port: 80
     - match: Host(`ciso.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ciso-assistant-frontend
           port: 80

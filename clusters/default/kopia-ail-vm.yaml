@@ -46,6 +46,9 @@ spec:
   routes:
     - match: Host(`kopia-app-vm.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-kopia-app-vm
           port: 51515

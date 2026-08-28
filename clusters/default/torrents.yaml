@@ -42,6 +42,9 @@ spec:
   routes:
   - match: Host(`torrents.${BASE_DOMAIN}`)
     kind: Rule
+    middlewares:
+      - name: crowdsec-bouncer
+        namespace: kube-system
     services:
     - name: ext-torrents
       port: 8085

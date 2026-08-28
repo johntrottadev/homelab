@@ -9,6 +9,9 @@ spec:
   routes:
     - match: Host(`velero-ui.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: vui-ui-clusterip-svc
           port: 80

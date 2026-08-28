@@ -43,6 +43,9 @@ spec:
   routes:
   - match: Host(`nas2.${BASE_DOMAIN}`)
     kind: Rule
+    middlewares:
+      - name: crowdsec-bouncer
+        namespace: kube-system
     services:
     - name: ext-truenas
       port: 443

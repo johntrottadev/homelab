@@ -43,6 +43,9 @@ spec:
   routes:
     - match: Host(`maltrail.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-maltrail
           port: 8338

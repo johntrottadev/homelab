@@ -44,6 +44,9 @@ spec:
   routes:
   - match: Host(`synology.${BASE_DOMAIN}`) || Host(`storage.${BASE_DOMAIN}`)
     kind: Rule
+    middlewares:
+      - name: crowdsec-bouncer
+        namespace: kube-system
     services:
     - name: ext-synology
       port: 5001

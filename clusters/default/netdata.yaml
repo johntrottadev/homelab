@@ -76,6 +76,9 @@ spec:
   routes:
     - match: Host(`netdata.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-netdata
           port: 19999

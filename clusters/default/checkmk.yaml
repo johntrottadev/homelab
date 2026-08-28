@@ -46,6 +46,9 @@ spec:
   routes:
     - match: Host(`checkmk.${BASE_DOMAIN}`)
       kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
       services:
         - name: ext-checkmk
           port: 5000

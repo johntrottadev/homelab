@@ -1,0 +1,51 @@
+# Pod Security Standards — BASELINE, in Audit mode.
+#
+# Before this, the cluster had exactly one ClusterPolicy
+# (velero-business-hours-block), which is scheduling hygiene, not security. A
+# four-controller Kyverno admission stack was running full time and enforcing
+# no security control at all.
+#
+# Audit first, deliberately. Enforce would reject non-compliant Pods at
+# admission, and several existing workloads (Longhorn, Netdata, NetAlertX,
+# CrowdSec) legitimately need privileged access. Audit produces PolicyReports
+# so the real violations can be read before anything is blocked.
+#
+# Kyverno 1.13+ moved failureAction onto the rule; spec.validationFailureAction
+# is deprecated. This is 1.18.2, so it belongs under validate.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: pod-security-baseline
+  annotations:
+    policies.kyverno.io/title: Pod Security Standards - Baseline
+    policies.kyverno.io/category: Pod Security
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Applies the Kubernetes Pod Security Standards "baseline" profile, which
+      blocks known privilege escalations: host namespaces, privileged
+      containers, hostPath volumes, hostPorts, unsafe sysctls and unmasked
+      proc mounts. Audit only — reports violations, rejects nothing.
+spec:
+  background: true
+  rules:
+    - name: baseline
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          # System namespaces that legitimately run privileged workloads.
+          # Excluded to keep the report signal about APPLICATION workloads;
+          # revisit once the app violations are cleared.
+          - resources:
+              namespaces:
+                - kube-system
+                - longhorn-system
+                - kyverno
+      validate:
+        failureAction: Audit
+        podSecurity:
+          level: baseline
+          version: latest

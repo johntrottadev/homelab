@@ -468,6 +468,7 @@ resources:
   - kyverno/helmrepository.yaml
   - kyverno/helmrelease.yaml
   - kyverno/rbac-velero-aggregate.yaml
+  - kyverno/policy-pod-security-baseline.yaml
   # kyverno-policies/* deferred from the first commit (see prior fix commit
   # b8f15ac — two-phase rollout because Kyverno CRDs ship from the chart and
   # a single-batch flux Kustomization apply hits "no matches for kind

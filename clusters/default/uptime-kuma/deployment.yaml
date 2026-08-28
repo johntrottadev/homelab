@@ -39,7 +39,7 @@ spec:
               mountPath: /app/data
       containers:
         - name: uptime-kuma
-          image: louislam/uptime-kuma:1.23.17@sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
+          image: louislam/uptime-kuma:2.5.3@sha256:3e24e96c89efff0e3a4b0698cbdd36c15ad3022371db57166e5588853002ee5c
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

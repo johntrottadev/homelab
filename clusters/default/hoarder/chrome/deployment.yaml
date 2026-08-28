@@ -27,8 +27,13 @@ spec:
           # on 2026-07-03. Browserless v2 was rejected: it needs a token + native
           # Playwright endpoint that is version-coupled to karakeep's Playwright and
           # breaks on karakeep upgrades. This CDP path is what karakeep ships/tests.
-          # Note: gcr.io/zenika-hub/alpine-chrome is amd64-only (our nodes are amd64).
-          image: gcr.io/zenika-hub/alpine-chrome:124
+          # Note: alpine-chrome is amd64-only (our nodes are amd64).
+          # 2026-08-28: moved off gcr.io/zenika-hub — that mirror stopped serving
+          # and the tag became unresolvable (ImagePullBackOff for 19h). The
+          # canonical Docker Hub repo carries the identical image and tag.
+          # Now digest-pinned so a withdrawn tag cannot break the pull again;
+          # Renovate only tracks tags that still exist, so it cannot catch this.
+          image: zenika/alpine-chrome:124@sha256:47da877e5622528039625218d15d7e1ccae4e426c6cc7671d165837ea98aacc8
           imagePullPolicy: IfNotPresent
           args:
             - --no-sandbox

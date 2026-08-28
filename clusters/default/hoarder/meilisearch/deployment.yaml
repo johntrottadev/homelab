@@ -29,9 +29,16 @@ spec:
           env:
             - name: MEILI_ENV
               value: production
-            # In-place DB migration across the v1.42->v1.48 index-format change
-            # (2026-07-03 upgrade). Safe to remove once migrated.
+            # In-place DB migration. MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE was the
+            # flag for the v1.42->v1.48 change (2026-07-03); newer engines renamed
+            # it to MEILI_UPGRADE_DB, so the old key silently stopped applying.
+            # The image moved to v1.53.1 while the data stayed at 1.49.0 and the
+            # engine refused to start — 230 restarts. Both keys are kept so the
+            # migration works regardless of which one this engine honours.
+            # Safe to remove once the on-disk version matches the engine.
             - name: MEILI_EXPERIMENTAL_DUMPLESS_UPGRADE
+              value: "true"
+            - name: MEILI_UPGRADE_DB
               value: "true"
           ports:
             - containerPort: 7700

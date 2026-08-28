@@ -78,14 +78,32 @@ spec:
               memory: 128Mi
             limits:
               cpu: 1000m
-              memory: 512Mi
+              # 512Mi was too tight on a busy node. The k3s-wkr-2 pod hit 228
+              # restarts while the other five sat at 3-5 — it was not crashing:
+              # it exited 0 / Completed every time, which is a clean SIGTERM
+              # shutdown, i.e. the liveness probe killing a healthy process that
+              # was merely slow to answer /api/v1/info.
+              memory: 1Gi
+          # startupProbe added so the collector fleet can come up before liveness
+          # starts judging. Without one, liveness governs from second 60 and a
+          # slow start reads as a failure. 30 x 10s = 5 minutes of grace.
+          startupProbe:
+            httpGet:
+              path: /api/v1/info
+              port: 19999
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /api/v1/info
               port: 19999
             initialDelaySeconds: 60
             periodSeconds: 30
-            timeoutSeconds: 5
+            # 5s was not enough headroom on a loaded node; 3 slow answers in a
+            # row killed it. Wider timeout + threshold so only a genuinely wedged
+            # netdata gets restarted.
+            timeoutSeconds: 15
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /api/v1/info

@@ -1,0 +1,29 @@
+# CrowdSec bouncer middleware.
+#
+# Attach to an IngressRoute to have Traefik consult CrowdSec's decision list
+# before proxying. Without a middleware referencing this plugin, the bouncer
+# is registered but still inert — registration alone changes nothing.
+#
+# crowdsecMode: live queries the LAPI per request (accurate, small latency).
+# "stream" caches the full blocklist locally and is faster but coarser; live is
+# right at this request volume.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: crowdsec-bouncer
+  namespace: kube-system
+spec:
+  plugin:
+    crowdsec-bouncer:
+      enabled: "true"
+      crowdsecMode: live
+      crowdsecLapiScheme: http
+      crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
+      # key file comes from the mounted Secret; never inline the value here
+      crowdsecLapiKeyFile: /etc/crowdsec-bouncer/key
+      # trust the cluster pod/service CIDRs so internal callers are never banned
+      forwardedHeadersTrustedIPs:
+        - 10.42.0.0/16
+        - 10.43.0.0/16
+      clientTrustedIPs:
+        - __LAN-IP__/16

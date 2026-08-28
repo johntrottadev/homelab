@@ -24,6 +24,10 @@ spec:
         kube-vip.io/loadbalancerIPs: "${K3S_VIP}"
     deployment:
       replicas: 3
+      additionalVolumes:
+        - name: crowdsec-bouncer-key
+          secret:
+            secretName: crowdsec-bouncer-key
     # Spread replicas across nodes — single-node loss takes at most 1 replica.
     # ScheduleAnyway (vs DoNotSchedule) keeps things scheduling on a 4-node
     # post-failure cluster instead of going Pending.
@@ -79,3 +83,23 @@ spec:
             defaultmode: drop
             names:
               User-Agent: keep
+
+    # CrowdSec bouncer plugin — the ENFORCEMENT half of CrowdSec.
+    # Before this, CrowdSec held ~3,900 ban decisions and had zero registered
+    # bouncers, so every decision was written to a database and read by nobody.
+    # The engine decides; the bouncer blocks. One without the other does nothing.
+    experimental:
+      plugins:
+        crowdsec-bouncer:
+          moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+          version: v1.7.1
+
+    # LAPI key is mounted from a Secret rather than inlined in the Middleware.
+    # Secret kube-system/crowdsec-bouncer-key is created out-of-band (it holds a
+    # generated credential and is deliberately NOT in Git); it carries no Flux
+    # labels, so prune leaves it alone. Regenerate with:
+    #   cscli bouncers delete traefik-bouncer && cscli bouncers add traefik-bouncer
+    additionalVolumeMounts:
+      - name: crowdsec-bouncer-key
+        mountPath: /etc/crowdsec-bouncer
+        readOnly: true

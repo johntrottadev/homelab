@@ -45,6 +45,8 @@ spec:
     middlewares:
       - name: crowdsec-bouncer
         namespace: kube-system
+      - name: authentik-forwardauth
+        namespace: kube-system
     services:
     - name: ext-__PVE-NODE-1__
       port: 8006

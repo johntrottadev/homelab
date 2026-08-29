@@ -55,6 +55,8 @@ spec:
     middlewares:
       - name: crowdsec-bouncer
         namespace: kube-system
+      - name: authentik-forwardauth
+        namespace: kube-system
     services:
     - name: ext-komodo
       port: 9120

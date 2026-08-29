@@ -48,6 +48,8 @@ spec:
       middlewares:
         - name: crowdsec-bouncer
           namespace: kube-system
+        - name: authentik-forwardauth
+          namespace: kube-system
       services:
         - name: ext-cryptpad
           port: 3000

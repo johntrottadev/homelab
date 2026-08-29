@@ -12,6 +12,8 @@ spec:
       middlewares:
         - name: crowdsec-bouncer
           namespace: kube-system
+        - name: authentik-forwardauth
+          namespace: kube-system
       services:
         - name: vui-ui-clusterip-svc
           port: 80

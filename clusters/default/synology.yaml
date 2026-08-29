@@ -47,6 +47,8 @@ spec:
     middlewares:
       - name: crowdsec-bouncer
         namespace: kube-system
+      - name: authentik-forwardauth
+        namespace: kube-system
     services:
     - name: ext-synology
       port: 5001

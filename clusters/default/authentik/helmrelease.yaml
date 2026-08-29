@@ -27,6 +27,11 @@ spec:
     remediation:
       retries: 3
   values:
+    # Mounts blueprint-mfa.yaml at /blueprints/mounted/cm-authentik-blueprint-mfa
+    # on server+worker; the worker's discovery task instantiates and applies it.
+    blueprints:
+      configMaps:
+        - authentik-blueprint-mfa
     global:
       env:
         - name: AUTHENTIK_SECRET_KEY

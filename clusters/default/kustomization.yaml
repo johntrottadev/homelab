@@ -524,6 +524,7 @@ resources:
   - authentik/namespace.yaml
   - authentik/secret-authentik.enc.yaml
   - authentik/helmrepository.yaml
+  - authentik/blueprint-mfa.yaml
   - authentik/helmrelease.yaml
   - authentik/ingressroute.yaml
 

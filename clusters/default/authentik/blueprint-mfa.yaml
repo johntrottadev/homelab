@@ -1,0 +1,53 @@
+# Arms the MFA validation stage that authentik ships bound-but-disabled.
+#
+# Out of the box `default-authentication-mfa-validation` sits at order 30 in
+# `default-authentication-flow` with `not_configured_action: skip` and no
+# configuration stages — so a user with no enrolled device is waved straight
+# past it and the flow is effectively password-only.
+#
+# This blueprint flips that to `configure` and attaches the three enrollment
+# stages, so an un-enrolled user is pushed into setup instead of skipped.
+# It lives as a blueprint rather than a UI click because the bundled system
+# blueprint re-asserts `skip` and would revert a click-only change on upgrade.
+#
+# Rollback (no browser needed):
+#   kubectl -n authentik exec -i deploy/authentik-server -- /lifecycle/ak shell <<'PY'
+#   from authentik.stages.authenticator_validate.models import AuthenticatorValidateStage
+#   s = AuthenticatorValidateStage.objects.get(name="default-authentication-mfa-validation")
+#   s.not_configured_action = "skip"; s.save()
+#   PY
+# ...then remove this file from kustomization.yaml in the same commit.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprint-mfa
+  namespace: authentik
+data:
+  # Only keys ending in `.yaml` are discovered by authentik's blueprint watcher.
+  mfa-enforcement.yaml: |
+    version: 1
+    metadata:
+      name: homelab-mfa-enforcement
+      labels:
+        blueprints.goauthentik.io/description: >-
+          Enforce MFA enrollment on the default authentication flow.
+    entries:
+      - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+        state: present
+        identifiers:
+          name: default-authentication-mfa-validation
+        attrs:
+          # `configure` pushes an un-enrolled user into the setup stages below
+          # instead of skipping the check entirely.
+          not_configured_action: configure
+          # Deliberately narrower than the default six: duo and sms are not
+          # provisioned, and email is a weak factor. `static` stays — backup
+          # codes are the offline way back in.
+          device_classes:
+            - totp
+            - webauthn
+            - static
+          configuration_stages:
+            - !Find [authentik_stages_authenticator_totp.authenticatortotpstage, [name, default-authenticator-totp-setup]]
+            - !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, default-authenticator-webauthn-setup]]
+            - !Find [authentik_stages_authenticator_static.authenticatorstaticstage, [name, default-authenticator-static-setup]]

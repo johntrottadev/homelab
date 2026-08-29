@@ -11,8 +11,13 @@ spec:
       kind: Rule
       # CrowdSec bouncer — Traefik consults CrowdSec's decision list before
       # proxying. Pilot route; roll out to the rest once proven here.
+      # Chain order matters: CrowdSec drops known-bad IPs first, so a banned
+      # scanner never costs an auth round-trip. authentik then gates the rest.
+      # Pilot route for forward-auth, same as it was for CrowdSec.
       middlewares:
         - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: authentik-forwardauth
           namespace: kube-system
       services:
         - name: dashy

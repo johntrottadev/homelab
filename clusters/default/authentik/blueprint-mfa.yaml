@@ -7,10 +7,27 @@
 #
 # This blueprint flips that to `configure` and attaches the three enrollment
 # stages, so an un-enrolled user is pushed into setup instead of skipped.
-# It lives as a blueprint rather than a UI click because the bundled system
-# blueprint re-asserts `skip` and would revert a click-only change on upgrade.
 #
-# Rollback (no browser needed):
+# Note on where `skip` came from: no bundled blueprint sets
+# `not_configured_action` at all — `grep -rl` across /blueprints/{default,system,
+# migrations} returns nothing, and the bundled flow creates the stage with
+# identifiers only, no attrs. `skip` is the Django model field default. So the
+# system blueprint will NOT fight this one on upgrade. It stays a blueprint
+# rather than a UI click because that keeps the setting in git and re-asserts it
+# if the stage object is ever recreated (fresh DB, disaster recovery).
+#
+# `static` is kept in device_classes so recovery codes are actually usable at
+# login. The tradeoff: a user who enrolls ONLY static codes passes MFA on
+# burnable one-time strings. With one human account that is managed by verifying
+# a TOTP device exists; revisit if more users are added.
+#
+# Discovery cadence: the worker imports mounted blueprints on start and on a
+# periodic task. To force it immediately:
+#   kubectl -n authentik exec -i deploy/authentik-worker -- /lifecycle/ak shell <<'PY'
+#   from authentik.blueprints.v1.tasks import blueprints_discovery; blueprints_discovery.send()
+#   PY
+#
+# Rollback (no browser needed, tested end to end 2026-08-29):
 #   kubectl -n authentik exec -i deploy/authentik-server -- /lifecycle/ak shell <<'PY'
 #   from authentik.stages.authenticator_validate.models import AuthenticatorValidateStage
 #   s = AuthenticatorValidateStage.objects.get(name="default-authentication-mfa-validation")

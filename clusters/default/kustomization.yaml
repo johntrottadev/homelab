@@ -51,6 +51,7 @@ resources:
   # Brings the previously kubectl-applied HelmChartConfig under Flux management.
   - traefik/helmchartconfig.yaml
   - traefik/middleware-crowdsec.yaml
+  - traefik/middleware-authentik.yaml
 
   # Wave 2 — cluster-app IngressRoutes (Pattern 4 — one file per cluster-routed host
   # in 14-NPM-INVENTORY.md; IngressRoute lives in the app's namespace, no Service)
@@ -525,6 +526,7 @@ resources:
   - authentik/secret-authentik.enc.yaml
   - authentik/helmrepository.yaml
   - authentik/blueprint-mfa.yaml
+  - authentik/blueprint-forwardauth.yaml
   - authentik/helmrelease.yaml
   - authentik/ingressroute.yaml
 

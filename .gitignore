@@ -52,3 +52,11 @@ flux-system/cluster-vars.yaml
 !*.tfvars.example
 !.env.example
 !.env.*.example
+
+# vim/editor swap + backup files — never commit these; a swapfile of a
+# SOPS-managed secret lands editor buffer contents in git history.
+*.swp
+*.swo
+*.swn
+*~
+.*.sw[a-p]

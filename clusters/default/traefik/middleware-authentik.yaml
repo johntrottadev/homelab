@@ -1,0 +1,35 @@
+# forwardAuth to authentik's embedded outpost. Traefik asks authentik whether
+# the request is authenticated before proxying; an unauthenticated request gets
+# redirected to the login flow and returned here afterwards.
+#
+# Pointed at the in-cluster Service rather than the public hostname so the check
+# does not leave the cluster or depend on external DNS.
+#
+# Chain order on a route is crowdsec-bouncer FIRST, then this — drop known-bad
+# IPs before spending an auth round-trip on them.
+#
+# NOTE: a middleware Traefik cannot resolve DROPS THE ROUTE (404); it does not
+# fail open. This lives in kube-system alongside crowdsec-bouncer, and the
+# Traefik HelmChartConfig already sets providers.kubernetesCRD.allowCrossNamespace.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authentik-forwardauth
+  namespace: kube-system
+spec:
+  forwardAuth:
+    address: http://authentik-server.authentik.svc.cluster.local:80/outpost.goauthentik.io/auth/traefik
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-authentik-username
+      - X-authentik-groups
+      - X-authentik-entitlements
+      - X-authentik-email
+      - X-authentik-name
+      - X-authentik-uid
+      - X-authentik-jwt
+      - X-authentik-meta-jwks
+      - X-authentik-meta-outpost
+      - X-authentik-meta-provider
+      - X-authentik-meta-app
+      - X-authentik-meta-version

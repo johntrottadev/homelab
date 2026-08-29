@@ -1,0 +1,59 @@
+# Creates the ProxyProvider + Application + embedded-outpost binding that
+# Traefik's forwardAuth middleware talks to.
+#
+# This was previously tracked as "blocked on creating a Proxy Provider in the
+# authentik UI". It is not blocked — blueprints create all three objects
+# declaratively, which keeps them in git and re-creatable after a rebuild.
+#
+# forward_domain mode (not forward_single) means one provider covers every
+# *.__BASE-DOMAIN__ host rather than one provider per app. The session cookie is set
+# at the domain level, so signing in once covers every protected route.
+#
+# The embedded outpost is served by authentik-server itself — there is no
+# separate outpost workload to deploy. Until a provider is bound to it,
+# /outpost.goauthentik.io/auth/traefik returns 404; once bound it returns a
+# redirect for unauthenticated requests.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprint-forwardauth
+  namespace: authentik
+data:
+  forward-auth.yaml: |
+    version: 1
+    metadata:
+      name: homelab-forward-auth
+      labels:
+        blueprints.goauthentik.io/description: >-
+          Domain-level forward-auth provider for *.__BASE-DOMAIN__.
+    entries:
+      - model: authentik_providers_proxy.proxyprovider
+        state: present
+        id: provider
+        identifiers:
+          name: homelab-forward-auth
+        attrs:
+          mode: forward_domain
+          # In forward_domain mode this is the host that serves the outpost
+          # endpoints and issues the domain cookie — the authentik host itself.
+          external_host: https://authentik.${BASE_DOMAIN}
+          cookie_domain: ${BASE_DOMAIN}
+          access_token_validity: hours=24
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      - model: authentik_core.application
+        state: present
+        identifiers:
+          slug: homelab
+        attrs:
+          name: Homelab
+          provider: !KeyOf provider
+      # Targeted by `managed`, which is the stable key for the built-in embedded
+      # outpost — its display name is cosmetic and could change.
+      - model: authentik_outposts.outpost
+        state: present
+        identifiers:
+          managed: goauthentik.io/outposts/embedded
+        attrs:
+          providers:
+            - !KeyOf provider

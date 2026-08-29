@@ -32,6 +32,7 @@ spec:
     blueprints:
       configMaps:
         - authentik-blueprint-mfa
+        - authentik-blueprint-forwardauth
     global:
       env:
         - name: AUTHENTIK_SECRET_KEY

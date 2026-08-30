@@ -20,6 +20,14 @@ kind: ConfigMap
 metadata:
   name: grafana-macos-dashboard
   namespace: monitoring
+  annotations:
+    # The dashboard JSON carries 9 Grafana template variables written ${datasource}.
+    # Flux postBuild envsubst runs in strict mode and tried to resolve them as ITS
+    # variables, failed, and aborted the whole Kustomization — lastAttempted moved
+    # forward while lastApplied stayed pinned, so every GitOps change silently
+    # stopped landing. This opts the resource out of substitution entirely, which
+    # is cleaner than escaping nine occurrences as $${datasource}.
+    kustomize.toolkit.fluxcd.io/substitute: disabled
   labels:
     grafana_dashboard: "1"
 data:

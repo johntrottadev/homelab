@@ -221,9 +221,27 @@ spec:
       grafana.ini:
         server:
           root_url: https://grafana.${BASE_DOMAIN}
+        # Anonymous access was ON at org_role Viewer — anyone reaching Grafana read
+        # every dashboard, SIEM panels included. OIDC replaces it: identity now
+        # carries through, so roles mean something rather than just gating a door.
         auth.anonymous:
+          enabled: false
+        auth.generic_oauth:
           enabled: true
-          org_role: Viewer
+          name: authentik
+          # Local admin login stays available as break-glass — authentik is a VM on
+          # this cluster, and an outage must not lock us out of the dashboards.
+          auto_login: false
+          allow_sign_up: true
+          client_id: grafana
+          scopes: "openid profile email"
+          auth_url: https://authentik.${BASE_DOMAIN}/application/o/authorize/
+          token_url: https://authentik.${BASE_DOMAIN}/application/o/token/
+          api_url: https://authentik.${BASE_DOMAIN}/application/o/userinfo/
+          # strict=false so a missing groups claim degrades to Viewer rather than
+          # failing the login outright.
+          role_attribute_strict: false
+          role_attribute_path: "contains(groups[*], 'authentik Admins') && 'Admin' || 'Viewer'"
         security:
           allow_embedding: true
       # OpenSearch datasource plugin — lets Grafana query the Wazuh indexer directly
@@ -234,6 +252,10 @@ spec:
       #   kubectl create secret generic wazuh-indexer-grafana -n monitoring \
       #     --from-literal=username=grafana-ro --from-literal=password=<pw>
       envValueFrom:
+        GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET:
+          secretKeyRef:
+            name: grafana-oauth
+            key: client-secret
         WAZUH_INDEXER_USER:
           secretKeyRef:
             name: wazuh-indexer-grafana

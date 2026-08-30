@@ -33,6 +33,9 @@ spec:
       configMaps:
         - authentik-blueprint-mfa
         - authentik-blueprint-forwardauth
+      secrets:
+        # carries an OIDC client secret, so it is a Secret not a ConfigMap
+        - authentik-blueprint-grafana-oauth
     global:
       env:
         - name: AUTHENTIK_SECRET_KEY

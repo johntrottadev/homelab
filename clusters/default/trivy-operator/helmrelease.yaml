@@ -43,6 +43,16 @@ spec:
     trivy:
       # Pull the DB once and cache it in-cluster; avoids per-scan rate-limit pain.
       ignoreUnfixed: true
+      # Everything except UNKNOWN. Measured 2026-08-30 on a fresh full rescan:
+      #   CRITICAL 106 | HIGH 1667 | MEDIUM 2636 | LOW 603 | UNKNOWN 10679
+      # UNKNOWN is 68% of the payload and carries no CVSS score, and it was the
+      # bulk that pushed reports past etcd's ~1.5MB object cap — writes failed
+      # with "etcdserver: request is too large", the stale report survived, and
+      # scan data silently aged 3-7 days while looking healthy.
+      #
+      # Dropping it removes no actionable finding; it makes the scanner able to
+      # write at all, which is the precondition for trusting any of these counts.
+      severity: "CRITICAL,HIGH,MEDIUM,LOW"
       resources:
         requests:
           cpu: 100m

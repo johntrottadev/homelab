@@ -45,13 +45,28 @@ spec:
       ignoreUnfixed: true
       # Everything except UNKNOWN. Measured 2026-08-30 on a fresh full rescan:
       #   CRITICAL 106 | HIGH 1667 | MEDIUM 2636 | LOW 603 | UNKNOWN 10679
-      # UNKNOWN is 68% of the payload and carries no CVSS score, and it was the
-      # bulk that pushed reports past etcd's ~1.5MB object cap — writes failed
-      # with "etcdserver: request is too large", the stale report survived, and
-      # scan data silently aged 3-7 days while looking healthy.
+      # UNKNOWN is 68% of the payload, and it was the bulk that pushed reports
+      # past etcd's ~1.5MB object cap — writes failed with "etcdserver: request
+      # is too large", the stale report survived, and scan data silently aged
+      # 3-7 days while looking healthy. That part still holds.
       #
-      # Dropping it removes no actionable finding; it makes the scanner able to
-      # write at all, which is the precondition for trusting any of these counts.
+      # CORRECTION 2026-09-02: the claim that UNKNOWN "carries no CVSS score"
+      # and that "dropping it removes no actionable finding" is FALSE. Measured
+      # directly off the live VulnerabilityReports: of 10,498 UNKNOWN findings,
+      # 131 score >= 9.0 (critical-equivalent) and 5,053 score 7.0-8.9
+      # (high-equivalent). Example: CVE-2026-14456 libssl-dev, score 7.5,
+      # severity UNKNOWN. UNKNOWN here means the DISTRO FEED assigned no
+      # severity, not that the CVE is unscored or harmless.
+      #
+      # Real exposure is therefore ~CRIT 240 (not 109) and ~HIGH 6,573 (not
+      # 1,520) — roughly 4x the reported HIGH count.
+      #
+      # This filter is LEFT AS-IS pending a decision, because the etcd cap is a
+      # genuine constraint and re-including UNKNOWN wholesale is what broke the
+      # scanner before. The size problem and the severity problem need separate
+      # fixes; do not "solve" the size problem by hiding real findings.
+      # NOTE: UNKNOWN is currently appearing in 111/121 reports anyway, so this
+      # filter is not taking effect at the report layer regardless.
       severity: "CRITICAL,HIGH,MEDIUM,LOW"
       resources:
         requests:

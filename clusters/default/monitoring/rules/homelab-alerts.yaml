@@ -181,7 +181,14 @@ spec:
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale
         summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
       expr: |
-        (time() - pbs_snapshot_vm_last_timestamp > 36*3600)
+        # datastore!="2tb": the 2tb ARCHIVE replica's disk failed 2026-08-19
+        # (Seagate ST2000DM001, 1216 reallocated / 496 pending sectors) and is
+        # unmounted pending replacement — see decisions/2026-08-24-backup-host-archive-
+        # disk-failure-and-alert-noise.md. It fired 18 permanently-stale alerts
+        # that masked real signal. 1tb is the PRIMARY and stays in scope, so a
+        # genuine backup outage still alerts. REMOVE THIS EXCLUSION once the
+        # disk is replaced and s-1tb-to-2tb sync is healthy again.
+        (time() - pbs_snapshot_vm_last_timestamp{datastore!="2tb"} > 36*3600)
           and on(vm_id) (
             label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
           )

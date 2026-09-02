@@ -40,7 +40,6 @@ spec:
       - guacamole
       - dashy
       - drawio
-      - firefly
       - fitjat
       - hoarder
       - it-tools-namespace

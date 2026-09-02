@@ -66,7 +66,7 @@ services:
       FERRETDB_POSTGRESQL_URL: postgres://${KOMODO_DATABASE_USERNAME}:${KOMODO_DATABASE_PASSWORD}@postgres:5432/postgres
 
   core:
-    image: ghcr.io/moghtech/komodo-core:2.3.2@sha256:e4116fc6ef73c1c5f81d3fdbf4c15f488b39a79c09d078108365ba8ae0845661
+    image: ghcr.io/moghtech/komodo-core:2.3.3@sha256:79622eea51702d1a26ceda75545594c01688ad567f36c98cbe38aa5c06cb542f
     # ^ resolves to ghcr.io/moghtech/komodo-core:2.2.0 captured 2026-05-14 on docker-3 (v2.2.0)
     labels:
       komodo.skip: ""

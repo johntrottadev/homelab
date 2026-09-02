@@ -57,10 +57,17 @@ spec:
         # Scanned image-only pages still OCR normally (MODE=skip only skips text
         # pages). Re-enable CLEAN/ROTATE/DESKEW if importing crooked photo scans.
         # Parallelize to 2 workers x 2 threads across the 4-core box.
+        # 3.x REMOVED the "skip" value (valid now: auto|redo|force|off).
+        # "auto" is the direct replacement: detect embedded text via pdftotext
+        # and skip OCR when sufficient text is present -- what "skip" did.
         - name: PAPERLESS_OCR_MODE
-          value: "skip"
-        - name: PAPERLESS_OCR_SKIP_ARCHIVE_FILE
-          value: "with_text"
+          value: "auto"
+        # 3.x decoupled archive control from OCR control (upstream PR #12448).
+        # PAPERLESS_OCR_SKIP_ARCHIVE_FILE=with_text -> ARCHIVE_FILE_GENERATION=auto:
+        # produce archives for scanned/image-based docs, skip born-digital PDFs
+        # that already carry embedded text. Same behaviour, renamed variable.
+        - name: PAPERLESS_ARCHIVE_FILE_GENERATION
+          value: "auto"
         - name: PAPERLESS_OCR_CLEAN
           value: "none"
         - name: PAPERLESS_OCR_ROTATE_PAGES
@@ -81,7 +88,7 @@ spec:
           value: "5"
         - name: PAPERLESS_CONSUMER_RECURSIVE
           value: "true"
-        image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15@sha256:6c86cad803970ea782683a8e80e7403444c5bf3cf70de63b4d3c8e87500db92f
+        image: ghcr.io/paperless-ngx/paperless-ngx:3.1.2@sha256:5ab4f4f9bb099a36bec3e092906ea3e611323c5f18dc5cc38c76a1d540bdca9c
         imagePullPolicy: Always
         name: paperless-ngx
         ports:

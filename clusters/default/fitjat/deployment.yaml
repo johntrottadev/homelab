@@ -43,7 +43,7 @@ spec:
           # polish from the POL-01 round-trip: BackBar in root layout and
           # auto-derived slug in the add-exercise forms. See
           # fitjat/runbooks/deploy.md for the round-trip procedure.
-          image: docker.io/blueboy8888/fitjat:1.0.2@sha256:d9308b0150db76b5ef00616765d33f2046913ffda15a1c3953cc940c008accbf
+          image: docker.io/blueboy8888/fitjat:1.0.6@sha256:58a6f06a549783b5317babfdb15b96988af5b9c756b640a21809aef64c86a76d
           imagePullPolicy: IfNotPresent
           envFrom:
             # ConfigMap and Secret stay kubectl-managed (the migration is

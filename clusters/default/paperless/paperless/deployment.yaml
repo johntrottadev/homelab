@@ -48,6 +48,14 @@ spec:
             secretKeyRef:
               key: db-password
               name: paperless-secret
+        # REQUIRED from 3.x onward: paperless refuses to start if this is unset
+        # or left at the default "change-me". 2.x tolerated the default, so the
+        # 2.20.15 -> 3.1.2 upgrade hard-failed on it (ImproperlyConfigured).
+        - name: PAPERLESS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: secret-key
+              name: paperless-secret
         # OCR tuning (2026-07-19/20): imports are digital PDFs that already carry
         # a text layer. Biggest cost was SKIP_ARCHIVE_FILE=never forcing a full
         # ocrmypdf PDF/A-archive pass (rasterize + re-OCR + unpaper) on every doc

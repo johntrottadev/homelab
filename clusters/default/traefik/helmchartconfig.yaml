@@ -19,6 +19,13 @@ metadata:
 spec:
   failurePolicy: reinstall
   valuesContent: |-
+    # 2026-09-02: pin the traefik image to a patch release INSIDE the minor that the
+    # k3s-bundled chart (traefik-39.0.501+up39.0.5) was built for: 3.6.10 -> 3.6.13.
+    # 3.7.12 exists in the rancher mirror but is a MINOR jump off-chart. Traefik fronts
+    # all 45 ingressroutes and failurePolicy is reinstall, so that is a separate
+    # deliberate change with a maintenance window, not a drive-by bump.
+    image:
+      tag: "3.6.13"
     service:
       annotations:
         kube-vip.io/loadbalancerIPs: "${K3S_VIP}"

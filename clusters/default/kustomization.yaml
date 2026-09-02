@@ -103,10 +103,6 @@ resources:
   # Phase 999.2 plan-01 — ittools (per-app subdir; supersedes top-level ittools.yaml).
   # PVC kept kubectl-managed (local-path dynamically-provisioned, single-node pinned).
   # Image already digest-pinned; no spec drift from running pod.
-  - ittools/namespace.yaml
-  - ittools/deployment.yaml
-  - ittools/service.yaml
-  - ittools/ingressroute.yaml
 
   # linuxserver image — root entrypoint + PUID/PGID env. Multi-port service
   # (80→3000 http, 443→3001 https). PV uses NAS IP, mountOptions preserved.
@@ -352,9 +348,7 @@ resources:
   # BSL `wasabi` (CR-based, Available), Schedules, Backups, Restores, kopia
   # maintenance Jobs all stay as-is.
   - velero/helmrepository-velero.yaml
-  - velero/helmrepository-vui.yaml
   - velero/helmrelease-velero.yaml
-  - velero/helmrelease-vui.yaml
   - velero/secret-wasabi-creds.enc.yaml
 
   # JT-39 — adopt kube-vip (kube-system) into Flux. Was kubectl-applied as plain
@@ -482,7 +476,6 @@ resources:
   - kyverno-policies/prometheusrule.yaml
   - kyverno-policies/grafana-dashboard-cm.yaml
 
-  - velero-ui.yaml
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 
   # Wave 1 of new-app deploy.

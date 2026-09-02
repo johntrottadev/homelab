@@ -42,7 +42,6 @@ spec:
       - drawio
       - fitjat
       - hoarder
-      - it-tools-namespace
       - jellyfin
       - loki
       - monitoring

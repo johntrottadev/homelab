@@ -33,13 +33,14 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: traefik
-        # 3. Prometheus scrape. Runs as a normal pod, so it is selectable.
+        # 3. The WHOLE monitoring namespace, not just prometheus. Scoping this to
+        #    app.kubernetes.io/name=prometheus on 2026-09-03 silently blocked
+        #    blackbox-exporter, which probes every app - producing false "app down"
+        #    alerts for jellyfin and others while the apps were healthy. monitoring
+        #    also holds kube-state-metrics, snmp/speedtest/backup-host/pihole exporters.
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: monitoring
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: prometheus
         # 4. Uptime-kuma health probes - a monitoring function, same class as (3).
         - namespaceSelector:
             matchLabels:

@@ -1,0 +1,86 @@
+<!-- k3s API server audit-log rules (added 2026-05-24) -->
+<!-- Parent rule (100200) matches ANY k8s audit event. Sub-rules narrow by field. -->
+<group name="k3s-audit,k8s-audit,custom,">
+
+  <rule id="100200" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="kind">Event</field>
+    <field name="apiVersion">audit.k8s.io</field>
+    <description>k3s audit: $(verb) $(objectRef.resource) by $(user.username)</description>
+  </rule>
+
+  <!-- Forbidden / unauthorized -->
+  <rule id="100201" level="10">
+    <if_sid>100200</if_sid>
+    <match>"reason":"Forbidden"</match>
+    <description>k3s audit: FORBIDDEN access attempt by $(user.username) on $(objectRef.resource)</description>
+    <group>access_denied,pci_dss_10.2.4,</group>
+  </rule>
+
+  <rule id="100202" level="10">
+    <if_sid>100200</if_sid>
+    <match>"code":401</match>
+    <description>k3s audit: 401 Unauthorized</description>
+    <group>access_denied,</group>
+  </rule>
+
+  <!-- Privileged pod creation -->
+  <rule id="100210" level="12">
+    <if_sid>100200</if_sid>
+    <match>"verb":"create"</match>
+    <match>"resource":"pods"</match>
+    <match>"privileged":true</match>
+    <description>k3s audit: PRIVILEGED pod created by $(user.username) in $(objectRef.namespace)</description>
+    <group>privilege_escalation,pci_dss_10.2.7,</group>
+  </rule>
+
+  <!-- Secret access -->
+  <rule id="100220" level="8">
+    <if_sid>100200</if_sid>
+    <field name="objectRef.resource">secrets</field>
+    <match>"verb":"get"</match>
+    <description>k3s audit: secret READ by $(user.username) — $(objectRef.namespace)/$(objectRef.name)</description>
+    <group>access,</group>
+  </rule>
+
+  <rule id="100221" level="10">
+    <if_sid>100200</if_sid>
+    <field name="objectRef.resource">secrets</field>
+    <match>"verb":"create</match>
+    <description>k3s audit: secret CREATED/MODIFIED by $(user.username) — $(objectRef.namespace)/$(objectRef.name)</description>
+    <group>access,</group>
+  </rule>
+
+  <!-- ClusterRoleBinding / RoleBinding changes (privilege escalation vectors) -->
+  <rule id="100230" level="12">
+    <if_sid>100200</if_sid>
+    <field name="objectRef.resource">clusterrolebindings</field>
+    <match>"verb":"create</match>
+    <description>k3s audit: ClusterRoleBinding CREATED by $(user.username)</description>
+    <group>privilege_escalation,</group>
+  </rule>
+
+  <rule id="100231" level="12">
+    <if_sid>100200</if_sid>
+    <field name="objectRef.resource">clusterrolebindings</field>
+    <match>"verb":"update</match>
+    <description>k3s audit: ClusterRoleBinding UPDATED by $(user.username)</description>
+    <group>privilege_escalation,</group>
+  </rule>
+
+  <!-- Exec / port-forward into running pods -->
+  <rule id="100240" level="10">
+    <if_sid>100200</if_sid>
+    <match>"subresource":"exec"</match>
+    <description>k3s audit: pod EXEC by $(user.username) — $(objectRef.namespace)/$(objectRef.name)</description>
+    <group>access,</group>
+  </rule>
+
+  <rule id="100241" level="10">
+    <if_sid>100200</if_sid>
+    <match>"subresource":"portforward"</match>
+    <description>k3s audit: pod PORT-FORWARD by $(user.username) — $(objectRef.namespace)/$(objectRef.name)</description>
+    <group>access,</group>
+  </rule>
+
+</group>

@@ -1,0 +1,172 @@
+<!--
+  LAB-H1 · noise reduction + sensitivity increase · 2026-08-08
+
+  Baseline before this file: 165,000 alerts/day, 99.1% at level 3, two rules
+  producing 94.4% of volume. See tracks/03-homelab/LAB-H1-wazuh-baseline.md.
+
+  DESIGN RULE APPLIED THROUGHOUT:
+    Suppress the known-benign SOURCE, never the detection CLASS.
+    Every suppression below is scoped to a named container or process. The
+    parent detection stays armed for every other source in the estate.
+-->
+
+<group name="lab,noise-tuning,">
+
+  <!-- ==========================================================
+       AppArmor ptrace — elevate the class, carve out one source
+       ==========================================================
+       Stock rule 52002 fires all AppArmor denials at level 3. But a ptrace
+       read against an unconfined peer is the primitive behind process
+       injection (T1055) and OS credential dumping (T1003), so it does not
+       belong in the same severity bucket as a denied file open.
+
+       We RAISE it, then subtract the single known source. Net effect:
+       noise goes down AND sensitivity goes up.
+  -->
+  <rule id="100300" level="10">
+    <if_sid>52002</if_sid>
+    <match>operation="ptrace"</match>
+    <description>AppArmor: ptrace DENIED - possible process injection or credential access</description>
+    <group>attack,t1055,t1003,pci_dss_10.6.1,</group>
+  </rule>
+
+  <!-- Komodo Periphery v1 container on docker-2. Orphaned by the v2 systemd
+       migration on 2026-05-14 (docker-2/periphery/README.md) and never made
+       inert. Polls host process state once per second: 90,263 denials/day,
+       54.7% of total alert volume, constant for four months.
+
+       *** EXPIRES: delete this rule the moment the v1 container is
+       *** decommissioned. Leaving it in place turns a temporary carve-out
+       *** into a permanent blind spot for anything that names its threads
+       *** "tokio-runtime-w". Tracked in LAB-H1 next-steps.
+  -->
+  <rule id="100301" level="0">
+    <if_sid>100300</if_sid>
+    <match>comm="tokio-runtime-w"</match>
+    <description>AppArmor ptrace DENIED from Komodo Periphery v1 - known orphan, suppressed pending decommission</description>
+  </rule>
+
+  <!-- ==========================================================
+       Docker exec — suppress the health-check CLASS, elevate shells
+       ==========================================================
+       First pass enumerated container names (gluetun, greenbone-*). Then we
+       looked at what was actually being executed: all 65,499 events on the
+       baseline day were container health checks -
+
+         /bin/sh -c test -e $STATE_FILE            20,122
+         /gluetun-entrypoint healthcheck           16,963
+         pg_isready -U gvmd -d gvmd                16,937
+         curl -f http://localhost:3000/ || exit 1   1,439
+         /ferretdb ping                             1,438
+         /usr/sbin/health.sh                        1,438
+         omd status || exit 1                       1,415
+
+       Not one was a human or an unexpected process. So the container list is
+       the wrong abstraction: it breaks the moment a container is added, and
+       it says nothing about WHY the event is benign.
+
+       Replaced with one semantic suppression plus one new detection for the
+       case that actually matters - an interactive shell inside a running
+       container (T1609).
+  -->
+  <rule id="100310" level="0">
+    <if_sid>87907</if_sid>
+    <field name="docker.Action" type="pcre2">exec_start:.*(healthcheck|health\.sh|isready|/ping|ping$| ping |omd status|test -e |curl -[a-zA-Z]* ?https?://(localhost|127\.0\.0\.1)|get_version)</field>
+    <description>Docker exec: container health check - expected, suppressed by class not by container</description>
+  </rule>
+
+  <!-- The inverse, and the reason the suppression above is safe: an exec of a
+       shell inside a running container is a person (or a payload) obtaining
+       code execution there. Stock Wazuh reports this at level 3, identically
+       to a health check.
+
+       *** WIDENED 2026-08-09 after this rule MISSED a real event. ***
+
+       The original pattern anchored on end-of-string after an optional -i/-l:
+           exec_start:\s*(/(usr/)?bin/)?(ba|z|k|a)?sh\s*(-i|-l)?\s*$
+       That matches only a BARE shell - `sh`, `/bin/bash`, `sh -i`. It does not
+       match `sh -c <command>` or `sh -s` (script on stdin), because both carry
+       trailing content the `$` anchor rejects.
+
+       Those are the forms that matter. A human poking around types `bash`; an
+       intruder or a tool runs `sh -c 'curl .../x | sh'`, and `sh -s` executes
+       from stdin without leaving the payload in the exec arguments at all.
+       The rule was armed against the loudest version of T1609 and blind to the
+       quiet ones - which landed at level 3, indistinguishable from a health
+       check that missed the suppression above.
+
+       Found on 2026-08-09 by real activity, not by a fixture: a diagnostic
+       session ran 13 `docker exec ... sh -c` / `sh -s` calls against the
+       manager container and every one reported at level 3. The original
+       fixtures tested benign-vs-bare-shell and never benign-vs-scripted-shell,
+       so both "directions" passed while the gap sat open.
+
+       Ordering note: 100310 is declared FIRST and wins on any health check,
+       so widening this pattern to all shell invocations cannot resurrect the
+       65,499/day health-check volume. Fixtures assert both halves.
+  -->
+  <rule id="100312" level="10">
+    <if_sid>87907</if_sid>
+    <field name="docker.Action" type="pcre2">exec_start:\s*(\S*/)?(ba|z|k|a|da)?sh(\s+.*)?$</field>
+    <description>Docker: SHELL execution in running container $(docker.Actor.Attributes.name)</description>
+    <group>attack,t1609,</group>
+  </rule>
+
+  <!-- ==========================================================
+       Detections that did not exist before this pass
+       ==========================================================
+       Noise reduction alone is a weak outcome. These are net-new coverage
+       against container-runtime abuse, all of which stock Wazuh reports
+       only at level 3 or not at all.
+  -->
+
+  <!-- Privileged container start. Full host capability set, and the single
+       most common container escape precondition. -->
+  <rule id="100320" level="10">
+    <if_sid>87900</if_sid>
+    <field name="docker.Action">^start$</field>
+    <field name="docker.Actor.Attributes.privileged">^true$</field>
+    <description>Docker: PRIVILEGED container started - $(docker.Actor.Attributes.name)</description>
+    <group>attack,t1610,t1611,</group>
+  </rule>
+
+  <!-- Container sharing the host PID namespace: sees and can signal every
+       process on the host. Legitimate for some monitoring agents, which is
+       exactly why it should be visible rather than silent. -->
+  <rule id="100321" level="10">
+    <if_sid>87900</if_sid>
+    <field name="docker.Actor.Attributes.pid_mode">^host$</field>
+    <description>Docker: container started with HOST PID namespace - $(docker.Actor.Attributes.name)</description>
+    <group>attack,t1611,</group>
+  </rule>
+
+  <!-- Container on the host network namespace: bypasses network segmentation
+       entirely, which is the control RTR-07 spends five pillars building. -->
+  <rule id="100322" level="8">
+    <if_sid>87900</if_sid>
+    <field name="docker.Actor.Attributes.network_mode">^host$</field>
+    <description>Docker: container started on HOST network namespace - $(docker.Actor.Attributes.name)</description>
+    <group>attack,t1610,</group>
+  </rule>
+
+  <!-- A container dying repeatedly is either an operational fault or a
+       payload failing to hold. `inspiring_lederberg` (a Docker
+       auto-generated name, i.e. started with no explicit name) died 40x on
+       the baseline day and nobody saw it inside 165,000 alerts. -->
+  <rule id="100330" level="7" frequency="8" timeframe="600">
+    <if_matched_sid>87924</if_matched_sid>
+    <same_field>docker.Actor.Attributes.name</same_field>
+    <description>Docker: container died repeatedly - crash loop or failing payload</description>
+    <group>container_anomaly,</group>
+  </rule>
+
+  <!-- Image pulled from outside the expected registries. Supply chain: the
+       shortest path from a compromised build to a running workload. -->
+  <rule id="100340" level="8">
+    <if_sid>87900</if_sid>
+    <field name="docker.Action">^pull$</field>
+    <description>Docker: image pulled - $(docker.Actor.Attributes.name)</description>
+    <group>supply_chain,t1525,</group>
+  </rule>
+
+</group>

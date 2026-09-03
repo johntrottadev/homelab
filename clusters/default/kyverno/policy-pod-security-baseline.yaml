@@ -24,7 +24,8 @@ metadata:
       Applies the Kubernetes Pod Security Standards "baseline" profile, which
       blocks known privilege escalations: host namespaces, privileged
       containers, hostPath volumes, hostPorts, unsafe sysctls and unmasked
-      proc mounts. Audit only — reports violations, rejects nothing.
+      proc mounts. Enforced on application namespaces; infrastructure that
+        requires host access is excluded explicitly below.
 spec:
   background: true
   rules:
@@ -36,16 +37,34 @@ spec:
                 - Pod
       exclude:
         any:
-          # System namespaces that legitimately run privileged workloads.
-          # Excluded to keep the report signal about APPLICATION workloads;
-          # revisit once the app violations are cleared.
+          # Infrastructure that legitimately requires host access. Every entry was
+          # confirmed against PolicyReports on 2026-09-02 - these are not blanket
+          # exemptions, they are the namespaces whose function depends on hostPath,
+          # hostNetwork or privileged mode.
+          #
+          # Adding a namespace here is a security decision. Do not extend this list
+          # to make a failing application pass; fix the application.
           - resources:
               namespaces:
-                - kube-system
-                - longhorn-system
-                - kyverno
+                - kube-system       # kubelet, CNI, k3s components
+                - longhorn-system   # storage engine, 24 privileged pods by design
+                - kyverno           # the admission controller itself
+                - monitoring        # node-exporter reads host metrics
+                - netdata           # host monitoring
+                - datadog           # host metrics/logs agent
+                - loki              # promtail reads host logs
+                - crowdsec          # reads host logs
+                - velero            # node-agent mounts pod volumes to back them up
+                - netalert          # hostNetwork + NET_ADMIN/NET_RAW for ARP scanning
+                - k3s-builder       # buildkit requires privileged
       validate:
-        failureAction: Audit
+        # 2026-09-02: Audit -> Enforce. The audit produced 64 violations across 10
+        # namespaces and EVERY ONE was a hostPath/host-namespace use by infrastructure
+        # that cannot work without it. Zero application workloads were violating.
+        # vscode (6) was removed outright; a stray buildkit deployment in default (3)
+        # was deleted. Non-compliant Pods in any namespace not excluded above are now
+        # REJECTED at admission.
+        failureAction: Enforce
         podSecurity:
           level: baseline
           version: latest

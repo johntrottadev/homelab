@@ -52,7 +52,6 @@ spec:
       - stirling-pdf
       - uptime-kuma
       - vaultwarden
-      - vscode
     snapshotVolumes: false
     storageLocation: wasabi
     ttl: 672h

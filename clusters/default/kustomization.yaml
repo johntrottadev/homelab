@@ -135,14 +135,8 @@ resources:
 
   # Phase 999.2 plan-02 — vscode (deploy "code-server", IR "vs", host vs.__BASE-DOMAIN__,
   # supersedes top-level vs.yaml). Privileged container intentional — IDE.
-  - vscode/namespace.yaml
   # Bucket A — was kubectl one-liner (password + sudo-password).
-  - vscode/secret-vscode.enc.yaml
   # vscode/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
-  - vscode/pvc.yaml
-  - vscode/deployment.yaml
-  - vscode/service.yaml
-  - vscode/ingressroute.yaml
 
   # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC).
   # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.

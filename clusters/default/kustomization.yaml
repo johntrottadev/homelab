@@ -577,6 +577,40 @@ resources:
   - app-vm.yaml              # app-vm:7000 — AIL Framework UI (HTTPS upstream, lan-self-signed)
   - lacus.yaml            # docker-2:7100 — Lacus capture system status UI (used by AIL crawler over HTTP API)
 
+  # Network segmentation (2026-09-03). Ingress default-deny per application
+  # namespace, plus one allow-list policy each. Before this, 28 of 31 namespaces
+  # had no NetworkPolicy at all and any compromised pod had the whole cluster as
+  # its lateral surface — vaultwarden included.
+  #
+  # Ingress-only on purpose: egress default-deny breaks DNS on first apply and
+  # the symptoms then read as application bugs. Egress is a later, per-namespace
+  # pass. Infrastructure namespaces (kube-system, longhorn-system, kyverno,
+  # flux-system, velero, monitoring, netdata, datadog, loki, crowdsec,
+  # trivy-system, cert-manager, k3s-builder) are deliberately excluded — highest
+  # outage risk, lowest marginal benefit.
+  #
+  # Each file allows: same-namespace pods, traefik, prometheus, uptime-kuma
+  # probes, and the node IPs __LAN-IP__/29 — that last one matters because
+  # hostNetwork pods (node-exporter, netdata, netalert) arrive as node IPs and
+  # no podSelector can ever match them.
+  #
+  # Standard + rollout order: AI-Backbone/standards/security/network-segmentation-standard.md
+  - network-policies/vaultwarden.yaml     # credential store — highest value in the cluster
+  - network-policies/paperless.yaml       # 4 PVCs of scanned documents
+  - network-policies/nextcloud.yaml       # 4 PVCs, file store
+  - network-policies/authentik.yaml       # SSO chokepoint; extends the existing postgres-only policy
+  - network-policies/n8n.yaml             # holds credentials to everything; runs the backup watchdog
+  - network-policies/hoarder.yaml
+  - network-policies/ciso-assistant.yaml
+  - network-policies/fitjat.yaml
+  - network-policies/jellyfin.yaml
+  - network-policies/stirling-pdf.yaml
+  - network-policies/uptime-kuma.yaml
+  - network-policies/dashy.yaml
+  - network-policies/drawio.yaml
+  - network-policies/guacamole.yaml       # scaled to 0; policy lands ahead of any future restart
+  - network-policies/netalert.yaml        # its collector is hostNetwork, so policy is a no-op for that pod
+
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a
 # predictable name.

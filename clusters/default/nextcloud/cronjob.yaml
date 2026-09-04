@@ -40,7 +40,28 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  set -e
+                  set -eu
+                  # Wait for the pod's network path to be programmed before
+                  # touching the database.
+                  #
+                  # Without this the job fails roughly 3 runs in 4 with
+                  #   SQLSTATE[08006] connection to server at "nextcloud-postgres"
+                  #   ... failed: Connection refused
+                  # about two seconds after the container starts. Postgres is
+                  # healthy throughout and never logs the attempt, because the
+                  # connection is rejected before it arrives: a pod that dials
+                  # out immediately on start can beat its own network setup, and
+                  # k3s's kube-router REJECTs rather than DROPs, so the failure
+                  # is an instant refusal rather than a timeout.
+                  #
+                  # Reproduced 2026-09-04: six pods dialing postgres:5432 as
+                  # their first action were refused 6/6, while a pod that slept
+                  # first connected 6/6. Same namespace, same service, same
+                  # moment.
+                  for _ in $(seq 1 30); do
+                    php -r 'exit(@fsockopen("nextcloud-postgres", 5432) ? 0 : 1);' && break
+                    sleep 2
+                  done
                   exec runuser -u www-data -- php -f /var/www/html/cron.php
               volumeMounts:
                 - name: html

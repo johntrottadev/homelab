@@ -17,7 +17,20 @@ spec:
       backoffLimit: 1
       template:
         spec:
-          restartPolicy: OnFailure
+          # Never, not OnFailure. With OnFailure the Job controller DELETES the
+          # pod once the backoff limit is reached, so a failed run leaves no pod
+          # and no logs - only a "Job has reached the specified backoff limit"
+          # event. This job has been failing intermittently since at least
+          # 2026-09-03 (roughly 3 of every 4 runs) and was undiagnosable for
+          # exactly that reason: the container starts, exits non-zero in ~2s,
+          # and the evidence is collected before it can be read. Manual runs and
+          # `kubectl create job --from` both succeed, so the failure is specific
+          # to the scheduled path.
+          #
+          # With Never, failed pods are retained under failedJobsHistoryLimit (3)
+          # and their logs survive for inspection. A job that fails should leave
+          # evidence; that is worth more than the in-place retry OnFailure buys.
+          restartPolicy: Never
           securityContext:
             fsGroup: 33
           containers:

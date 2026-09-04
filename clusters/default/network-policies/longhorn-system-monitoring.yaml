@@ -1,0 +1,39 @@
+# Allow Prometheus to scrape longhorn-manager metrics on :9500.
+#
+# Why this file exists: the Longhorn chart ships its own `longhorn-manager`
+# NetworkPolicy whose ingress list contains ONLY same-namespace Longhorn pods
+# (longhorn-manager, longhorn-ui, longhorn-csi-plugin, driver-deployer, and
+# recurring-job pods). It has no namespaceSelector at all, so nothing outside
+# longhorn-system can reach the manager - including Prometheus.
+#
+# The effect was silent and long-lived: monitoring/longhorn-servicemonitor.yaml
+# creates the scrape target and homelab.longhorn.rules alerts on it, but
+# `max_over_time(up{job="longhorn-backend"}[24h])` was 0 on every instance -
+# the scrape had never succeeded. The only symptom was a standing TargetDown,
+# which is easy to read as noise rather than as "your storage metrics do not
+# exist".
+#
+# NetworkPolicies are additive (the union of all policies selecting a pod), so
+# this grants the monitoring namespace access without modifying or weakening
+# the chart's policy. Scoped to port 9500 only.
+#
+# Standard: AI-Backbone/standards/security/network-segmentation-standard.md
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-scrape
+  namespace: longhorn-system
+spec:
+  podSelector:
+    matchLabels:
+      app: longhorn-manager
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - protocol: TCP
+          port: 9500

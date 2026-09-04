@@ -610,6 +610,11 @@ resources:
   - network-policies/drawio.yaml
   - network-policies/guacamole.yaml       # scaled to 0; policy lands ahead of any future restart
   - network-policies/netalert.yaml        # its collector is hostNetwork, so policy is a no-op for that pod
+  # Additive fix (2026-09-04): the Longhorn chart's own longhorn-manager policy
+  # has no namespaceSelector, so Prometheus has NEVER been able to scrape :9500.
+  # up{job="longhorn-backend"} was 0 across all instances for the full retention
+  # window. Grants monitoring access to port 9500 only; chart policy untouched.
+  - network-policies/longhorn-system-monitoring.yaml
 
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a

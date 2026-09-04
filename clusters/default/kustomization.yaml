@@ -344,6 +344,16 @@ resources:
   - velero/helmrepository-velero.yaml
   - velero/helmrelease-velero.yaml
   - velero/secret-wasabi-creds.enc.yaml
+  # The kopia repository password that decrypts EVERY Wasabi backup. Until
+  # 2026-09-04 it existed in exactly one place: the cluster those backups exist
+  # to restore. Losing the cluster meant the backups survived intact and
+  # unreadable. Encrypted here so it lives off-cluster, following the same
+  # pattern as secret-wasabi-creds above.
+  #
+  # NOTE: Velero creates this Secret itself if absent, so Flux now adopts it.
+  # Content was encrypted FROM the live value, so adoption is a no-op. If Velero
+  # ever regenerates the password, git becomes stale and must be re-encrypted.
+  - velero/secret-velero-repo-credentials.enc.yaml
 
   # JT-39 — adopt kube-vip (kube-system) into Flux. Was kubectl-applied as plain
   # manifests (Deployment kube-vip-cloud-provider + DaemonSet kube-vip-ds + RBAC

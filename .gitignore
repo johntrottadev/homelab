@@ -16,6 +16,12 @@ wasabi-creds
 # kind-detection backstop) complement this rule at hook-firing time; .gitignore
 # complements them at file-pattern time. Both layers exist intentionally.
 clusters/default/**/secret-*.yaml
+# Also block suffixed plaintext (secret-x.yaml.new / .bak / .tmp). Both patterns
+# above anchor on a .yaml ending, so a trailing suffix slipped past BOTH this
+# ignore and the .sops.yaml path_regex. Near-miss 2026-09-04: a failed sops
+# encrypt left secret-velero-repo-credentials.enc.yaml.new -- plaintext,
+# untracked but NOT ignored, one `git add .` from being committed.
+clusters/default/**/secret-*.yaml.*
 !clusters/default/**/secret-*.enc.yaml
 !clusters/default/**/secret-*.template
 

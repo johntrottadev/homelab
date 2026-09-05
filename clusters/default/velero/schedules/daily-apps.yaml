@@ -54,4 +54,15 @@ spec:
       - vaultwarden
     snapshotVolumes: false
     storageLocation: wasabi
-    ttl: 168h
+    # ttl raised 168h (7d) -> 2136h (89d) on 2026-09-05. This is COST-NEUTRAL and
+    # buys ~12x the restore points.
+    #
+    # Wasabi bills a 90-day minimum storage duration: an object deleted before it
+    # has been stored 90 days still incurs a "Timed Deleted Storage" charge for the
+    # remaining days. At a 7-day ttl we were therefore paying for 90 days of storage
+    # and keeping 7 days of recoverability. Anything up to the floor is already paid
+    # for. 89d stays just inside it.
+    #
+    # NOTE: the floor is 90d on Pay-as-you-go and 30d on Reserved Capacity. If this
+    # account is Reserved Capacity, the right number here is ~696h (29d), not 2136h.
+    ttl: 2136h

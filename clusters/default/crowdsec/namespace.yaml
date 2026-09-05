@@ -2,3 +2,11 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: crowdsec
+  labels:
+    # Exempt WITH A REASON, mirroring the Kyverno exclusion list exactly:
+    # log-reading agents need hostPath and hostNetwork.
+    # Stated explicitly rather than left unlabelled, so the exemption is a
+    # decision recorded in git rather than an absence nobody notices.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline

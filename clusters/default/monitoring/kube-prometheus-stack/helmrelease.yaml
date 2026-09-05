@@ -488,6 +488,23 @@ spec:
     prometheus:
       enabled: true
       prometheusSpec:
+        # Exclude the TSDB from Velero fs-backup (2026-09-05).
+        #
+        # This single volume was 15.53 GiB of a 22.45 GiB daily backup - 69% of
+        # everything Velero uploaded to Wasabi each night, now retained 89 days.
+        #
+        # It is the worst value in the whole backup set: time-series metrics are
+        # observability, not business data. Retention here is already 10d/34GB, so
+        # a restore could only ever return graphs Prometheus itself would have
+        # aged out. Losing them costs a week of dashboards; keeping 89 daily
+        # copies costs real money. Observability is moving to a cloud data lake,
+        # which is the durable home for this data.
+        #
+        # The Prometheus CONFIG is unaffected - it lives in git and is rebuilt by
+        # the operator. Only the TSDB is skipped.
+        podMetadata:
+          annotations:
+            backup.velero.io/backup-volumes-excludes: prometheus-pvc
         # retention: prune by age (10d) OR size (34GB ~80% of the 40Gi PVC),
         # whichever hits first. retentionSize is the hard guardrail added after
         # the 2026-08-06 incident where 10d-only retention filled the 20Gi PVC,

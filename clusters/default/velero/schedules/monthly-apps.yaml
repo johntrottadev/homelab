@@ -47,7 +47,6 @@ spec:
       - monitoring
       - n8n
       - netalert
-      - nextcloud
       - paperless
       - stirling-pdf
       - uptime-kuma

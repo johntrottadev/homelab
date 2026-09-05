@@ -31,12 +31,29 @@
 # `kyverno_policy_results_total{rule_result="fail"}`, but nothing is actually
 # blocked. Flip-to-Enforce is a separate follow-up after 24h of clean reports.
 #
-# WHY replicas pinned to 1
-# ------------------------
+# WHY replicas: admission 2, everything else 1
+# --------------------------------------------
 # Five-node homelab cluster, single operator, no external SLAs. Chart default
 # is 3 replicas per controller (admission/background/cleanup/reports = 12
-# pods). One replica each (4 pods total) keeps the resource footprint
-# trivial. failurePolicy: Ignore covers the high-availability gap.
+# pods). One replica each kept the footprint trivial, on the reasoning that
+# failurePolicy: Ignore covered the availability gap.
+#
+# Revised 2026-09-05. That reasoning was self-defeating for the ADMISSION
+# controller specifically: fail-open plus a single replica means that while
+# that one pod is evicted, crash-looping, mid-upgrade or on a draining node,
+# every workload in every non-excluded namespace admits UNCHECKED - and no
+# denial is logged, because no denial happens. The control had a silent
+# off-switch that any node drain could flip.
+#
+# admissionController -> 2 (it is the only one on the request path).
+# background/reports/cleanup stay at 1; they reconcile asynchronously and a
+# brief outage delays reports rather than removing enforcement.
+#
+# failurePolicy stays Ignore deliberately. Since 2026-09-04, Pod Security
+# Admission enforces the same baseline at the API server across 21 namespaces
+# (see clusters/default/*/namespace.yaml), so a Kyverno outage no longer means
+# nothing is enforcing. Fail-open is now a defensible choice rather than the
+# only survivable one.
 #
 # Chart version pinning
 # ---------------------
@@ -87,7 +104,10 @@ spec:
     # the kyverno-svc-metrics + per-controller metrics services on
     # port 8000 / name metrics-port).
     admissionController:
-      replicas: 1
+      # 2, not 1 - see "WHY replicas" above. This is the controller on the
+      # admission request path; a single replica gave enforcement a silent
+      # off-switch.
+      replicas: 2
       metricsService:
         create: true
     backgroundController:

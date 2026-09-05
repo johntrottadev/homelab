@@ -284,38 +284,13 @@ resources:
   # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
   - monitoring/secret-grafana-admin.enc.yaml
 
-  # Nextcloud — filesystem-primary on NFS (cutover 2026-05-04 from MinIO-
   # primary, which itself replaced Wasabi-primary on 2026-04-30; the MinIO
   # ns + replicate-cronjob were removed in this same change). User uploads
-  # land at /var/www/html/data/<user>/files/ on nextcloud-data-pv.
-  # NOTE (2026-07-04): the nextcloud-rclone-wasabi mirror was KILLED — it ran
   # every 15 min 24/7 with no bwlimit and saturated the home uplink during
   # the day. To be re-engineered from the ground up; rclone-cronjob.yaml is
   # removed from resources below. secret-rclone-wasabi retained for the rebuild.
   # Postgres on local-path (node-pinned, fast), daily pg_dump → NFS for
   # safety. Redis ephemeral (file locking + memcache).
-  # Secrets applied manually (paloarp pattern); see clusters/default/nextcloud/README.md.
-  # Phase 12 wave 12-06 — were secret-{nextcloud,rclone-wasabi}.template (kubectl apply).
-  - nextcloud/secret-nextcloud.enc.yaml
-  - nextcloud/secret-rclone-wasabi.enc.yaml
-  - nextcloud/namespace.yaml
-  - nextcloud/postgres-pvc.yaml
-  - nextcloud/postgres-deployment.yaml
-  - nextcloud/postgres-service.yaml
-  # nextcloud/postgres-backup-pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
-  - nextcloud/postgres-backup-pvc.yaml
-  - nextcloud/postgres-backup-cronjob.yaml
-  - nextcloud/redis-deployment.yaml
-  - nextcloud/redis-service.yaml
-  # nextcloud/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
-  - nextcloud/pvc.yaml
-  # nextcloud/data-pv.yaml removed — Wave 4 (260511-utf) migrated to dynamic storage-apps SC.
-  - nextcloud/data-pvc.yaml
-  - nextcloud/deployment.yaml
-  - nextcloud/service.yaml
-  - nextcloud/ingressroute.yaml
-  - nextcloud/cronjob.yaml
-  # - nextcloud/rclone-cronjob.yaml   # KILLED 2026-07-04 — re-engineering the Wasabi mirror (see note above)
   # Workload + routing — log aggregation (Loki monolithic + Promtail).
   # Internal-only: NO IngressRoute. Grafana queries via in-cluster Service.
   # First flux-managed HelmRepository + HelmRelease in this repo.
@@ -600,7 +575,7 @@ resources:
   # Ingress-only on purpose: egress default-deny breaks DNS on first apply and
   # the symptoms then read as application bugs. Egress is a later, per-namespace
   # pass. Infrastructure namespaces (kube-system, longhorn-system, kyverno,
-  # flux-system, velero, monitoring, netdata, datadog, loki, crowdsec,
+  # flux-system, velero, monitoring, netdata, loki, crowdsec,
   # trivy-system, cert-manager, k3s-builder) are deliberately excluded — highest
   # outage risk, lowest marginal benefit.
   #
@@ -612,7 +587,6 @@ resources:
   # Standard + rollout order: AI-Backbone/standards/security/network-segmentation-standard.md
   - network-policies/vaultwarden.yaml     # credential store — highest value in the cluster
   - network-policies/paperless.yaml       # 4 PVCs of scanned documents
-  - network-policies/nextcloud.yaml       # 4 PVCs, file store
   - network-policies/authentik.yaml       # SSO chokepoint; extends the existing postgres-only policy
   - network-policies/n8n.yaml             # holds credentials to everything; runs the backup watchdog
   - network-policies/hoarder.yaml

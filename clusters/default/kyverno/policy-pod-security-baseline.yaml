@@ -51,7 +51,6 @@ spec:
                 - kyverno           # the admission controller itself
                 - monitoring        # node-exporter reads host metrics
                 - netdata           # host monitoring
-                - datadog           # host metrics/logs agent
                 - loki              # promtail reads host logs
                 - crowdsec          # reads host logs
                 - velero            # node-agent mounts pod volumes to back them up

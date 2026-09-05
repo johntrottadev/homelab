@@ -17,7 +17,10 @@ spec:
   template:
     metadata:
       annotations:
-        backup.velero.io/backup-volumes-excludes: data-volume,media-volume
+        # consume-volume added 2026-09-05: it is on storage-apps, and the NAS
+        # backs itself up to Wasabi directly, so Velero was paying twice
+        # for the same bytes.
+        backup.velero.io/backup-volumes-excludes: data-volume,media-volume,consume-volume
       labels:
         app: paperless-ngx
     spec:

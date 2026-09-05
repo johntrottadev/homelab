@@ -1,0 +1,65 @@
+# Longhorn recurring snapshot jobs.
+#
+# Adopted into Flux 2026-09-05. Previously a single `snapshot-6h` RecurringJob
+# created out-of-band via the UI/kubectl, unmanaged and invisible to review.
+#
+# Retention mirrors the PBS policy deliberately, so both layers answer the same
+# question the same way: a few recent points to get back to a clean state, not a
+# deep archive. Long-term retention is the cloud tier's job, not local disk's.
+#
+#   snapshot-2h    retain 3   -> the last ~6 hours, 2 hours apart
+#   snapshot-daily retain 2   -> the last 2 days
+#
+# Longhorn snapshots are copy-on-write on the volume's own disk, so cost scales
+# with CHANGE, not with volume size. Headroom measured 2026-09-05: 99 GiB actual
+# across 33 volumes against ~800 GiB available per node.
+#
+# TWO PROPERTIES THAT LIMIT WHAT THESE ARE WORTH - both are cluster settings,
+# not fixable here, and both are recorded in
+# standards/homelab/backup-and-recovery-design.md:
+#
+#   freeze-filesystem-for-snapshot = false
+#     These are CRASH-consistent, not application-consistent. For postgres,
+#     redis and sqlite a snapshot is equivalent to pulling the power. Treat
+#     database dumps as the trustworthy restore point and these as the fast,
+#     fallible tier above them.
+#
+#   allow-recurring-job-while-volume-detached = false
+#     A volume whose workload is scaled to zero receives NO snapshots and
+#     nothing reports it. Alert on snapshot AGE per volume, not on job success:
+#     a job that succeeds by skipping everything looks green and protects
+#     nothing.
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: snapshot-2h
+  namespace: longhorn-system
+spec:
+  name: snapshot-2h
+  task: snapshot
+  cron: "0 */2 * * *"
+  retain: 3
+  concurrency: 2
+  groups:
+    - default
+  labels: {}
+  parameters: {}
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: snapshot-daily
+  namespace: longhorn-system
+spec:
+  name: snapshot-daily
+  task: snapshot
+  # 03:00, deliberately ahead of the 04:30 Velero run so the daily offsite
+  # backup is taken against a fresh local snapshot rather than a stale one.
+  cron: "0 3 * * *"
+  retain: 2
+  concurrency: 2
+  groups:
+    - default
+  labels: {}
+  parameters: {}

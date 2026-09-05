@@ -24,6 +24,11 @@ resources:
   - coredns-pdb.yaml
   # Longhorn snapshot class for pre-upgrade rollback points (2026-07-03).
   - longhorn-snapshot-vsc.yaml
+  # Longhorn recurring snapshots (2026-09-05). Adopts the previously
+  # cluster-only snapshot-6h job into Flux and moves to a 2-hourly cadence with
+  # PBS-matching retention: 3 x 2-hourly + 2 daily. Long-term retention belongs
+  # to the cloud tier, not to local disk.
+  - longhorn-snapshots.yaml
   # Longhorn metrics scrape (2026-07-03) — feeds homelab.longhorn.rules alerts.
   - monitoring/longhorn-servicemonitor.yaml
   # Wave 1 — cert-manager + Traefik shared

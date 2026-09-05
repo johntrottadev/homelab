@@ -22,6 +22,64 @@ metadata:
 spec:
   groups:
   - interval: 1m
+    name: homelab.backup-coverage.rules
+    rules:
+    # Kopia protects the Docker hosts, which hold data no other layer covers
+    # (/var/lib/docker/volumes, /opt/stacks, wazuh, checkmk, maltrail, netdata).
+    # Metric verified present 2026-09-05: kopia_backup_run_timestamp_seconds,
+    # labelled by instance, scraped via node-exporter source_job=dock-hosts.
+    - alert: KopiaBackupStale
+      annotations:
+        description: Kopia backup on {{ $labels.instance }} last succeeded {{ $value
+          | humanizeDuration }} ago (threshold 30h).
+        summary: Kopia backup stale on {{ $labels.instance }}
+      expr: |
+        time() - kopia_backup_run_timestamp_seconds > 30 * 3600
+      for: 30m
+      labels:
+        component: kopia
+        severity: warning
+    # A host that STOPS reporting is invisible to the staleness alert above,
+    # because the series simply disappears rather than growing old. Only docker-1,
+    # docker-2 and docker-3 currently report; the 2026-09-02 coverage audit also lists
+    # app-vm, so either its timer is not running or it is not being scraped.
+    - alert: KopiaHostNotReporting
+      annotations:
+        description: No kopia_backup_run_timestamp_seconds series for {{ $labels.instance
+          }}. The host is not reporting backups at all - a missing series is not
+          a passing check.
+        summary: Kopia host not reporting
+      expr: |
+        absent(kopia_backup_run_timestamp_seconds{instance="docker-1"})
+        or absent(kopia_backup_run_timestamp_seconds{instance="docker-2"})
+        or absent(kopia_backup_run_timestamp_seconds{instance="docker-3"})
+      for: 1h
+      labels:
+        component: kopia
+        severity: warning
+    # THE DETACHED-VOLUME GAP.
+    #
+    # allow-recurring-job-while-volume-detached=false means a volume whose
+    # workload is scaled to zero receives NO snapshots, and the RecurringJob
+    # still reports success. Job success is therefore not evidence of coverage.
+    # This alerts on the outcome instead: a Longhorn volume with zero snapshots.
+    #
+    # Measured 2026-09-05: 32 of 33 volumes had snapshots, so this fires on a
+    # real, existing gap rather than being theoretical.
+    - alert: LonghornVolumeNeverSnapshotted
+      annotations:
+        description: Longhorn volume {{ $labels.volume }} has no snapshots. It is
+          likely detached (workload scaled to zero), which the recurring job skips
+          silently while still reporting success.
+        summary: Longhorn volume has no snapshots
+      expr: |
+        count by (volume) (longhorn_volume_capacity_bytes)
+        unless count by (volume) (longhorn_snapshot_actual_size_bytes)
+      for: 2h
+      labels:
+        component: longhorn
+        severity: warning
+  - interval: 1m
     name: homelab.velero.rules
     rules:
     - alert: VeleroDailyBackupStale
@@ -37,19 +95,16 @@ spec:
       labels:
         component: velero
         severity: critical
-    - alert: VeleroWeeklyBackupStale
-      annotations:
-        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
-        description: Last successful weekly-apps backup was {{ $value | humanizeDuration
-          }} ago (threshold 8d).
-        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#veleroweeklybackupstale
-        summary: Velero weekly-apps backup is stale
-      expr: |
-        time() - velero_backup_last_successful_timestamp{schedule="weekly-apps"} > 8 * 86400
-      for: 1h
-      labels:
-        component: velero
-        severity: warning
+    # VeleroWeeklyBackupStale REMOVED 2026-09-05.
+    #
+    # weekly-apps was deliberately paused: with daily retention raised to 89d,
+    # every point a 28-day weekly could restore to is already covered by a daily.
+    # A paused schedule never updates velero_backup_last_successful_timestamp, so
+    # this alert would have fired permanently and trained the whole velero group
+    # to be ignored. An alert for a control you switched off on purpose is noise,
+    # not coverage.
+    #
+    # If weekly-apps is ever unpaused, restore this alert with it.
     - alert: VeleroBackupRecentFailure
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage

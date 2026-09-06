@@ -36,7 +36,7 @@ Beyond the kube-prometheus-stack defaults, `homelab-alerts.yaml` adds:
 | `homelab.pve.rules` | `PVENodeDown`, `PVEGuestUnexpectedlyDown` (onboot=1 only), `PVEStorageHigh` (>85%), `PVEStorageCritical` (>92%) |
 | `homelab.network.rules` | `WANDown` (both public TCP/53 probes failing), `PublicDNSResolutionFailing` |
 | `homelab.k8s.rules` | `HomelabPVCHigh` (>85%), `HomelabPVCCritical` (>92%) |
-| `homelab.backup-host.rules` | `PBSExporterDown`, `PBSDatastoreHigh` (>85%), `PBSDatastoreCritical` (>92%), `PBSVMBackupStale` (>36h, scoped to last 14d), `PBSBackupVerifyFailed` |
+| `homelab.backup-host.rules` | `PBSExporterDown`, `PBSDatastoreHigh` (>85%), `PBSDatastoreCritical` (>92%), `PBSVMBackupStale` (>36h, scoped to last 14d), `PBSVerifyStale` (>30d unverified, via the `backup-host:last_verify_ok:timestamp` recording rule) |
 | `homelab.synology.rules` | `SynologySNMPDown`, `SynologyDiskUnhealthy`, `SynologyDiskRemainLifeLow` (<20% wear life) |
 | `homelab.paloalto.rules` | `PaloAltoSNMPDown` (only fires after device has been seen up — avoids false-fires during initial config) |
 

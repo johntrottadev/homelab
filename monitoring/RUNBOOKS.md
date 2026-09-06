@@ -151,21 +151,47 @@ decommissioned VMs don't keep alerting).
 - If the VM was renamed but VMID reused, the alert reflects the previous
   VM; either prune old snapshots or disable the alert via silence
 
-## PBSBackupVerifyFailed
+## PBSVerifyStale
 
-**What it means**: PBS reports `pbs_snapshot_vm_last_verify=0` for a VM —
-either *no verify job has run* OR *the last verify failed*. The exporter
-can't distinguish the two.
+**What it means**: no snapshot of this VM has passed verification on this
+datastore in **over 30 days**. Backups are being taken; nobody has proven
+they can be read back.
+
+**This replaced `PBSBackupVerifyFailed` and `PBSArchiveVerifyFailed` on
+2026-09-06.** Those alerted on `pbs_snapshot_vm_last_verify == 0`, which
+cannot tell *"verify failed"* from *"not verified yet"*. Backups land every
+2h and the verify job runs once daily at 05:00, so the newest snapshot is
+unverified for most of every day. Measured across 2 days, the old rule was
+firing 45-48% of wall-clock against **healthy** data - 19 alerts at once on
+the morning it was removed. It was the largest single source of alert noise
+in the estate, and it trained the reflex of ignoring PBS alerts, which is
+the actual damage.
+
+**Why the rule looks unusual**: it reads a recording rule,
+`backup-host:last_verify_ok:timestamp`, rather than `max_over_time(...[30d])`.
+Prometheus holds roughly **2 days** of history here - `spec.retention` is
+10d but `retentionSize=34GB` binds first at ~442k head series. A `[30d]`
+range would silently evaluate over ~2 days and look like it worked. The
+recording rule carries the last-known-good verify time forward one sample at
+a time, so it needs no history at all.
 
 **What to check**
-- PBS UI → Datastore → Verify Jobs — does a verify schedule exist?
-- If schedule exists, look at its last run — failed?
+- PBS UI -> Datastore -> Verify Jobs - does a verify schedule exist and is
+  it enabled?
+- If it exists, check its last run in the PBS task log.
+- 30 days is deliberately generous. If this fires, something has been broken
+  for a month - check the schedule before the data.
 
 **How to fix**
-- No verify job → create one in PBS UI (typically weekly is enough)
-- Verify failed → look at the error in PBS task log; usually corrupt
-  chunk that needs `proxmox-backup-manager verify --resume` or restoring
-  from a parallel snapshot
+- No verify job -> create one in the PBS UI. Weekly is sufficient.
+- Verify failed -> read the PBS task log. Usually a corrupt chunk; either
+  `proxmox-backup-manager verify --resume` or restore from the parallel
+  snapshot on the other datastore.
+- Alert will clear on its own within one evaluation of a successful verify.
+
+**Scope note**: the alert excludes `datastore="2tb"`, the archive replica
+whose disk failed and is being wiped. `PBSVMBackupStale` carries the same
+exclusion. **Remove both together** once the archive is rebuilt.
 
 ---
 

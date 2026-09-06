@@ -251,27 +251,72 @@ spec:
       labels:
         component: backup-host
         severity: warning
-    - alert: PBSBackupVerifyFailed
+    # -----------------------------------------------------------------------
+    # VERIFY STALENESS - replaced PBSBackupVerifyFailed + PBSArchiveVerifyFailed
+    # on 2026-09-06.
+    #
+    # THE BUG IN THE OLD RULES: both alerted on
+    #   pbs_snapshot_vm_last_verify == 0
+    # which cannot distinguish "verify FAILED" from "not verified YET". Backups
+    # land every 2h; the verify job runs once a day at 05:00. So the newest
+    # snapshot is unverified for most of every day, and the alert fired against
+    # completely healthy data - measured at 45-48% of wall-clock across ~20 VMs,
+    # 13 of them firing simultaneously every morning. It was the single largest
+    # source of alert noise in the estate.
+    #
+    # WHY A RECORDING RULE INSTEAD OF max_over_time(...[30d]):
+    # Prometheus holds ~2 DAYS of history here, not 30. spec.retention is 10d
+    # but retentionSize=34GB binds first - 442k head series at 14.8k samples/s,
+    # dominated by apiserver and etcd histogram buckets. A [30d] range would
+    # silently evaluate over whatever ~2 days exist and look like it worked.
+    # The carry-forward idiom below only ever reads its OWN previous sample, so
+    # it is independent of retention entirely.
+    #
+    # Three clauses, first match wins:
+    #   1. verify is OK right now      -> stamp the current time
+    #   2. otherwise                   -> carry the previous stamp forward,
+    #                                     BUT only while the source series still
+    #                                     exists (`and on`), so a removed VM or
+    #                                     datastore does not leave an orphan that
+    #                                     alerts forever and can never clear
+    #   3. never seen before           -> seed with now, so a brand-new VM gets a
+    #                                     full 30 days before it can alert
+    - record: backup-host:last_verify_ok:timestamp
+      expr: |
+        (
+          max by (datastore, vm_id, vm_name) (
+            timestamp(pbs_snapshot_vm_last_verify == 1)
+          )
+        )
+        or
+        (
+          max by (datastore, vm_id, vm_name) (backup-host:last_verify_ok:timestamp)
+            and on (datastore, vm_id, vm_name)
+          max by (datastore, vm_id, vm_name) (pbs_snapshot_vm_last_verify)
+        )
+        or
+        (
+          max by (datastore, vm_id, vm_name) (
+            pbs_snapshot_vm_last_verify * 0 + time()
+          )
+        )
+    - alert: PBSVerifyStale
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
-        description: Most recent backup did not pass verify on datastore {{ $labels.datastore
-          }}.
-        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsbackupverifyfailed
-        summary: PBS verify failed on last backup of VM {{ $labels.vm_id }} ({{ $labels.vm_name
-          }})
-      expr: pbs_snapshot_vm_last_verify{datastore="1tb"} == 0
-      for: 30m
-      labels:
-        component: backup-host
-        severity: warning
-    - alert: PBSArchiveVerifyFailed
-      annotations:
-        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
-        description: Newest snapshot of VM {{ $labels.vm_id }} on the 2tb archive is
-          unverified/failed beyond the normal daily sync(06:00)-to-verify(09:30) window.
-        summary: PBS archive verify failed or overdue for VM {{ $labels.vm_id }}
-      expr: pbs_snapshot_vm_last_verify{datastore="2tb"} == 0
-      for: 6h
+        description: No snapshot of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          has passed verification on datastore {{ $labels.datastore }} for {{ $value
+          | humanizeDuration }}. Threshold 30d. A backup that has never been verified
+          is a backup you have not proven you can restore.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsverifystale
+        summary: 'PBS verify stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          unverified for 30d+'
+      expr: |
+        # datastore!="2tb": same exclusion and same reason as PBSVMBackupStale
+        # above - the 2tb archive replica's disk failed and is being wiped and
+        # re-evaluated. REMOVE BOTH EXCLUSIONS TOGETHER once the archive is
+        # rebuilt and the s-1tb-to-2tb sync is healthy again.
+        (time() - backup-host:last_verify_ok:timestamp{datastore!="2tb"}) > 30 * 24 * 3600
+      for: 1h
       labels:
         component: backup-host
         severity: warning

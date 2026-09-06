@@ -189,6 +189,18 @@ a time, so it needs no history at all.
   snapshot on the other datastore.
 - Alert will clear on its own within one evaluation of a successful verify.
 
+**Known limitation - a Prometheus restart forgives staleness.** The carry-
+forward chain reads its own previous sample. When Prometheus restarts, that
+sample is gone, so every VM re-seeds to "verified now" and the 30-day clock
+restarts from zero. A genuinely stale image is silently forgiven and needs
+another full 30 days to alert again. This is inherent: the PBS exporter
+publishes `pbs_snapshot_vm_last_verify` as a **boolean only** - there is no
+verify-timestamp metric to read the true value from (confirmed against the
+full `pbs_*` metric list, 2026-09-06). Mitigations: `PBSVMBackupStale` is
+unaffected and still catches a VM that stopped being backed up at all, and
+after a known Prometheus restart, check the PBS UI verify-job history
+directly rather than trusting this alert for the following month.
+
 **Scope note**: the alert excludes `datastore="2tb"`, the archive replica
 whose disk failed and is being wiped. `PBSVMBackupStale` carries the same
 exclusion. **Remove both together** once the archive is rebuilt.

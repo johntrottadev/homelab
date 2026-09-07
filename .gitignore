@@ -44,6 +44,10 @@ inventory/hosts.ini
 ansible/inventory/hosts.ini
 ansible/inventory/host_vars/
 ansible/inventory/group_vars/
+# etcd snapshots fetched by ansible/kernel_currency.yml. An etcd snapshot
+# contains every Kubernetes Secret in the cluster IN PLAINTEXT. It must never
+# reach this repo, which pushes to GitHub.
+ansible/artifacts/
 
 # ---- Phase 3: cluster-vars deny + allow pair (M1 CFG-02) --------------------
 # Real cluster-vars values applied out-of-band; example IS committed.

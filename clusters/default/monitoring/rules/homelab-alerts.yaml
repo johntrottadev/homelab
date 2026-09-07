@@ -236,14 +236,17 @@ spec:
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale
         summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
       expr: |
-        # datastore!="2tb": the 2tb ARCHIVE replica's disk failed 2026-08-19
+        # datastore!~"2tb|archive": the ARCHIVE replica's disk failed 2026-08-19
         # (Seagate ST2000DM001, 1216 reallocated / 496 pending sectors) and is
         # unmounted pending replacement — see decisions/2026-08-24-backup-host-archive-
         # disk-failure-and-alert-noise.md. It fired 18 permanently-stale alerts
         # that masked real signal. 1tb is the PRIMARY and stays in scope, so a
         # genuine backup outage still alerts. REMOVE THIS EXCLUSION once the
         # disk is replaced and s-1tb-to-2tb sync is healthy again.
-        (time() - pbs_snapshot_vm_last_timestamp{datastore!="2tb"} > 36*3600)
+        # Matches BOTH names on purpose: the datastores were renamed
+        # 1tb/2tb -> main/archive on 2026-09-06, at which point a bare
+        # !="2tb" silently stopped excluding anything at all.
+        (time() - pbs_snapshot_vm_last_timestamp{datastore!~"2tb|archive"} > 36*3600)
           and on(vm_id) (
             label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
           )
@@ -311,11 +314,14 @@ spec:
         summary: 'PBS verify stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
           unverified for 30d+'
       expr: |
-        # datastore!="2tb": same exclusion and same reason as PBSVMBackupStale
+        # datastore!~"2tb|archive": same exclusion, same reason as PBSVMBackupStale
         # above - the 2tb archive replica's disk failed and is being wiped and
         # re-evaluated. REMOVE BOTH EXCLUSIONS TOGETHER once the archive is
         # rebuilt and the s-1tb-to-2tb sync is healthy again.
-        (time() - backup-host:last_verify_ok:timestamp{datastore!="2tb"}) > 30 * 24 * 3600
+        # Matches BOTH names on purpose: the datastores were renamed
+        # 1tb/2tb -> main/archive on 2026-09-06, at which point a bare
+        # !="2tb" silently stopped excluding anything at all.
+        (time() - backup-host:last_verify_ok:timestamp{datastore!~"2tb|archive"}) > 30 * 24 * 3600
       for: 1h
       labels:
         component: backup-host

@@ -560,12 +560,23 @@ spec:
         # drive-temperature textfile collector (/usr/local/bin/usb-drive-temps.sh,
         # cron */5). Exposes usb_enclosure_drive_temp_celsius for the PBS
         # enclosure drives (local) and nas2 (pulled via restricted SSH key).
+        # __PVE-NODE-2__/__PVE-NODE-3__ added 2026-09-07. Until then node_exporter ran on __PVE-NODE-1__
+        # only, so the other two hypervisors had no kernel, load, memory or
+        # disk visibility at all — their kernel versions had to be read over
+        # SSH. Needed here so a hypervisor reboot can be verified without a
+        # shell on the box that just rebooted.
         - job_name: pve-hosts
           scrape_interval: 60s
           static_configs:
           - targets: [__LAN-IP__:9100]
             labels:
               instance: __PVE-NODE-1__
+          - targets: [__LAN-IP__:9100]
+            labels:
+              instance: __PVE-NODE-2__
+          - targets: [__LAN-IP__:9100]
+            labels:
+              instance: __PVE-NODE-3__
           relabel_configs:
           - source_labels: [job]
             target_label: source_job

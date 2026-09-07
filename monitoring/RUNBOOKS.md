@@ -151,6 +151,35 @@ decommissioned VMs don't keep alerting).
 - If the VM was renamed but VMID reused, the alert reflects the previous
   VM; either prune old snapshots or disable the alert via silence
 
+## DaemonSetPodsNotReady
+
+**What it means**: a DaemonSet has pods that are *scheduled* but not *Ready*,
+for over 20 minutes.
+
+**Why this rule exists.** kube-prometheus-stack ships `KubeDaemonSetRolloutStuck`,
+which compares `current_number_scheduled` against `desired`. A pod stuck in
+`Unknown` after its node rebooted is **still scheduled** — it just never becomes
+Ready again — so that rule is blind to it. On 2026-09-07, `crowdsec-agent` sat at
+**4/6 ready for over an hour** across three node reboots and nothing fired.
+`kube_daemonset_status_number_ready` is the only metric that exposes it.
+
+**Why it matters most for crowdsec**: it is a security agent. A silently dead
+crowdsec-agent means that node's Traefik traffic is no longer being parsed for
+attack scenarios, and nothing else tells you.
+
+**How to fix**
+- `kubectl get pods -n <ns> -o wide` — look for `Unknown`, or `Running` at `0/1`.
+- `kubectl rollout restart daemonset -n <ns> <name>` clears it every time.
+- If it recurs on the *same* node without a reboot, look at the agent itself
+  rather than at Kubernetes.
+
+**Known recurring case**: `crowdsec-agent` after any node reboot. Separately,
+the agent can wedge tailing a container log file whose pod was deleted
+(`Waiting for /var/log/containers/traefik-...log to appear`, then exit 255) —
+that is a different failure with the same symptom and the same remedy.
+
+---
+
 ## PBSVerifyStale
 
 **What it means**: no snapshot of this VM has passed verification on this

@@ -352,6 +352,14 @@ resources:
   - kube-vip/configmap-kubevip.yaml
   - kube-vip/deployment-cloud-provider.yaml
   - kube-vip/daemonset.yaml
+  # 2026-09-07 — kube-vip-cp was MISSED by the JT-39 adoption above: it holds the
+  # API VIP __LAN-IP__ and was still only a hand-run `kubectl apply`. Unlike the
+  # JT-39 entries this one is deliberately NOT byte-faithful — it adds
+  # vip_leaseduration/renewdeadline/retryperiod 5/3/1, because it was running
+  # kube-vip's defaults (15/10/2) and so failed the API VIP over 3x slower than
+  # kube-vip-ds does for the service VIPs. Expect ONE short API VIP move on first
+  # reconcile as the DaemonSet rolls; that is the cost of the fix, not a surprise.
+  - kube-vip/daemonset-cp.yaml
 
   # JT-41 — adopt default/k3s-builder0 BuildKit Deployment via Flux SSA. Originally
   # created manually by `docker buildx create --driver kubernetes --name k3s-builder`

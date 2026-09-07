@@ -1,0 +1,93 @@
+# kube-vip-cp — holds the Kubernetes API VIP __LAN-IP__ on the three control
+# plane nodes via ARP + leader election.
+#
+# ADOPTED INTO GIT 2026-09-07. Until now this DaemonSet existed only as a
+# hand-run `kubectl apply` (it carried a last-applied-configuration annotation
+# and appeared in no Kustomization), so it was invisible to Flux and drifted
+# silently.
+#
+# Lease timings added at adoption. It was running kube-vip's DEFAULTS
+# (leaseDuration 15s / renewDeadline 10s / retryPeriod 2s), meaning the API VIP
+# could take ~15s to move after losing its holder. kube-vip-ds — which holds the
+# service VIPs including Traefik's __LAN-IP__ — already used 5/3/1, so the API
+# VIP was the slower of the two by 3x. These now match.
+#
+# Applying this restarts the DaemonSet on all three control-plane nodes, which
+# briefly moves the API VIP. Expect one short blip; do it deliberately.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube-vip-cp
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: kube-vip-cp
+  template:
+    metadata:
+      labels:
+        app: kube-vip-cp
+    spec:
+      containers:
+      - args:
+        - manager
+        env:
+        - name: vip_arp
+          value: 'true'
+        - name: port
+          value: '6443'
+        - name: vip_interface
+        - name: vip_cidr
+          value: '32'
+        - name: cp_enable
+          value: 'true'
+        - name: cp_namespace
+          value: kube-system
+        - name: svc_enable
+          value: 'false'
+        - name: vip_leaderelection
+          value: 'true'
+        - name: address
+          value: __LAN-IP__
+        - name: prometheus_server
+          value: :2113
+        - name: vip_leaseduration
+          value: '5'
+        - name: vip_renewdeadline
+          value: '3'
+        - name: vip_retryperiod
+          value: '1'
+        image: ghcr.io/kube-vip/kube-vip:v0.8.9
+        imagePullPolicy: IfNotPresent
+        name: kube-vip
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_TIME
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: 'true'
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: kube-vip
+      serviceAccountName: kube-vip
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+

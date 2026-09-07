@@ -593,6 +593,32 @@ spec:
   - interval: 1m
     name: homelab.k8s.rules
     rules:
+    - alert: DaemonSetPodsNotReady
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-k8s
+        description: DaemonSet {{ $labels.namespace }}/{{ $labels.daemonset }} has
+          {{ $value }} pod(s) scheduled but not Ready, for over 20m. A pod left in
+          Unknown after its node rebooted is scheduled but dead, and is not
+          self-healing; `kubectl rollout restart daemonset -n {{ $labels.namespace
+          }} {{ $labels.daemonset }}` clears it.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#daemonsetpodsnotready
+        summary: 'DaemonSet {{ $labels.namespace }}/{{ $labels.daemonset }}: {{ $value
+          }} pod(s) scheduled but not Ready'
+      expr: |
+        # The shipped KubeDaemonSetRolloutStuck compares
+        # current_number_scheduled against desired. A pod stuck in Unknown after a
+        # node reboot is STILL SCHEDULED — only not ready — so that rule cannot
+        # see it. On 2026-09-07 crowdsec-agent sat at 4/6 ready for over an hour
+        # across three separate node reboots and nothing fired. number_ready is
+        # the only metric that exposes this class of failure.
+        (
+          kube_daemonset_status_desired_number_scheduled{job="kube-state-metrics"}
+            - kube_daemonset_status_number_ready{job="kube-state-metrics"}
+        ) > 0
+      for: 20m
+      labels:
+        component: kubernetes
+        severity: warning
     - alert: HomelabPVCHigh
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage

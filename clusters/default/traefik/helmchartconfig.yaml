@@ -46,6 +46,16 @@ spec:
           matchLabels:
             app.kubernetes.io/name: traefik
             app.kubernetes.io/instance: traefik-kube-system
+    # 2026-09-07: PodDisruptionBudget. topologySpreadConstraints above spread the
+    # replicas, and deployment strategy maxUnavailable:0 governs ROLLOUTS — but
+    # neither constrains an EVICTION. Without a PDB `kubectl drain` can evict
+    # Traefik pods faster than replacements become Ready, which is how a
+    # hypervisor drain briefly took ingress down on 2026-09-07.
+    # minAvailable 2 of 3: a node drain can still take one replica, and a second
+    # concurrent drain is refused rather than silently dropping ingress.
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 2
     # Phase 14 D-04 — global HTTP→HTTPS 301 redirect on web entrypoint.
     # Chart 34+ deprecated `ports.web.redirectTo` in favor of
     # `ports.web.http.redirections.entryPoint` (per upstream Traefik syntax).

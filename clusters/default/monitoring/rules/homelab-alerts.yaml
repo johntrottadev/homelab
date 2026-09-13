@@ -236,21 +236,72 @@ spec:
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale
         summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
       expr: |
-        # datastore!~"2tb|archive": the ARCHIVE replica's disk failed 2026-08-19
-        # (Seagate ST2000DM001, 1216 reallocated / 496 pending sectors) and is
-        # unmounted pending replacement — see decisions/2026-08-24-backup-host-archive-
-        # disk-failure-and-alert-noise.md. It fired 18 permanently-stale alerts
-        # that masked real signal. 1tb is the PRIMARY and stays in scope, so a
-        # genuine backup outage still alerts. REMOVE THIS EXCLUSION once the
-        # disk is replaced and s-1tb-to-2tb sync is healthy again.
-        # Matches BOTH names on purpose: the datastores were renamed
-        # 1tb/2tb -> main/archive on 2026-09-06, at which point a bare
-        # !="2tb" silently stopped excluding anything at all.
-        (time() - pbs_snapshot_vm_last_timestamp{datastore!~"2tb|archive"} > 36*3600)
+        # datastore!~"archive|backup-host" - main is the PRIMARY and stays in scope, so a
+        # genuine backup outage still alerts.
+        # - backup-host: the Wasabi S3 offsite tier (PBS 4.x S3 backend), fed by the
+        #   WEEKLY sync s-main-to-s3 (Sun 01:00). Its newest snapshot is up to 7
+        #   days old by design, so this 36h threshold fired against a healthy
+        #   weekly sync (2026-09-13). It has its own cadence-matched rules below.
+        # - archive: excluded since the 2026-08-19 disk failure (decisions/
+        #   2026-08-24-backup-host-archive-disk-failure-and-alert-noise.md). It exists
+        #   again as a local replica (fresh snapshots observed 2026-09-13);
+        #   re-include it once its sync cadence is confirmed to fit 36h.
+        # - "2tb" dropped 2026-09-13: that datastore no longer exists.
+        (time() - pbs_snapshot_vm_last_timestamp{datastore!~"archive|backup-host"} > 36*3600)
           and on(vm_id) (
             label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
           )
       for: 30m
+      labels:
+        component: backup-host
+        severity: warning
+    # -----------------------------------------------------------------------
+    # OFFSITE (S3) COPY - added 2026-09-13.
+    #
+    # The backup-host datastore syncs weekly from main (s-main-to-s3, Sun 01:00), so
+    # the threshold is the 7d cadence + 1d slack. Two failure shapes, two rules:
+    #   - a VM's offsite copy stops advancing (k3s-wkr-2 / 114 was stuck at its
+    #     2026-09-07 copy on 2026-09-13)            -> PBSOffsiteSyncStale
+    #   - a VM never reaches S3 at all, which leaves NO series on
+    #     datastore="backup-host" for the staleness rule to see (k3s-ctl-2 / 116 on
+    #     2026-09-13)                                -> PBSOffsiteGroupMissing
+    - alert: PBSOffsiteSyncStale
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Newest offsite copy of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          on S3 datastore {{ $labels.datastore }} is {{ $value | humanizeDuration }}
+          old. Threshold 8d (weekly s-main-to-s3 sync + 1d slack).
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsoffsitesyncstale--pbsoffsitegroupmissing
+        summary: 'PBS offsite copy stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+      expr: |
+        (time() - pbs_snapshot_vm_last_timestamp{datastore="backup-host"} > 8*24*3600)
+          and on(vm_id) (
+            label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
+          )
+      for: 1h
+      labels:
+        component: backup-host
+        severity: warning
+    - alert: PBSOffsiteGroupMissing
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: VM {{ $labels.vm_id }} ({{ $labels.vm_name }}) is backed up to
+          main but has had no copy on the S3 offsite datastore for 8d - a full
+          weekly s-main-to-s3 cycle has passed without it.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsoffsitesyncstale--pbsoffsitegroupmissing
+        summary: 'PBS offsite copy missing: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+      expr: |
+        # max_over_time(...[1h]) on both sides so a backup-host-exporter scrape gap
+        # shorter than an hour does not empty the expression and reset the 8d
+        # pending timer.
+        (
+          max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
+            unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="backup-host"}[1h])
+        )
+          and on(vm_id) (
+            label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
+          )
+      for: 8d
       labels:
         component: backup-host
         severity: warning

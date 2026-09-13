@@ -151,6 +151,31 @@ decommissioned VMs don't keep alerting).
 - If the VM was renamed but VMID reused, the alert reflects the previous
   VM; either prune old snapshots or disable the alert via silence
 
+Scope: `main` only. The S3 `backup-host` datastore syncs weekly and has its own rules
+below; `archive` is excluded until its sync cadence is confirmed.
+
+## PBSOffsiteSyncStale / PBSOffsiteGroupMissing
+
+**What it means**: The Wasabi S3 datastore `backup-host` (PBS 4.x S3 backend) is fed
+weekly from `main` by sync job `s-main-to-s3` (Sun 01:00).
+`PBSOffsiteSyncStale` — a VM's newest offsite copy is >8d old, so at least one
+weekly sync has skipped it. `PBSOffsiteGroupMissing` — a VM is on `main` but
+has had no copy on `backup-host` for 8d, so it has never reached offsite at all.
+
+**What to check**
+- PBS task log for the last `syncjob` run — did it finish, or stop partway
+  through the group list? Groups sync in order, so a stall leaves everything
+  after the failing group stale or missing.
+- `s-main-to-s3` group filter — is the VMID excluded?
+- Uplink health (home uplink): a sync that overruns into the next week's run is
+  bandwidth-bound, not broken.
+
+**How to fix**
+- Re-run `s-main-to-s3` from the PBS UI (Datastore `backup-host` → Sync Jobs → Run now)
+  and watch the task log reach the stale VMID.
+- If one group fails repeatedly, verify that group on `main` first — a
+  corrupt source snapshot will fail the sync every week.
+
 ## DaemonSetPodsNotReady
 
 **What it means**: a DaemonSet has pods that are *scheduled* but not *Ready*,

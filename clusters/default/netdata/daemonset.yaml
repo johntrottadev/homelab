@@ -77,13 +77,18 @@ spec:
               cpu: 50m
               memory: 128Mi
             limits:
-              cpu: 1000m
+              # 1000m -> 2000m and 1Gi -> 2Gi on 2026-09-13. The k3s-wkr-3 pod
+              # sat 83% CPU-throttled at the 1-core limit (the other five: 0%)
+              # while replaying ~778k dbengine metrics at startup, failed every
+              # startup probe, and was finally OOMKilled at 1Gi - 211 restarts.
+              # The other five run 670-943Mi, so 1Gi was already marginal.
+              cpu: 2000m
               # 512Mi was too tight on a busy node. The k3s-wkr-2 pod hit 228
               # restarts while the other five sat at 3-5 — it was not crashing:
               # it exited 0 / Completed every time, which is a clean SIGTERM
               # shutdown, i.e. the liveness probe killing a healthy process that
               # was merely slow to answer /api/v1/info.
-              memory: 1Gi
+              memory: 2Gi
           # startupProbe added so the collector fleet can come up before liveness
           # starts judging. Without one, liveness governs from second 60 and a
           # slow start reads as a failure. 30 x 10s = 5 minutes of grace.
@@ -92,6 +97,10 @@ spec:
               path: /api/v1/info
               port: 19999
             periodSeconds: 10
+            # The default is 1s. A throttled netdata answering in >1s during
+            # dbengine replay failed every probe until the grace ran out, then
+            # restarted straight back into the same replay.
+            timeoutSeconds: 10
             failureThreshold: 30
           livenessProbe:
             httpGet:

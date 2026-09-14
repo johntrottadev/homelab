@@ -236,18 +236,16 @@ spec:
         runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale
         summary: 'PBS backup stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
       expr: |
-        # datastore!~"archive|backup-host" - main is the PRIMARY and stays in scope, so a
-        # genuine backup outage still alerts.
-        # - backup-host: the Wasabi S3 offsite tier (PBS 4.x S3 backend), fed by the
-        #   WEEKLY sync s-main-to-s3 (Sun 01:00). Its newest snapshot is up to 7
-        #   days old by design, so this 36h threshold fired against a healthy
-        #   weekly sync (2026-09-13). It has its own cadence-matched rules below.
-        # - archive: excluded since the 2026-08-19 disk failure (decisions/
-        #   2026-08-24-backup-host-archive-disk-failure-and-alert-noise.md). It exists
-        #   again as a local replica (fresh snapshots observed 2026-09-13);
-        #   re-include it once its sync cadence is confirmed to fit 36h.
-        # - "2tb" dropped 2026-09-13: that datastore no longer exists.
-        (time() - pbs_snapshot_vm_last_timestamp{datastore!~"archive|backup-host"} > 36*3600)
+        # All datastores, as of 2026-09-13. main takes a backup every 2h;
+        # archive (s-main-to-archive, daily 06:00) and the Wasabi S3 store backup-host
+        # (s-main-to-s3, daily 00:00) are daily syncs from main, so a healthy
+        # copy on any of them is at most ~26h old and 36h holds for all three.
+        # The old datastore!~"2tb|archive" exclusion dated from the 2026-08-19
+        # archive disk failure (decisions/2026-08-24-backup-host-archive-disk-failure-
+        # and-alert-noise.md); archive has since been rebuilt and 2tb no longer
+        # exists. With it gone, the only series over 36h on 2026-09-13 was a
+        # real failure: k3s-wkr-2 (114) stuck on backup-host since 2026-09-07.
+        (time() - pbs_snapshot_vm_last_timestamp > 36*3600)
           and on(vm_id) (
             label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
           )
@@ -256,52 +254,40 @@ spec:
         component: backup-host
         severity: warning
     # -----------------------------------------------------------------------
-    # OFFSITE (S3) COPY - added 2026-09-13.
+    # REPLICA GROUP MISSING - added 2026-09-13.
     #
-    # The backup-host datastore syncs weekly from main (s-main-to-s3, Sun 01:00), so
-    # the threshold is the 7d cadence + 1d slack. Two failure shapes, two rules:
-    #   - a VM's offsite copy stops advancing (k3s-wkr-2 / 114 was stuck at its
-    #     2026-09-07 copy on 2026-09-13)            -> PBSOffsiteSyncStale
-    #   - a VM never reaches S3 at all, which leaves NO series on
-    #     datastore="backup-host" for the staleness rule to see (k3s-ctl-2 / 116 on
-    #     2026-09-13)                                -> PBSOffsiteGroupMissing
-    - alert: PBSOffsiteSyncStale
-      annotations:
-        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
-        description: Newest offsite copy of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
-          on S3 datastore {{ $labels.datastore }} is {{ $value | humanizeDuration }}
-          old. Threshold 8d (weekly s-main-to-s3 sync + 1d slack).
-        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsoffsitesyncstale--pbsoffsitegroupmissing
-        summary: 'PBS offsite copy stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
-      expr: |
-        (time() - pbs_snapshot_vm_last_timestamp{datastore="backup-host"} > 8*24*3600)
-          and on(vm_id) (
-            label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
-          )
-      for: 1h
-      labels:
-        component: backup-host
-        severity: warning
-    - alert: PBSOffsiteGroupMissing
+    # PBSVMBackupStale only sees VMs that have at least one snapshot on a
+    # datastore. A VM that never reaches a replica leaves NO series there, so
+    # staleness cannot fire for it: on 2026-09-13 k3s-ctl-2 (116) and
+    # k3s-ctl-3 (117) were backed up to main but had never reached backup-host. This
+    # compares each replica's VM set against main.
+    - alert: PBSReplicaGroupMissing
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
         description: VM {{ $labels.vm_id }} ({{ $labels.vm_name }}) is backed up to
-          main but has had no copy on the S3 offsite datastore for 8d - a full
-          weekly s-main-to-s3 cycle has passed without it.
-        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsoffsitesyncstale--pbsoffsitegroupmissing
-        summary: 'PBS offsite copy missing: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+          main but has no copy on datastore {{ $labels.datastore }}. Both replicas
+          sync daily, so 36h means at least one sync has skipped it.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsreplicagroupmissing
+        summary: 'PBS replica missing: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          not on {{ $labels.datastore }}'
       expr: |
-        # max_over_time(...[1h]) on both sides so a backup-host-exporter scrape gap
-        # shorter than an hour does not empty the expression and reset the 8d
-        # pending timer.
+        # max_over_time(...[1h]) so a backup-host-exporter scrape gap shorter than an
+        # hour does not empty the expression and reset the 36h pending timer.
         (
-          max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
-            unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="backup-host"}[1h])
+          label_replace(
+            max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
+              unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="backup-host"}[1h]),
+            "datastore", "backup-host", "", "")
+          or
+          label_replace(
+            max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
+              unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="archive"}[1h]),
+            "datastore", "archive", "", "")
         )
           and on(vm_id) (
             label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
           )
-      for: 8d
+      for: 36h
       labels:
         component: backup-host
         severity: warning

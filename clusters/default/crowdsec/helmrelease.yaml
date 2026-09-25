@@ -30,6 +30,31 @@ spec:
       retries: 3
   values:
     container_runtime: containerd
+    # Overrides the chart's default config.yaml.local, so auto_registration is
+    # restated here. Two changes from the default:
+    #
+    # 1. agents_autodelete. The agent init container registers with
+    #    --machine $POD_NAME. After a node reboot the DaemonSet pod restarts
+    #    under the SAME name, the LAPI answers 403 "user already exist", and the
+    #    agent crash-loops forever. That happened 2026-09-17 and all 6 agents
+    #    sat in CrashLoopBackOff for 8 days, parsing nothing, while the bouncer
+    #    kept serving stale decisions. Deleting machines unseen for 30m lets the
+    #    next backoff retry register cleanly: self-heals in ~35m, not never.
+    # 2. allowed_ranges narrowed from all of RFC1918 to the k3s pod CIDR.
+    config:
+      config.yaml.local: |
+        api:
+          server:
+            auto_registration:
+              enabled: true
+              token: "${REGISTRATION_TOKEN}"
+              allowed_ranges:
+                - "127.0.0.1/32"
+                - "10.42.0.0/16"
+        db_config:
+          flush:
+            agents_autodelete:
+              login_password: 30m
     agent:
       # Acquire logs from Traefik + high-value app namespaces. Broad to start;
       # tighten once scenarios are validated.

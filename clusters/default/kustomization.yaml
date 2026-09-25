@@ -281,6 +281,9 @@ resources:
   # Phase 12 wave 12-04 canary — was secret-pushover.template (kubectl apply);
   # now SOPS-encrypted .enc.yaml decrypted by Flux per spec.decryption (Mode A).
   - monitoring/secret-pushover.enc.yaml
+  # 2026-09-25 — second Alertmanager integration so a Pushover quota outage
+  # can't silence every alert. Key `url`, read via webhook_url_file.
+  - monitoring/secret-discord-webhook.enc.yaml
   # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
   - monitoring/secret-grafana-admin.enc.yaml
 
@@ -612,6 +615,10 @@ resources:
   # up{job="longhorn-backend"} was 0 across all instances for the full retention
   # window. Grants monitoring access to port 9500 only; chart policy untouched.
   - network-policies/longhorn-system-monitoring.yaml
+
+  # Pod Security Admission for the 9 namespaces with no namespace.yaml in git
+  # (2026-09-25): 5 baseline, 4 privileged with the reason inline.
+  - pod-security/namespaces.yaml
 
 # ConfigMaps generated from on-disk files. disableNameSuffixHash keeps the
 # generated name stable so volume mounts in deployment.yaml reference a

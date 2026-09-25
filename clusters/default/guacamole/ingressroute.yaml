@@ -12,6 +12,12 @@ spec:
       middlewares:
         - name: crowdsec-bouncer
           namespace: kube-system
+        # Added 2026-09-25. guacamole was scaled to 0 when forward-auth fanned
+        # out (0a333b4) and came back 2026-09-07 without it. It is a browser-
+        # only remote-desktop gateway into the hosts: the highest-value target
+        # behind a single app-level password.
+        - name: authentik-forwardauth
+          namespace: kube-system
       services:
         - name: guacamole-service
           port: 8080

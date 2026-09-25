@@ -59,6 +59,7 @@ spec:
       alertmanagerSpec:
         secrets:
         - pushover-creds
+        - discord-webhook
         storage:
           volumeClaimTemplate:
             spec:
@@ -118,6 +119,18 @@ spec:
               }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
             url_title: Open dashboard
             user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+          # Second, independent integration (2026-09-25). Pushover was the only
+          # path and hit its monthly cap: 1475 of 1525 sends in 24h failed
+          # rateLimited, so every alert, including the one saying so, went
+          # nowhere. Integrations in one receiver fail independently.
+          discord_configs:
+          - send_resolved: true
+            title: '[CRITICAL] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            message: |-
+              {{ range .Alerts }}**{{ .Annotations.summary }}**{{ if .Labels.namespace }} · ns `{{ .Labels.namespace }}`{{ end }}{{ if .Labels.instance }} · `{{ .Labels.instance }}`{{ end }}
+              {{ .Annotations.description }}
+              {{ end }}
+            webhook_url_file: /etc/alertmanager/secrets/discord-webhook/url
         - name: pushover-warning
           pushover_configs:
           - html: true
@@ -139,6 +152,13 @@ spec:
               }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
             url_title: Open dashboard
             user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
+          discord_configs:
+          - send_resolved: true
+            title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
+            message: |-
+              {{ range .Alerts }}**{{ .Annotations.summary }}**{{ if .Labels.namespace }} · ns `{{ .Labels.namespace }}`{{ end }}{{ if .Labels.instance }} · `{{ .Labels.instance }}`{{ end }}
+              {{ end }}
+            webhook_url_file: /etc/alertmanager/secrets/discord-webhook/url
         route:
           group_by:
           - namespace

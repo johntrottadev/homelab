@@ -47,7 +47,10 @@ spec:
           server:
             auto_registration:
               enabled: true
-              token: "${REGISTRATION_TOKEN}"
+              # Double-dollar escapes Flux postBuild substitution (strict mode):
+              # Flux emits a single-dollar placeholder, which the chart's
+              # entrypoint then expands from the pod's REGISTRATION_TOKEN env.
+              token: "$${REGISTRATION_TOKEN}"
               allowed_ranges:
                 - "127.0.0.1/32"
                 - "10.42.0.0/16"

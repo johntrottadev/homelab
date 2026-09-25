@@ -282,8 +282,9 @@ resources:
   # now SOPS-encrypted .enc.yaml decrypted by Flux per spec.decryption (Mode A).
   - monitoring/secret-pushover.enc.yaml
   # 2026-09-25 — second Alertmanager integration so a Pushover quota outage
-  # can't silence every alert. Key `url`, read via webhook_url_file.
+  # can't silence every alert. Key `url`, referenced by the AlertmanagerConfig below.
   - monitoring/secret-discord-webhook.enc.yaml
+  - monitoring/alertmanagerconfig-discord.yaml
   # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
   - monitoring/secret-grafana-admin.enc.yaml
 

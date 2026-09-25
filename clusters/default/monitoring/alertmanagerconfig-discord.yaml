@@ -1,0 +1,44 @@
+# Discord as a second, independent alert path (2026-09-25).
+#
+# Pushover was the only integration and hit its monthly cap: 1475 of 1525 sends
+# in 24h failed rateLimited, so every alert, including the ones saying so, went
+# nowhere. This route sits ahead of the Pushover routes in the root tree; the
+# operator forces continue: true on AlertmanagerConfig routes, so every
+# critical/warning alert goes to Discord AND still falls through to Pushover.
+#
+# Why an AlertmanagerConfig and not discord_configs in the HelmRelease:
+# prometheus-operator v0.93 validates the base config against its own vendored
+# types, which lack discord webhook_url_file, and rejected the whole config.
+# apiURL here is a Secret reference the operator resolves itself, so the URL
+# lives only in the SOPS secret discord-webhook.
+#
+# Requires alertmanagerConfigMatcherStrategy: None on the Alertmanager, or the
+# operator scopes this route to namespace="monitoring" alerts only.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: discord
+  namespace: monitoring
+spec:
+  route:
+    receiver: discord
+    groupBy: [namespace, alertname]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+    matchers:
+      - name: severity
+        matchType: "=~"
+        value: "critical|warning"
+    continue: true
+  receivers:
+    - name: discord
+      discordConfigs:
+        - apiURL:
+            name: discord-webhook
+            key: url
+          sendResolved: true
+          title: '[{{ .CommonLabels.severity | toUpper }}] {{ .CommonLabels.alertname }} ({{ .Status }})'
+          message: |-
+            {{ range .Alerts }}**{{ .Annotations.summary }}**{{ if .Labels.namespace }} · ns `{{ .Labels.namespace }}`{{ end }}{{ if .Labels.instance }} · `{{ .Labels.instance }}`{{ end }}
+            {{ end }}

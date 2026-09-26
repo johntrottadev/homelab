@@ -27,7 +27,7 @@ metadata:
     kustomize.toolkit.fluxcd.io/ssa: Merge
 spec:
   paused: false
-  schedule: 30 4 * * *   # 00:30 EDT — after NAS (23:00 EDT); moved off 03:00 UTC into the overnight upload window
+  schedule: 0 9 * * *   # 05:00 EDT / 04:00 EST (UTC cron) — after NAS Hyper Backup (00:00 local) and dock Kopia (06:30–07:30 UTC)
   template:
     defaultVolumesToFsBackup: true
     excludedResources:

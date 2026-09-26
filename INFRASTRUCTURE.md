@@ -89,10 +89,10 @@ All offsite (Wasabi) jobs are **sequenced one-at-a-time in a 00:00–06:00 EDT w
 
 | Local (EDT) | UTC | Job |
 |---|---|---|
-| 11:00 PM | 03:00 | Synology Hyper Backup → Wasabi (Layer 2, external anchor) |
-| 12:30 AM | 04:30 | Velero `daily-apps` |
+| 12:00 AM | 04:00 | Synology Hyper Backup → Wasabi (Layer 2, external anchor) |
 | 1:30 AM Sun | 05:30 | Velero `weekly-apps` |
-| 1:45 AM 1st | 05:45 | Velero `monthly-apps` |
+| 5:00 AM | 09:00 | Velero `daily-apps` |
+| 6:00 AM 1st | 10:00 | Velero `monthly-apps` |
 | 2:30 / 3:00 / 3:30 AM | 06:30 / 07:00 / 07:30 | docker-1 / docker-2 / docker-3 Kopia |
 
 ## Component Inventory

@@ -4,7 +4,11 @@ metadata:
   name: guacamole
   namespace: guacamole
 spec:
-  replicas: 1
+  # Parked 2026-09-02 (idle since 2026-05-04; its key sits on the bastion account
+  # across ~13 hosts). That scale-down was kubectl-only, so Flux restored this
+  # field to 1 on 2026-09-07. Pinned here so the decision survives re-applies.
+  # guacamole-db stays up: the 28 connection definitions are kept.
+  replicas: 0
   selector:
     matchLabels:
       app: guacamole

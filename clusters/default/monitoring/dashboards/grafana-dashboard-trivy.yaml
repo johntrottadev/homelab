@@ -48,6 +48,15 @@ data:
           "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
         {
+          "type": "stat", "title": "Unscored (Unknown)", "id": 7,
+          "description": "Findings with no vendor severity. Not low-risk: on 2026-09-27, 2821 of 4859 carried a CVSS score >= 7 in the VulnerabilityReports. The metric has no score label, so triage from the reports, not this tile.",
+          "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"expr": "sum(max by (image_digest)(trivy_image_vulnerabilities{severity=\"Unknown\"}))", "refId": "A"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "purple"}, "unit": "short"}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "area", "textMode": "value_and_name", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
           "type": "bargauge", "title": "Critical + High by namespace", "id": 5,
           "gridPos": {"h": 9, "w": 12, "x": 0, "y": 4},
           "datasource": {"type": "prometheus", "uid": "prometheus"},

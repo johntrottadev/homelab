@@ -132,6 +132,32 @@ spec:
       labels:
         component: velero
         severity: critical
+    # Fires only when a repo's MOST RECENT maintenance job failed. Maintenance
+    # runs ~hourly per repo and a failed Job object lingers until GC, so the
+    # shipped KubeJobFailed kept firing for hours after the next run succeeded
+    # (2026-09-27: 17 failures during a power-loss WAN outage, each repo
+    # recovered on its next run). for: 3h = ~3 consecutive failed runs.
+    # Backtested 2026-09-27: fires 13:36Z and 16:12-16:20Z, clears on retry.
+    - alert: VeleroRepoMaintenanceFailing
+      annotations:
+        description: The latest kopia maintenance job for Velero repository {{
+          $labels.repo }} failed, and has for 3h+ (~3 consecutive runs). Check the
+          newest {{ $labels.repo }}-kopia-maintain-job pod log in namespace velero;
+          a Wasabi dial timeout means egress, not the repository.
+        summary: Velero repo {{ $labels.repo }} maintenance failing
+      expr: |
+        max by (repo) (label_replace(
+          kube_job_created{namespace="velero",job_name=~".+-kopia-maintain-job-[0-9]+"}
+            and on (namespace, job_name) (kube_job_status_failed > 0),
+          "repo", "$1", "job_name", "(.+)-kopia-maintain-job-[0-9]+"))
+        >= on (repo)
+        max by (repo) (label_replace(
+          kube_job_created{namespace="velero",job_name=~".+-kopia-maintain-job-[0-9]+"},
+          "repo", "$1", "job_name", "(.+)-kopia-maintain-job-[0-9]+"))
+      for: 3h
+      labels:
+        component: velero
+        severity: warning
   - interval: 1m
     name: homelab.pve.rules
     rules:
@@ -630,6 +656,19 @@ spec:
   - interval: 1m
     name: homelab.k8s.rules
     rules:
+    # Replaces the chart's KubeJobFailed (disabled in the HelmRelease) with Velero
+    # kopia maintenance jobs excluded; VeleroRepoMaintenanceFailing covers those.
+    - alert: KubeJobFailed
+      annotations:
+        description: Job {{ $labels.namespace }}/{{ $labels.job_name }} failed to
+          complete. Removing the failed job after investigation clears this alert.
+        runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubejobfailed
+        summary: Job failed to complete.
+      expr: |
+        kube_job_failed{job="kube-state-metrics",job_name!~".+-kopia-maintain-job-[0-9]+"} > 0
+      for: 15m
+      labels:
+        severity: warning
     - alert: DaemonSetPodsNotReady
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-k8s

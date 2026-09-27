@@ -167,10 +167,13 @@ spec:
             - severity = "critical"
             receiver: pushover-critical
             repeat_interval: 1h
+          # Warnings go to Discord only (alertmanagerconfig-discord.yaml, which
+          # sits ahead of this tree with continue: true). Pushover is reserved
+          # for critical: warning volume exhausted its monthly cap on 2026-09-25
+          # and again by 2026-09-27, taking critical pages down with it.
           - matchers:
             - severity = "warning"
-            receiver: pushover-warning
-            repeat_interval: 4h
+            receiver: "null"
           - matchers:
             - severity = "info"
             receiver: "null"
@@ -182,6 +185,10 @@ spec:
       enabled: true
     defaultRules:
       create: true
+      # Replaced by homelab.k8s.rules/KubeJobFailed, which excludes Velero kopia
+      # maintenance jobs; those are covered by VeleroRepoMaintenanceFailing.
+      disabled:
+        KubeJobFailed: true
       rules:
         alertmanager: true
         configReloaders: true

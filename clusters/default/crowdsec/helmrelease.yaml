@@ -13,6 +13,10 @@ metadata:
   namespace: crowdsec
 spec:
   interval: 1h
+  # Helm's 5m default is shorter than a real upgrade: the agent DaemonSet rolls
+  # 6 pods one at a time and each node pulls the ~170MB image (~57s) first.
+  # 0.24.0 -> 0.24.2 timed out mid-roll and was rolled back on 2026-09-27.
+  timeout: 15m
   chart:
     spec:
       chart: crowdsec

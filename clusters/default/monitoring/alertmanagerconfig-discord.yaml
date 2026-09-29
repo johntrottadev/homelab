@@ -31,7 +31,18 @@ spec:
         matchType: "=~"
         value: "critical|warning"
     continue: true
+    routes:
+      # The workstation laptop is scraped when reachable, but being asleep or
+      # away from the home LAN is not an incident. Its target carries
+      # service=macos-workstation (kube-prometheus-stack helmrelease).
+      - matchers:
+          - name: alertname
+            value: TargetDown
+          - name: service
+            value: macos-workstation
+        receiver: blackhole
   receivers:
+    - name: blackhole
     - name: discord
       discordConfigs:
         - apiURL:

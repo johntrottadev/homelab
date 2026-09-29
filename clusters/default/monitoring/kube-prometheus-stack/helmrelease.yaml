@@ -602,6 +602,12 @@ spec:
           - targets: [tb-m-2.__BASE-DOMAIN__:9100]
             labels:
               instance: tb-m-2
+              # Own TargetDown group: TargetDown aggregates by job/namespace/
+              # service, so without this a laptop that is asleep or off the
+              # home LAN counts against the shared static node-exporter pool
+              # and fires TargetDown. The macos-workstation group is routed to
+              # a blackhole in alertmanagerconfig-discord.yaml.
+              service: macos-workstation
           # Rewrite job=macos-hosts -> job=node-exporter (same reason as
           # dock-hosts above). source_job=macos-hosts preserved so macOS
           # vs Linux can still be distinguished by query.

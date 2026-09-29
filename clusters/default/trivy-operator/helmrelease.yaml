@@ -75,7 +75,19 @@ spec:
         limits:
           cpu: 1000m
           memory: 1Gi
+      # Built-in Trivy server's DB volume (see builtInTrivyServer below). Named
+      # explicitly: the cluster has two default StorageClasses (local-path and
+      # longhorn-ssd), so "use the default" is ambiguous.
+      storageClassName: longhorn-ssd
     operator:
+      # ClientServer mode via the chart's built-in Trivy server (2026-09-29).
+      # In Standalone mode each scan pod runs one container per image and they
+      # share one on-disk cache; on multi-image workloads the containers fight
+      # over its lock ("cache may be in use by another process") and the Job
+      # hits its backoff limit — 46 BackoffLimitExceeded in 20m after a rolling
+      # reboot. The server pulls the DB once; scan pods query it and keep no
+      # local cache. Also stops every scan pod downloading the 118MB DB itself.
+      builtInTrivyServer: true
       # 24h, not 168h. A retired ReplicaSet keeps its VulnerabilityReport for the
       # full TTL, so for a week after every upgrade the dashboard shows the OLD
       # image's counts stacked on top of the new one's. stirling-pdf scanned 0

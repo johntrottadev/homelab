@@ -51,6 +51,16 @@ resource "proxmox_vm_qemu" "dock" {
   # this flag the port doesn't exist and the service can't start.
   agent = 1
 
+  # Console — see k3s_nodes/main.tf. std VGA for noVNC, serial0 as a
+  # secondary xterm.js console.
+  serial {
+    id   = 0
+    type = "socket"
+  }
+  vga {
+    type = "std"
+  }
+
   boot = "order=scsi0;net0"
 
   scsihw = "virtio-scsi-single"

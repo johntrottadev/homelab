@@ -48,6 +48,20 @@ resource "proxmox_vm_qemu" "worker" {
   # without this flag the port doesn't exist and the service can't start.
   agent = 1
 
+  # Console. The template ships vga=serial0, but Telmate only keeps devices it
+  # manages, so without these blocks the clone ended up with vga=serial0 and no
+  # serial0 — the PVE console had nothing to attach to (found 2026-09-29 on all
+  # six k3s nodes). Display is std VGA so the normal noVNC console works;
+  # serial0 stays as a secondary xterm.js console. vga=serial0 was tried and
+  # renders as an oversized, badly-wrapping serial terminal.
+  serial {
+    id   = 0
+    type = "socket"
+  }
+  vga {
+    type = "std"
+  }
+
   # Boot order: scsi0 first, net0 as PXE fallback
   boot = "order=scsi0;net0"
 

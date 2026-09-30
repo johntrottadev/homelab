@@ -7,10 +7,26 @@ spec:
   entryPoints:
     - websecure
   routes:
+    # Webhook, form and wait endpoints are called by machines (or by people
+    # filling in a published form), so they cannot follow an SSO redirect.
+    # n8n authenticates these per-workflow (header auth / basic auth nodes).
+    # The longer rule wins over the catch-all below by Traefik's priority.
+    - match: Host(`n8n.${BASE_DOMAIN}`) && (PathPrefix(`/webhook/`) || PathPrefix(`/webhook-test/`) || PathPrefix(`/webhook-waiting/`) || PathPrefix(`/form/`) || PathPrefix(`/form-test/`) || PathPrefix(`/form-waiting/`))
+      kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+      services:
+        - name: n8n
+          port: 80
+    # Everything else is the editor: it runs arbitrary code and holds
+    # credentials to everything n8n automates, so it sits behind authentik.
     - match: Host(`n8n.${BASE_DOMAIN}`)
       kind: Rule
       middlewares:
         - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: authentik-forwardauth
           namespace: kube-system
       services:
         - name: n8n

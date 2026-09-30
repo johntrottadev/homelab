@@ -669,6 +669,23 @@ spec:
       for: 15m
       labels:
         severity: warning
+    # The resource webhook is fail-open by decision (ADR
+    # 2026-09-30-kyverno-resource-webhook-fail-open): while Kyverno is down,
+    # policy silently stops applying and only PSA remains. This makes that
+    # window visible instead of silent.
+    - alert: KyvernoAdmissionDegraded
+      annotations:
+        description: kyverno-admission-controller has {{ $value }} ready of 2
+          replicas for 15m. Its resource webhook fails open, so Kyverno policies
+          are not being enforced for any request that reaches a missing replica;
+          PSA baseline is the only pod-security floor until it recovers.
+        summary: Kyverno admission degraded ({{ $value }}/2 ready), policy failing open
+      expr: |
+        kube_deployment_status_replicas_available{namespace="kyverno",deployment="kyverno-admission-controller"} < 2
+          or absent(kube_deployment_status_replicas_available{namespace="kyverno",deployment="kyverno-admission-controller"})
+      for: 15m
+      labels:
+        severity: warning
     - alert: DaemonSetPodsNotReady
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-k8s

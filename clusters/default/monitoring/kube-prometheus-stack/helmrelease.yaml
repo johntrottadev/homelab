@@ -161,12 +161,22 @@ spec:
           - matchers:
             - alertname = "InfoInhibitor"
             receiver: "null"
+          # Delivery-failure alerts must never page through the integration that
+          # is failing. When Pushover hit its cap, the critical
+          # AlertmanagerClusterFailedToSendAlerts went to Pushover hourly, failed,
+          # and kept itself firing (12,785 firing samples in the week to
+          # 2026-09-30). Discord still receives them via its continue: true route.
+          - matchers:
+            - alertname =~ "AlertmanagerFailedToSendAlerts|AlertmanagerClusterFailedToSendAlerts|AlertmanagerClusterDown|AlertmanagerFailedReload"
+            receiver: "null"
+          # 1h repeat spent the monthly Pushover cap on re-sends of the same page.
+          # A still-firing critical re-pages every 6h; new criticals page at once.
           - continue: false
             group_wait: 10s
             matchers:
             - severity = "critical"
             receiver: pushover-critical
-            repeat_interval: 1h
+            repeat_interval: 6h
           # Warnings go to Discord only (alertmanagerconfig-discord.yaml, which
           # sits ahead of this tree with continue: true). Pushover is reserved
           # for critical: warning volume exhausted its monthly cap on 2026-09-25

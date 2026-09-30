@@ -1,0 +1,227 @@
+# Egress guard: application pods may not reach the management plane directly.
+# Standard: AI-Backbone/standards/security/network-segmentation-standard.md
+#
+# Ingress segmentation stops lateral movement INTO apps. It does nothing once an
+# app is compromised: before this file, any pod could open the firewall API, the
+# Proxmox hosts, PBS and the NAS. This is not egress default-deny (the standard
+# warns that bricks DNS). Each policy allows all egress EXCEPT the management
+# ranges, so DNS, in-cluster traffic and the internet are unchanged.
+#
+# Management hosts are still reachable through Traefik by hostname (__PVE-NODE-1__.${BASE_DOMAIN}
+# resolves to the ingress VIP, not the host), so browser-facing widgets keep working.
+# NFS/CIFS volumes are mounted by the kubelet in the node's network namespace and
+# are not subject to pod NetworkPolicy.
+#
+# Deliberately NOT covered (they need the management plane):
+#   netalert     - PALOARP plugin and opendbl-sync CronJob call the PA API
+#   uptime-kuma  - probes PVE/PBS/PA/NAS directly
+#   n8n          - automation engine; egress deferred per the standard (row 5)
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: authentik
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: ciso-assistant
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: dashy
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: drawio
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: fitjat
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: guacamole
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: hoarder
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: jellyfin
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: paperless
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: stirling-pdf
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-egress-mgmt-plane
+  namespace: vaultwarden
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - ${LAN_MGMT_CIDR}   # firewall, switch, PVE out-of-band
+              - ${LAN_HV_CIDR}     # Proxmox hypervisors
+              - __LAN-IP__/32      # PBS
+              - ${NAS_IP}/32       # Synology
+              - ${TRUENAS_IP}/32   # TrueNAS

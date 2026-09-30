@@ -616,6 +616,8 @@ resources:
   # up{job="longhorn-backend"} was 0 across all instances for the full retention
   # window. Grants monitoring access to port 9500 only; chart policy untouched.
   - network-policies/longhorn-system-monitoring.yaml
+  # Egress guard: app pods cannot reach PA/PVE/PBS/NAS directly (2026-09-30).
+  - network-policies/egress-mgmt-plane.yaml
 
   # Pod Security Admission for the 9 namespaces with no namespace.yaml in git
   # (2026-09-25): 5 baseline, 4 privileged with the reason inline.

@@ -4,7 +4,9 @@ metadata:
   name: guacamole-db
   namespace: guacamole
 spec:
-  replicas: 1
+  # Parked with the rest of guacamole (2026-09-30). The PVC is untouched, so the
+  # 28 connection definitions survive; scale to 1 to read them back.
+  replicas: 0
   selector:
     matchLabels:
       app: guacamole-db

@@ -230,7 +230,8 @@ resources:
   - guacamole/namespace.yaml
   # Bucket A — postgres-password. Was kubectl one-liner.
   - guacamole/secret-guacamole-db.enc.yaml
-  - guacamole/ingressroute.yaml
+  # guacamole/ingressroute.yaml unpublished 2026-09-30: a parked app keeps no public route.
+  # Re-add this line (and scale the three deployments) to bring it back.
   - guacamole/guacamole/deployment.yaml
   - guacamole/guacamole/service.yaml
   - guacamole/guacd/deployment.yaml

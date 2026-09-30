@@ -36,8 +36,9 @@ spec:
               mountPath: /home/node/.n8n
       containers:
         - name: n8n
-          # T-999.2-07: image already version-pinned.
-          image: docker.n8n.io/n8nio/n8n:2.28.6
+          # T-999.2-07: image version- and digest-pinned (multi-arch index;
+          # docker.n8n.io fronts Docker Hub n8nio/n8n, same digest).
+          image: docker.n8n.io/n8nio/n8n:2.41.4@sha256:3cd1d3a03f5e059a0757d8c95823ff09ef61d3b6bf7fcb4ac3ac5fd5303b6c6d
           imagePullPolicy: Always
           # T-999.2-04: container-level non-root via runAsUser/runAsGroup.
           # Safe here because the initContainer (running as root) chowns

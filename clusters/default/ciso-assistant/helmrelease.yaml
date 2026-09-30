@@ -12,7 +12,7 @@ spec:
   chart:
     spec:
       chart: ciso-assistant
-      version: "0.11.6"  # appVersion v3.19.x — pin EXACT for reproducibility (bumped 2026-09-02 from 0.11.1, patch-level within 0.11.x)
+      version: "0.11.6"  # appVersion v3.21.3 (images overridden to v3.21.4 below) — pin EXACT for reproducibility (bumped 2026-09-02 from 0.11.1, patch-level within 0.11.x)
       sourceRef:
         kind: HelmRepository
         name: intuitem
@@ -54,6 +54,13 @@ spec:
       # First-boot runs ~350 migrations + an "initialize database" startup
       # handler that loads 180 framework libraries — CPU-bound and slow under
       # CFS throttling. Generous limits so startup isn't throttled / OOM-killed.
+      # Image override: chart 0.11.6 ships appVersion v3.21.3; v3.21.4 is the
+      # last v3 release (chart 0.12.x+ = app v4 major — not taken). The chart
+      # renders `<registry>/<repository>:<tag>`, so tag@digest pins the
+      # multi-arch index. Keep backend + frontend on the same version.
+      image:
+        # renovate: datasource=docker depName=ghcr.io/intuitem/ciso-assistant-community/backend
+        tag: "v3.21.4@sha256:0d1ebae3b35035e45f047a889bfbd20bdd0004e329298baed5e2680ee21dd7ee"
       resources:
         requests:
           cpu: 250m
@@ -62,6 +69,10 @@ spec:
           cpu: "3"
           memory: 2Gi
     frontend:
+      # v3.21.4 frontend is a distroless DHI node image running as uid 1000.
+      image:
+        # renovate: datasource=docker depName=ghcr.io/intuitem/ciso-assistant-community/frontend
+        tag: "v3.21.4@sha256:79c4028563244c45a14e3ca63b0cd66128b0d3bdbb0dc703bf4fd54e6a85d5e7"
       resources:
         requests:
           cpu: 50m

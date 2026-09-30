@@ -78,6 +78,24 @@
   // not just transitively via the preset.
   'github-actions': {},
 
+  // 2026-09-30: HelmRelease `spec.values` image overrides are NOT extracted by
+  // the flux manager (it tracks chart versions only) nor by helm-values (which
+  // reads standalone values.yaml files). Annotate such overrides with
+  //   # renovate: datasource=docker depName=<registry/repo>
+  // on the line directly above `tag: "<version>@sha256:<digest>"` and this
+  // regex manager tracks both version and digest. First user: ciso-assistant.
+  // `fileMatch` spelling kept for local-validator parity (see D-02 note).
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'Annotated image tags inside Flux HelmRelease values under clusters/default',
+      fileMatch: ['clusters/default/.+\\.ya?ml$'],
+      matchStrings: [
+        '#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)\\s*\\n\\s*tag:\\s*"?(?<currentValue>[^@"\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?"?',
+      ],
+    },
+  ],
+
   // D-07: silently exclude jt-lab/* packages. Renovate already auto-skips
   // services with `build:` field (verified research §extract.ts), so
   // docker-1/legacy-vm/compose.yaml's `jt-lab/legacy-vm-kasm:1.0` line never enters
@@ -88,6 +106,20 @@
   // migrate legacy-vm-kasm to ghcr.io so Renovate can track it like every
   // other image. Captured as a deferred forward-pointer only.
   packageRules: [
+    {
+      // Digest pinning for Kubernetes manifests (2026-09-30). The top-level
+      // `pinDigests: true` already cascades to every manager; this rule makes
+      // the clusters/ scope explicit so a future change to the global flag
+      // (e.g. to quiet docker-compose) cannot silently drop k8s pinning.
+      // Scoped by manager AND path, so docker-compose / github-actions are
+      // untouched. Tag-only images get a "pin digest" PR; tag@sha256 images
+      // get tag+digest bumps. Flux HelmRelease chart versions have no digest
+      // field, so Renovate only pins where the manager supports it.
+      matchManagers: ['kubernetes', 'flux', 'helm-values', 'custom.regex'],
+      matchFileNames: ['clusters/default/**'],
+      pinDigests: true,
+      description: 'Pin image digests for Kubernetes/Flux manifests under clusters/default.',
+    },
     {
       matchPackagePatterns: ['^jt-lab/'],
       enabled: false,
@@ -108,7 +140,13 @@
       // Apps whose majors require sequential/manual upgrade steps: surface the
       // major as a dashboard entry needing explicit approval, don't open it as a
       // ready-to-merge PR. Minor/patch/digest still flow normally.
-      matchPackageNames: ['nextcloud', 'guacamole/guacamole', 'guacamole/guacd', 'fireflyiii/core'],
+      matchPackageNames: [
+        'nextcloud', 'guacamole/guacamole', 'guacamole/guacd', 'fireflyiii/core',
+        // ciso-assistant v4 (chart 0.12.x+) is a new app major — read notes first.
+        'ghcr.io/intuitem/ciso-assistant-community/backend',
+        'ghcr.io/intuitem/ciso-assistant-community/frontend',
+        'ciso-assistant',
+      ],
       matchUpdateTypes: ['major'],
       dependencyDashboardApproval: true,
       description: 'Major upgrades for stateful apps need manual approval (schema/upgrade steps).',

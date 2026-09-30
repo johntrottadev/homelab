@@ -68,7 +68,7 @@ Five secrets have committed `*.template` files. Follow the `*-creds.template` pa
 |-----|-------------|--------|
 | `PALO_HOST` | Palo Alto firewall management IP | Your firewall's management interface IP |
 | `PALO_API_KEY` | PA XML API key | `curl -k "https://<pa>/api/?type=keygen&user=<u>&password=<p>"` |
-| `PALO_VERIFY_TLS` | TLS verification (true/false) | Set `false` for self-signed PA certs |
+| `PALO_VERIFY_TLS` | Ignored since 2026-09-30 | PA TLS is always verified (pinned `pa-mgmt-cert` ConfigMap); safe to drop from the Secret |
 
 ```bash
 cp clusters/default/netalert/secret-paloarp-creds.template \

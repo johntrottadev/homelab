@@ -20,6 +20,7 @@ They are now version-controlled here and pushed into the running container by
     active-response/           -> /var/ossec/active-response/bin/
       pa-block.py                tags an EXTERNAL srcip `wazuh-blocked` on the PA
                                  via User-ID API; 3600s auto-expiry
+      pa-ca.pem                  PUBLIC PA mgmt cert pinned by pa-*.py
 
 ## What is deliberately NOT here
 
@@ -62,7 +63,13 @@ PBS, the bastion, cluster VIPs, and the Wazuh host itself).
 Design, tiers and rationale:
 `~/AI-Backbone/standards/security/wazuh-response-design.md`
 
-### Known wart, shared with pa-block.py
-Both scripts set `ssl.CERT_NONE` against the PA management interface. That is
-tolerable on a management VLAN but means neither script would notice an
-interception. Pinning the PA certificate is worth doing to both at once.
+### PA management TLS (pinned, 2026-09-30)
+Both scripts verify the PA management certificate before the API key leaves
+the host, and fail closed (exit 4, nothing sent) on mismatch. The PA presents a
+self-signed cert with no SAN and KeyUsage=certSign only, which OpenSSL chain
+verification rejects, so the default is leaf pinning: the SHA-256 of the cert in
+`active-response/pa-ca.pem` (public cert, shipped to
+`/var/ossec/active-response/bin/` by `sync-rules.sh`). Overrides, in
+`pa-block.conf` or env: `PA_CA_FILE`, `PA_CERT_SHA256`, `PA_TLS_MODE=pin|ca`.
+When the PA cert is regenerated, replace `pa-ca.pem` (and
+`clusters/default/netalert/pa-mgmt-cert.pem`) and re-run `./sync-rules.sh`.

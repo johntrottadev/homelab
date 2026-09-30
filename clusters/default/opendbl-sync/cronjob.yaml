@@ -1,5 +1,8 @@
 # Hourly OpenDBL -> Palo Alto User-ID sync. Reuses the netalert paloarp-credentials
-# secret (PALO_HOST / PALO_API_KEY / PALO_VERIFY_TLS) via envFrom — no key handling here.
+# secret (PALO_HOST / PALO_API_KEY) via envFrom — no key handling here.
+# PA mgmt TLS is pinned to the public cert in the `pa-mgmt-cert` ConfigMap
+# (configMapGenerator in clusters/default/kustomization.yaml); the script refuses
+# to send the key if the presented cert does not match. PALO_VERIFY_TLS is ignored.
 # Needs egress to opendbl.net:443 and the PA mgmt __LAN-IP__:443.
 apiVersion: batch/v1
 kind: CronJob
@@ -43,12 +46,17 @@ spec:
                   value: "700"       # registered-IP budget (PA-820 ceiling=1000 confirmed; reserve ~300 for wazuh)
                 - name: OPENDBL_DRY_RUN
                   value: "false"     # set "true" for a fetch-only capacity check
+                - name: PA_CA_FILE
+                  value: /etc/pa-tls/pa-mgmt.pem   # pinned PA mgmt cert (public)
               envFrom:
                 - secretRef:
-                    name: paloarp-credentials   # PALO_HOST / PALO_API_KEY / PALO_VERIFY_TLS
+                    name: paloarp-credentials   # PALO_HOST / PALO_API_KEY
               volumeMounts:
                 - name: script
                   mountPath: /scripts
+                  readOnly: true
+                - name: pa-mgmt-cert
+                  mountPath: /etc/pa-tls
                   readOnly: true
               securityContext:
                 allowPrivilegeEscalation: false
@@ -67,3 +75,7 @@ spec:
               configMap:
                 name: opendbl-sync-script
                 defaultMode: 0555
+            - name: pa-mgmt-cert
+              configMap:
+                name: pa-mgmt-cert
+                defaultMode: 0444

@@ -637,3 +637,12 @@ configMapGenerator:
       - netalert/plugin-PALOARP/script.py
       - netalert/plugin-PALOARP/config.json
       - netalert/plugin-PALOARP/README.md
+  # PUBLIC Palo Alto mgmt certificate (self-signed; cert only) pinned by the
+  # PALOARP plugin and the opendbl-sync CronJob so neither sends the PA API
+  # key to an unverified endpoint. Mounted at /etc/pa-tls/pa-mgmt.pem.
+  # Rotation: replace netalert/pa-mgmt-cert.pem AND
+  # docker-1/wazuh/active-response/pa-ca.pem with the new PA cert, same commit.
+  - name: pa-mgmt-cert
+    namespace: netalert
+    files:
+      - pa-mgmt.pem=netalert/pa-mgmt-cert.pem

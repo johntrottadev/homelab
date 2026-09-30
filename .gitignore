@@ -70,3 +70,7 @@ flux-system/cluster-vars.yaml
 *.swn
 *~
 .*.sw[a-p]
+
+# Python bytecode (a .pyc was once committed with pa-quarantine.py)
+__pycache__/
+*.pyc

@@ -22,10 +22,14 @@ NetAlertX's built-in `arp_scan` only sees the L2 segments its container can reac
 |---|---|---|
 | `PALO_HOST` | yes | PA mgmt hostname or IP |
 | `PALO_API_KEY` | yes | from step 3 above |
-| `PALO_VERIFY_TLS` | no | `false` to skip cert check (default `true`) |
+| `PA_CA_FILE` | no | PEM of the PA mgmt cert, default `/etc/pa-tls/pa-mgmt.pem` (the `pa-mgmt-cert` ConfigMap) |
+| `PA_TLS_MODE` | no | `pin` (default: leaf SHA-256 must match `PA_CA_FILE`/`PA_CERT_SHA256`) or `ca` (chain + hostname against `PA_CA_FILE`) |
+| `PA_CERT_SHA256` | no | explicit leaf pin; overrides the fingerprint derived from `PA_CA_FILE` |
 | `PALO_IFACE_INCLUDE` | no | comma list, e.g. `ethernet1/2.10,ethernet1/2.20` — only emit ARP from these |
 | `PALO_IFACE_EXCLUDE` | no | comma list — drop entries from these (e.g. mgmt, tunnels) |
 | `PALO_TIMEOUT` | no | HTTP timeout seconds, default 20 |
+
+TLS is always verified before the API key is sent; there is no opt-out. `PALO_VERIFY_TLS` is ignored.
 
 ## Output format
 

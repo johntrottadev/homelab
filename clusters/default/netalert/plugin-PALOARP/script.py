@@ -3,11 +3,13 @@
 XML API and feed them into NetAlertX. Modeled on the upstream `arp_scan`
 plugin's use of Plugin_Objects."""
 
+import hashlib
+import hmac
+import http.client
 import os
 import ssl
 import sys
 import urllib.parse
-import urllib.request
 import xml.etree.ElementTree as ET
 
 # Wire up NetAlertX's Python helpers (same shape as arp_scan/script.py).
@@ -48,24 +50,74 @@ def _split_csv(value: str) -> set[str]:
 # Secrets via env (k8s Secret); non-secrets via NetAlertX settings.
 PA_HOST = _env("PALO_HOST") or _setting("PALOARP_HOST")
 PA_KEY = _env("PALO_API_KEY") or _setting("PALOARP_API_KEY")
-VERIFY_TLS = (_env("PALO_VERIFY_TLS") or _setting("PALOARP_VERIFY_TLS") or "true").lower() == "true"
+# PA mgmt TLS is always verified before the key is sent (no opt-out; the old
+# PALO_VERIFY_TLS / PALOARP_VERIFY_TLS switch is ignored). Default: pin the public
+# cert mounted from the `pa-mgmt-cert` ConfigMap.
+PA_TLS_MODE = _env("PA_TLS_MODE", "pin").lower()
+PA_CA_FILE = _env("PA_CA_FILE", "/etc/pa-tls/pa-mgmt.pem")
+PA_CERT_SHA256 = _env("PA_CERT_SHA256")
 IFACE_INCLUDE = _split_csv(_env("PALO_IFACE_INCLUDE") or _setting("PALOARP_IFACE_INCLUDE"))
 IFACE_EXCLUDE = _split_csv(_env("PALO_IFACE_EXCLUDE") or _setting("PALOARP_IFACE_EXCLUDE"))
 TIMEOUT = int(_env("PALO_TIMEOUT") or _setting("PALOARP_TIMEOUT") or "20")
 
 
+class PaTLSError(Exception):
+    """PA mgmt TLS identity could not be verified; nothing was sent."""
+
+
+def pa_tls_connection(host, timeout, ca_file, pin_sha256="", mode="pin"):
+    """Return an HTTPSConnection whose TLS handshake is already done AND verified.
+
+    Raises PaTLSError before any request (and so before the API key) is sent.
+      mode "ca":  normal chain + hostname verification against ca_file.
+      mode "pin": the handshake cannot use chain verification (the PA's self-signed
+                  mgmt cert fails OpenSSL's purpose check), so the peer leaf DER is
+                  compared to a pinned SHA-256: pin_sha256, else sha256 of ca_file.
+    """
+    if mode == "ca":
+        try:
+            ctx = ssl.create_default_context(cafile=ca_file)
+        except (OSError, ssl.SSLError) as e:
+            raise PaTLSError(f"cannot load PA CA file {ca_file}: {e}")
+    elif mode == "pin":
+        pin = (pin_sha256 or "").replace(":", "").strip().lower()
+        if not pin:
+            try:
+                with open(ca_file) as f:
+                    pin = hashlib.sha256(ssl.PEM_cert_to_DER_cert(f.read())).hexdigest()
+            except (OSError, ValueError) as e:
+                raise PaTLSError(f"cannot load pinned PA cert {ca_file}: {e}")
+        if len(pin) != 64 or any(c not in "0123456789abcdef" for c in pin):
+            raise PaTLSError("PA_CERT_SHA256 is not a 64-hex SHA-256 fingerprint")
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False  # tls-guard: pinned (leaf fingerprint checked below)
+        ctx.verify_mode = ssl.CERT_NONE  # tls-guard: pinned (leaf fingerprint checked below)
+    else:
+        raise PaTLSError(f"unknown PA_TLS_MODE {mode!r} (expected pin or ca)")
+    conn = http.client.HTTPSConnection(host, timeout=timeout, context=ctx)
+    try:
+        conn.connect()
+    except ssl.SSLError as e:
+        conn.close()
+        raise PaTLSError(f"TLS handshake with PA failed verification: {e}")
+    if mode == "pin":
+        der = conn.sock.getpeercert(binary_form=True) or b""
+        got = hashlib.sha256(der).hexdigest()
+        if not hmac.compare_digest(got, pin):
+            conn.close()
+            raise PaTLSError(f"PA cert fingerprint mismatch (got sha256 {got}); refusing to send API key")
+    return conn
+
+
+
 def pa_op(cmd_xml: str) -> ET.Element:
-    url = (
-        f"https://{PA_HOST}/api/?type=op"
-        f"&cmd={urllib.parse.quote(cmd_xml)}"
-        f"&key={urllib.parse.quote(PA_KEY)}"
-    )
-    ctx = ssl.create_default_context()
-    if not VERIFY_TLS:
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-    with urllib.request.urlopen(url, context=ctx, timeout=TIMEOUT) as r:
-        body = r.read()
+    path = f"/api/?type=op&cmd={urllib.parse.quote(cmd_xml)}&key={urllib.parse.quote(PA_KEY)}"
+    conn = pa_tls_connection(PA_HOST, TIMEOUT, PA_CA_FILE, PA_CERT_SHA256, PA_TLS_MODE)
+    try:
+        conn.request("GET", path)
+        body = conn.getresponse().read()
+    finally:
+        conn.close()
     root = ET.fromstring(body)
     if root.attrib.get("status") != "success":
         raise RuntimeError(f"PA API error: {ET.tostring(root, encoding='unicode')[:400]}")

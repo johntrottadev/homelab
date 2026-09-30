@@ -12,14 +12,18 @@ metadata:
 data:
   sync.py: |
     #!/usr/bin/env python3
-    """OpenDBL -> Palo Alto User-ID DAG sync. Reads PALO_HOST / PALO_API_KEY /
-    PALO_VERIFY_TLS from env (netalert paloarp-credentials secret)."""
-    import os, sys, ssl, ipaddress, urllib.request, urllib.parse
+    """OpenDBL -> Palo Alto User-ID DAG sync. Reads PALO_HOST / PALO_API_KEY from env
+    (netalert paloarp-credentials secret). The PA mgmt cert is verified before the key
+    is sent: PA_TLS_MODE (pin|ca, default pin), PA_CA_FILE (mounted pa-mgmt-cert
+    ConfigMap), optional PA_CERT_SHA256. PALO_VERIFY_TLS is ignored (no opt-out)."""
+    import os, sys, ssl, hmac, hashlib, http.client, ipaddress, urllib.request, urllib.parse
     import xml.etree.ElementTree as ET
 
     PALO_HOST = os.environ["PALO_HOST"]
     PALO_API_KEY = os.environ["PALO_API_KEY"]
-    VERIFY_TLS = os.environ.get("PALO_VERIFY_TLS", "false").lower() in ("1", "true", "yes")
+    PA_TLS_MODE = os.environ.get("PA_TLS_MODE", "pin").lower()
+    PA_CA_FILE = os.environ.get("PA_CA_FILE", "/etc/pa-tls/pa-mgmt.pem")
+    PA_CERT_SHA256 = os.environ.get("PA_CERT_SHA256", "")
     VSYS = os.environ.get("VSYS", "vsys1")
     TTL = int(os.environ.get("OPENDBL_TTL", "7200"))
     DRY_RUN = os.environ.get("OPENDBL_DRY_RUN", "false").lower() in ("1", "true", "yes")
@@ -76,16 +80,64 @@ data:
         return ("<uid-message><version>1.0</version><type>update</type>"
                 "<payload><register>%s</register></payload></uid-message>" % reg)
 
+    class PaTLSError(Exception):
+        """PA mgmt TLS identity could not be verified; nothing was sent."""
+
+
+    def pa_tls_connection(host, timeout, ca_file, pin_sha256="", mode="pin"):
+        """Return an HTTPSConnection whose TLS handshake is already done AND verified.
+
+        Raises PaTLSError before any request (and so before the API key) is sent.
+          mode "ca":  normal chain + hostname verification against ca_file.
+          mode "pin": the handshake cannot use chain verification (the PA's self-signed
+                      mgmt cert fails OpenSSL's purpose check), so the peer leaf DER is
+                      compared to a pinned SHA-256: pin_sha256, else sha256 of ca_file.
+        """
+        if mode == "ca":
+            try:
+                ctx = ssl.create_default_context(cafile=ca_file)
+            except (OSError, ssl.SSLError) as e:
+                raise PaTLSError(f"cannot load PA CA file {ca_file}: {e}")
+        elif mode == "pin":
+            pin = (pin_sha256 or "").replace(":", "").strip().lower()
+            if not pin:
+                try:
+                    with open(ca_file) as f:
+                        pin = hashlib.sha256(ssl.PEM_cert_to_DER_cert(f.read())).hexdigest()
+                except (OSError, ValueError) as e:
+                    raise PaTLSError(f"cannot load pinned PA cert {ca_file}: {e}")
+            if len(pin) != 64 or any(c not in "0123456789abcdef" for c in pin):
+                raise PaTLSError("PA_CERT_SHA256 is not a 64-hex SHA-256 fingerprint")
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False  # tls-guard: pinned (leaf fingerprint checked below)
+            ctx.verify_mode = ssl.CERT_NONE  # tls-guard: pinned (leaf fingerprint checked below)
+        else:
+            raise PaTLSError(f"unknown PA_TLS_MODE {mode!r} (expected pin or ca)")
+        conn = http.client.HTTPSConnection(host, timeout=timeout, context=ctx)
+        try:
+            conn.connect()
+        except ssl.SSLError as e:
+            conn.close()
+            raise PaTLSError(f"TLS handshake with PA failed verification: {e}")
+        if mode == "pin":
+            der = conn.sock.getpeercert(binary_form=True) or b""
+            got = hashlib.sha256(der).hexdigest()
+            if not hmac.compare_digest(got, pin):
+                conn.close()
+                raise PaTLSError(f"PA cert fingerprint mismatch (got sha256 {got}); refusing to send API key")
+        return conn
+
+
     def api_userid(cmd):
         data = urllib.parse.urlencode({"type": "user-id", "action": "set",
-                                       "vsys": VSYS, "key": PALO_API_KEY, "cmd": cmd}).encode()
-        ctx = ssl.create_default_context()
-        if not VERIFY_TLS:
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-        req = urllib.request.Request("https://%s/api/" % PALO_HOST, data=data)
-        with urllib.request.urlopen(req, timeout=45, context=ctx) as r:
-            body = r.read().decode("utf-8", "replace")
+                                       "vsys": VSYS, "key": PALO_API_KEY, "cmd": cmd})
+        conn = pa_tls_connection(PALO_HOST, 45, PA_CA_FILE, PA_CERT_SHA256, PA_TLS_MODE)
+        try:
+            conn.request("POST", "/api/", body=data,
+                         headers={"Content-Type": "application/x-www-form-urlencoded"})
+            body = conn.getresponse().read().decode("utf-8", "replace")
+        finally:
+            conn.close()
         if ET.fromstring(body).get("status") != "success":
             raise RuntimeError("User-ID API error: %s" % body[:300])
 
@@ -129,6 +181,9 @@ data:
                     api_userid(build_msg(batch, tag))
                     registered += len(batch)
                     done += len(batch)
+                except PaTLSError as e:     # PA identity not verified: key NOT sent; hard fail
+                    log("  [%s] TLS verification FAILED, aborting: %s" % (tag, e))
+                    sys.exit(2)
                 except Exception as e:      # first rejection = registered-IP ceiling; stop
                     log("  [%s] chunk %d rejected (registered-IP ceiling?): %s"
                         % (tag, i // CHUNK, str(e)[:120]))

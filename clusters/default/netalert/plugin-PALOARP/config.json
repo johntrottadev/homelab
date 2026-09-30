@@ -111,7 +111,7 @@
       "options": [],
       "localized": ["name", "description"],
       "name": [{ "language_code": "en_us", "string": "Verify TLS cert" }],
-      "description": [{ "language_code": "en_us", "string": "Disable for the default self-signed PA mgmt cert." }]
+      "description": [{ "language_code": "en_us", "string": "Ignored. TLS to the PA is always verified (pinned cert from env <code>PA_CA_FILE</code>)." }]
     },
     {
       "function": "IFACE_INCLUDE",

@@ -39,3 +39,18 @@ repos:
         files: ^clusters/.*\.ya?ml$
         # Defense-in-depth backstop — fails on any kind: Secret under
         # clusters/ lacking a top-level sops: block.
+
+      - id: no-disabled-tls-verification
+        name: Block disabled TLS verification (CERT_NONE / check_hostname=False)
+        # 2026-09-30: PA mgmt API calls used to skip TLS verification while
+        # sending the API key. Fails on any line that disables verification.
+        # Escape hatch: a line ending in `# tls-guard: pinned` is allowed ONLY
+        # inside a helper that then compares the peer leaf's SHA-256 against a
+        # pin and fails closed (see pa_tls_connection in
+        # docker-1/wazuh/active-response/pa-block.py). Reviewers: `rg 'tls-guard:'`.
+        language: pygrep
+        entry: '(CERT_NONE|check_hostname\s*=\s*False|_create_unverified_context)(?!.*#\s*tls-guard:\s*pinned\b)'
+        types_or: [python, yaml]
+        # This file names the patterns; .planning/ holds frozen historical
+        # baselines (never deployed) that quote the pre-fix code.
+        exclude: ^(\.pre-commit-config\.yaml|\.planning/)

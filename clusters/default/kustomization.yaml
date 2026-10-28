@@ -649,3 +649,26 @@ configMapGenerator:
     namespace: netalert
     files:
       - pa-mgmt.pem=netalert/pa-mgmt-cert.pem
+  # CrowdSec bouncer plugin source (v1.7.1, vendored from
+  # github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin). Traefik loads it
+  # as a LOCAL plugin so a cold boot does not depend on plugins.traefik.io.
+  # Keys are flat (ConfigMap keys can't hold "/"); the HelmChartConfig volume
+  # maps each key back to its path. Adding a file means adding it in both places.
+  # Upgrade: replace the directory from the new tag, bump version.go if needed,
+  # then roll Traefik.
+  - name: crowdsec-bouncer-plugin-src
+    namespace: kube-system
+    files:
+      - traefik.yml=traefik/crowdsec-bouncer-plugin/.traefik.yml
+      - go.mod=traefik/crowdsec-bouncer-plugin/go.mod
+      - go.sum=traefik/crowdsec-bouncer-plugin/go.sum
+      - version.go=traefik/crowdsec-bouncer-plugin/version.go
+      - bouncer.go=traefik/crowdsec-bouncer-plugin/bouncer.go
+      - pkg-cache-cache.go=traefik/crowdsec-bouncer-plugin/pkg/cache/cache.go
+      - pkg-captcha-captcha.go=traefik/crowdsec-bouncer-plugin/pkg/captcha/captcha.go
+      - pkg-configuration-configuration.go=traefik/crowdsec-bouncer-plugin/pkg/configuration/configuration.go
+      - pkg-ip-ip.go=traefik/crowdsec-bouncer-plugin/pkg/ip/ip.go
+      - pkg-logger-logger.go=traefik/crowdsec-bouncer-plugin/pkg/logger/logger.go
+      - vendor-modules.txt=traefik/crowdsec-bouncer-plugin/vendor/modules.txt
+      - vendor-golang-ttl-map-map.go=traefik/crowdsec-bouncer-plugin/vendor/github.com/leprosus/golang-ttl-map/map.go
+      - vendor-simpleredis-simpleredis.go=traefik/crowdsec-bouncer-plugin/vendor/github.com/maxlerebourg/simpleredis/simpleredis.go

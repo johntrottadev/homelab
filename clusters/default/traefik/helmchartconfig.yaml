@@ -35,6 +35,24 @@ spec:
         - name: crowdsec-bouncer-key
           secret:
             secretName: crowdsec-bouncer-key
+        # Local copy of the CrowdSec bouncer plugin (see experimental.localPlugins).
+        - name: crowdsec-bouncer-plugin-src
+          configMap:
+            name: crowdsec-bouncer-plugin-src
+            items:
+              - { key: traefik.yml, path: .traefik.yml }
+              - { key: go.mod, path: go.mod }
+              - { key: go.sum, path: go.sum }
+              - { key: version.go, path: version.go }
+              - { key: bouncer.go, path: bouncer.go }
+              - { key: pkg-cache-cache.go, path: pkg/cache/cache.go }
+              - { key: pkg-captcha-captcha.go, path: pkg/captcha/captcha.go }
+              - { key: pkg-configuration-configuration.go, path: pkg/configuration/configuration.go }
+              - { key: pkg-ip-ip.go, path: pkg/ip/ip.go }
+              - { key: pkg-logger-logger.go, path: pkg/logger/logger.go }
+              - { key: vendor-modules.txt, path: vendor/modules.txt }
+              - { key: vendor-golang-ttl-map-map.go, path: vendor/github.com/leprosus/golang-ttl-map/map.go }
+              - { key: vendor-simpleredis-simpleredis.go, path: vendor/github.com/maxlerebourg/simpleredis/simpleredis.go }
     # Spread replicas across nodes — single-node loss takes at most 1 replica.
     # ScheduleAnyway (vs DoNotSchedule) keeps things scheduling on a 4-node
     # post-failure cluster instead of going Pending.
@@ -105,11 +123,24 @@ spec:
     # Before this, CrowdSec held ~3,900 ban decisions and had zero registered
     # bouncers, so every decision was written to a database and read by nobody.
     # The engine decides; the bouncer blocks. One without the other does nothing.
+    #
+    # 2026-10-28: loaded as a LOCAL plugin, not from the registry. Remote plugins
+    # are downloaded from plugins.traefik.io at every pod start; after the
+    # 2026-10-26 restart that download failed, Traefik disabled plugins, and
+    # every IngressRoute referencing crowdsec-bouncer (all 40) was dropped —
+    # a silent cluster-wide 404 for ~45h while the pods reported healthy.
+    # The source now ships in the ConfigMap above (kustomization.yaml
+    # configMapGenerator), so boot needs no internet. abortOnPluginFailure
+    # turns any future plugin failure into a crash-looping pod, which the
+    # maxUnavailable:0 rollout and the PDB keep from replacing healthy pods.
     experimental:
-      plugins:
+      abortOnPluginFailure: true
+      localPlugins:
         crowdsec-bouncer:
+          type: localPath
           moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-          version: v1.7.1
+          mountPath: /plugins-local/src/github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+          volumeName: crowdsec-bouncer-plugin-src
 
     # LAPI key is mounted from a Secret rather than inlined in the Middleware.
     # Secret kube-system/crowdsec-bouncer-key is created out-of-band (it holds a

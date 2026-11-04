@@ -9,7 +9,7 @@
 # scheme: https + serversTransport: lan-self-signed to skip cert verify.
 #
 # Build context: docker-1/legacy-vm/  (Komodo runs `docker compose up -d` here).
-FROM kasmweb/kali-rolling-desktop:1.19.0@sha256:670b855a8b0670ada0ce5e0c997c492fcb66fdf1ca2ef4dffc157bffe2395544
+FROM kasmweb/kali-rolling-desktop:1.19.0@sha256:4383298eacdadef8c3275e0c003dfb0533f412bb449adbb9e54de275d530d0a0
 
 USER root
 

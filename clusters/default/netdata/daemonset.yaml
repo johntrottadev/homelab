@@ -25,7 +25,7 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: netdata
-          image: netdata/netdata:v2.11.0@sha256:c45c71eb23ff3f1012bcda7832bf08c0b09954363557e84511bcfaf6cafa3aa8
+          image: netdata/netdata:v2.12.2@sha256:3d00de3756e1e9150c6121080934168ab5f2ceffce6d494573316c09c18adf83
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true

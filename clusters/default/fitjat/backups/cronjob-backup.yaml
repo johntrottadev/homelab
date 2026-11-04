@@ -43,7 +43,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            image: keinos/sqlite3:3.53.4@sha256:6addaf450aea7e098e7d6f059d43501c317ec70494c1ace3cc94bfe1631cbfa5
+            image: keinos/sqlite3:3.54.1@sha256:b577e65892c6468d94b390097eda4488e05253470c161bdea68a05abb961fa17
             imagePullPolicy: IfNotPresent
             name: backup
             resources:

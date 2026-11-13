@@ -40,7 +40,6 @@ spec:
       - guacamole
       - dashy
       - drawio
-      - fitjat
       - hoarder
       - jellyfin
       - loki

@@ -169,26 +169,11 @@ kubectl create secret generic velero-wasabi-creds \
 Five additional secrets now have `*.template` files created in Phase 4. Follow the
 same `*-creds.template` pattern.
 
-### 6. `fitjat-secrets` — namespace: `fitjat`
+### 6. `fitjat-secrets` — RETIRED 2026-11-12
 
-**Consumer:** `fitjat` Deployment (envFrom secretRef)  
-**Template:** `clusters/default/fitjat/secret-fitjat.template`  
-**Keys:**
-
-| Key | Description | Source |
-|-----|-------------|--------|
-| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID | GitHub > Settings > Developer settings > OAuth Apps > New OAuth App |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth App client secret | GitHub > OAuth App > Client secrets > Generate a client secret |
-| `NEXTAUTH_SECRET` | NextAuth.js session signing secret | Generate: `openssl rand -base64 36` |
-
-**Callback URL for OAuth App:** `https://fitjat.<your-domain>/api/auth/callback/github`
-
-```bash
-cp clusters/default/fitjat/secret-fitjat.template \
-   clusters/default/fitjat/secret-fitjat
-# edit values
-kubectl apply -f clusters/default/fitjat/secret-fitjat
-```
+fitjat was decommissioned (app retired; source stays on GitHub). Namespace,
+manifests and the SOPS file were removed from `clusters/default/`. Entry kept so
+the numbering below stays stable.
 
 ---
 
@@ -218,7 +203,7 @@ kubectl apply -f clusters/default/hoarder/secret-hoarder
 
 ### 8. `pushover-creds` — namespace: `monitoring`
 
-**Consumer:** `kube-prometheus-stack` HelmRelease (Alertmanager) and `fitjat-backup-health` CronJob  
+**Consumer:** `kube-prometheus-stack` HelmRelease (Alertmanager)  
 **Template:** `clusters/default/monitoring/secret-pushover.template`  
 **Keys:**
 
@@ -289,18 +274,10 @@ kubectl apply -f clusters/default/monitoring/secret-backup-host-exporter
 These secrets have single or few keys with straightforward value sources.
 Apply each with `kubectl create secret generic`.
 
-### 11. `cloudflared-token` — namespace: `fitjat`
+### 11. `cloudflared-token` — RETIRED 2026-11-12
 
-**Consumer:** `cloudflared` Deployment (secretKeyRef key: `token`)
-
-```bash
-kubectl create secret generic cloudflared-token \
-  --namespace fitjat \
-  --from-literal=token=<CLOUDFLARE_TUNNEL_TOKEN>
-```
-
-> **Source:** Cloudflare Zero Trust dashboard > Networks > Tunnels > `<your-tunnel>` >
-> Configure > Install and run a connector > Copy the tunnel token from the `--token` argument.
+Was the Cloudflare Tunnel token for the decommissioned fitjat namespace. Removed
+with it; revoke the tunnel in the Cloudflare Zero Trust dashboard.
 
 ---
 
@@ -447,12 +424,12 @@ truth.
 | 3 | `nextcloud-rclone-wasabi` | `nextcloud` | `clusters/default/nextcloud/secret-rclone-wasabi.enc.yaml` | ACCESS_KEY_ID, SECRET_ACCESS_KEY |
 | 4 | `firefly-secrets` | `firefly` | `clusters/default/firefly/secret-firefly.enc.yaml` | APP_KEY, POSTGRES_PASSWORD, STATIC_CRON_TOKEN |
 | 5 | `velero-wasabi-creds` | `velero` | `clusters/default/velero/secret-wasabi-creds.enc.yaml` | cloud (INI bytes) |
-| 6 | `fitjat-secrets` | `fitjat` | `clusters/default/fitjat/secret-fitjat.enc.yaml` | CF_ACCESS_AUD (live differs from template; see Phase 12-08 note) |
+| 6 | `fitjat-secrets` | — | retired 2026-11-12 (fitjat decommissioned) | — |
 | 7 | `hoarder-secrets` | `hoarder` | `clusters/default/hoarder/secret-hoarder.enc.yaml` | NEXTAUTH_SECRET, MEILI_MASTER_KEY |
 | 8 | `pushover-creds` | `monitoring` | `clusters/default/monitoring/secret-pushover.enc.yaml` | token, user_key |
 | 9 | `grafana-admin-credentials` | `monitoring` | `clusters/default/monitoring/secret-grafana-admin.enc.yaml` | admin-user, admin-password |
 | 10 | `backup-host-exporter-credentials` | `monitoring` | `clusters/default/monitoring/secret-backup-host-exporter.enc.yaml` | username, token-name, token-secret |
-| 11 | `cloudflared-token` | `fitjat` | `clusters/default/fitjat/secret-cloudflared-token.enc.yaml` | token |
+| 11 | `cloudflared-token` | — | retired 2026-11-12 (fitjat decommissioned) | — |
 | 12 | `db-secret` | `homarr` | `clusters/default/homarr/secret-db.enc.yaml` | db-encryption-key, db-url, mysql-password, mysql-root-password |
 | 13 | `guacamole-db-credentials` | `guacamole` | `clusters/default/guacamole/secret-guacamole-db.enc.yaml` | postgres-password |
 | 14 | `paperless-secret` | `paperless` | `clusters/default/paperless/secret-paperless.enc.yaml` | admin-user, admin-password, db-password |

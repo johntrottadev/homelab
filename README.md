@@ -146,8 +146,8 @@ flowchart LR
     EPS -->|HTTP| BACKEND[Komodo Core on docker-3]
 
     CF[CloudFlare<br/>edge IPs] -.->|override per host| BROWSER2[browser]
-    BROWSER2 -->|dig fitjat.__BASE-DOMAIN__| PIHOLE
-    PIHOLE -->|address=/fitjat./<br/>104.21.57.174| BROWSER2
+    BROWSER2 -->|dig tunnelled-host.__BASE-DOMAIN__| PIHOLE
+    PIHOLE -->|address=/tunnelled-host./<br/>CF edge IP| BROWSER2
     BROWSER2 -->|HTTPS| CF
     CF -->|CF Access auth| CFTUNNEL[CF Tunnel]
     CFTUNNEL -->|backend| BACKEND2[cluster ingress]
@@ -156,7 +156,7 @@ flowchart LR
 Two files own DNS on each PiHole:
 
 - `/etc/dnsmasq.d/02-jt-lab.conf` — a single line: `address=/__BASE-DOMAIN__/__K3S-VIP__`. Wildcards every `*.__BASE-DOMAIN__` query to the Traefik VIP.
-- `/etc/dnsmasq.d/03-cloudflare-tunnels.conf` — per-host overrides for hostnames routed through Cloudflare Tunnel. dnsmasq evaluates `address=` records before `server=` forwarding, so a more-specific `address=/fitjat.__BASE-DOMAIN__/<CF edge IP>` overrides the wildcard.
+- `/etc/dnsmasq.d/03-cloudflare-tunnels.conf` — per-host overrides for hostnames routed through Cloudflare Tunnel. dnsmasq evaluates `address=` records before `server=` forwarding, so a more-specific `address=/<tunnelled-host>.__BASE-DOMAIN__/<CF edge IP>` overrides the wildcard.
 
 Traefik terminates TLS with a Let's Encrypt wildcard cert obtained via cert-manager's ACME DNS-01 challenge against Cloudflare. The wildcard cert is the reason the wildcard DNS pattern works — without it, every per-host A record would need its own cert provisioning. One cert, one terminator, every hostname.
 
@@ -347,7 +347,7 @@ Pattern 5 wins because it inherits k8s primitives the cluster already provides f
 
 ### Why Cloudflare Tunnel for some hostnames, not all
 
-Cloudflare Tunnel is a worker-mediated reverse tunnel — useful for exposing a service to the public internet without port-forwarding, useful for putting CF Access in front of it. Per-connection it costs Cloudflare-edge latency. For internal-only services (Grafana, Prometheus, OpsMan), the LAN-direct Pattern 5 path is faster, simpler, and adequate. For services that serve external users (CryptPad collaboration, fitjat), Tunnel is correct. The PiHole config (`03-cloudflare-tunnels.conf`) pins per-host overrides to Cloudflare edge IPs so internal clients hit the same CF Access gate external clients do — a single auth path, no LAN bypass.
+Cloudflare Tunnel is a worker-mediated reverse tunnel — useful for exposing a service to the public internet without port-forwarding, useful for putting CF Access in front of it. Per-connection it costs Cloudflare-edge latency. For internal-only services (Grafana, Prometheus, OpsMan), the LAN-direct Pattern 5 path is faster, simpler, and adequate. For services that serve external users (e.g. CryptPad collaboration), Tunnel is correct. The PiHole config (`03-cloudflare-tunnels.conf`) pins per-host overrides to Cloudflare edge IPs so internal clients hit the same CF Access gate external clients do — a single auth path, no LAN bypass.
 
 ### Why SOPS + age (and not SealedSecrets)
 

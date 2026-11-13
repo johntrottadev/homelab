@@ -143,28 +143,10 @@ resources:
   # Bucket A — was kubectl one-liner (password + sudo-password).
   # vscode/pv.yaml removed — Wave 1 (260511-utf) migrated to dynamic storage-apps SC.
 
-  # Phase 999.2 plan-02 — fitjat (main deploy + svc + primary PVC).
-  # No IngressRoute — external access is via Cloudflare Tunnel, not Traefik.
-  - fitjat/namespace.yaml
-  # Phase 12 wave 12-07 — was secret-fitjat.template (kubectl apply).
-  # NOTE: live secret has only CF_ACCESS_AUD; template's GITHUB_CLIENT_ID/etc.
-  # was never deployed. Plan 12-08 to update or note the obsolete template.
-  - fitjat/secret-fitjat.enc.yaml
-  # fitjat/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
-  - fitjat/pvc.yaml
-  - fitjat/deployment.yaml
-  - fitjat/service.yaml
-
-  # Phase 999.2 spinoff — fitjat continuation (cloudflared tunnel + backups).
-  # Bucket A — cloudflared-token Secret moved from kubectl one-liner to SOPS.
-  # cloudflared-info ConfigMap stays kubectl-managed (config detail, not sensitive).
-  - fitjat/secret-cloudflared-token.enc.yaml
-  - fitjat/cloudflared/deployment.yaml
-  # fitjat/backups/pv.yaml removed — Wave 2 (260511-utf) migrated to dynamic storage-apps SC.
-  - fitjat/backups/pvc.yaml
-  - fitjat/backups/cronjob-backup.yaml
-  - fitjat/backups/cronjob-backup-health.yaml
-  - fitjat/backups/cronjob-rsync-storage.yaml
+  # fitjat removed 2026-11-12 — app retired (source stays on GitHub). Namespace
+  # "fitjat" (deploys, cloudflared tunnel, backup CronJobs, PVCs, SOPS secrets) pruned
+  # by Flux; storage-apps PVs are Retain, so the NFS data stays on the NAS until deleted
+  # by hand. Manifests deleted from clusters/default/fitjat/.
 
   # homarr removed 2026-07-12 — consolidated dashboards onto Dashy (two dashboards).
   # Namespace "homarr" + leftover sh.helm.release.v1.homarr.* secrets pruned by Flux;
@@ -604,7 +586,6 @@ resources:
   - network-policies/n8n.yaml             # holds credentials to everything; runs the backup watchdog
   - network-policies/hoarder.yaml
   - network-policies/ciso-assistant.yaml
-  - network-policies/fitjat.yaml
   - network-policies/jellyfin.yaml
   - network-policies/stirling-pdf.yaml
   - network-policies/uptime-kuma.yaml

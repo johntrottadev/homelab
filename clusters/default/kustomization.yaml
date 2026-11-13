@@ -437,7 +437,6 @@ resources:
   # GOC-04 verification: 10-min Backup-CR watch post-reconcile (D-15)
   # confirms no new Backup with creationTimestamp inside the window.
   - velero/schedules/daily-apps.yaml
-  - velero/schedules/weekly-apps.yaml
   - velero/schedules/monthly-apps.yaml
 
   # quick-260504-oee — Kyverno policy engine.

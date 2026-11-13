@@ -42,7 +42,11 @@ metadata:
 spec:
   interval: 10m
   path: ./clusters/default
-  prune: false
+  # Live has been prune: true (found 2026-11-12); this file said false, so a
+  # re-apply would have silently stopped Flux deleting removed manifests (the
+  # fitjat decommission depends on prune). Namespaces that must never be
+  # pruned carry kustomize.toolkit.fluxcd.io/prune: disabled.
+  prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system

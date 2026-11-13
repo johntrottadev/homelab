@@ -48,6 +48,10 @@ spec:
           provider: aws
       defaultBackupTTL: 720h
       defaultVolumesToFsBackup: true
+      # Default 4h let one stuck PVB stall a whole run (11-01, 11-08..11). A
+      # healthy full daily is ~24 min for 39 volumes; 1h fails fast, and the
+      # VeleroLatestBackupFailed rule reports it.
+      fsBackupTimeout: 1h
       uploaderType: kopia
       volumeSnapshotLocation: []
     credentials:

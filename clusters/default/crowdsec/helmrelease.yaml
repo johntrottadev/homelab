@@ -63,6 +63,12 @@ spec:
             agents_autodelete:
               login_password: 30m
     agent:
+      # crowdsec-config is an emptyDir rebuilt on every start. Backing it up on
+      # all 6 agent pods put them in one Velero ItemBlock; one hung PVB then held
+      # the whole daily for the 4h fs-backup timeout (PartiallyFailed 11-01,
+      # 11-08..11). The real state lives on the lapi PVCs.
+      podAnnotations:
+        backup.velero.io/backup-volumes-excludes: crowdsec-config
       # Acquire logs from Traefik + high-value app namespaces. Broad to start;
       # tighten once scenarios are validated.
       acquisition:

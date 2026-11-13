@@ -36,3 +36,14 @@ spec:
     extraArgs:
       - --dns01-recursive-nameservers=1.1.1.1:53,9.9.9.9:53
       - --dns01-recursive-nameservers-only=true
+    # 2026-11-12: scrape the controller's :9402 metrics so homelab.certificates.rules
+    # (monitoring/rules/homelab-alerts.yaml) can alert on expiry. The Service on 9402
+    # already exists (prometheus.enabled defaults to true); this only adds the
+    # ServiceMonitor. `release: prometheus` matches the kube-prometheus-stack
+    # serviceMonitorSelector. cert-manager ns has no NetworkPolicy, so no ingress rule needed.
+    prometheus:
+      enabled: true
+      servicemonitor:
+        enabled: true
+        labels:
+          release: prometheus

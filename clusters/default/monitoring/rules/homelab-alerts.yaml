@@ -39,6 +39,20 @@ spec:
       labels:
         component: kopia
         severity: warning
+    # Second stage (2026-11-12, paging policy: page when a backup is stale past
+    # 2x its period). Kopia runs daily, so 48h = two consecutive missed runs.
+    # The 30h warning above stays on Discord as the early signal.
+    - alert: KopiaBackupStaleCritical
+      annotations:
+        description: Kopia backup on {{ $labels.instance }} last succeeded {{ $value
+          | humanizeDuration }} ago (threshold 48h = 2 missed daily runs).
+        summary: Kopia backup missed 2 runs on {{ $labels.instance }}
+      expr: |
+        time() - kopia_backup_run_timestamp_seconds > 48 * 3600
+      for: 30m
+      labels:
+        component: kopia
+        severity: critical
     # A host that STOPS reporting is invisible to the staleness alert above,
     # because the series simply disappears rather than growing old. Only docker-1,
     # docker-2 and docker-3 currently report; the 2026-09-02 coverage audit also lists
@@ -94,6 +108,51 @@ spec:
       for: 15m
       labels:
         component: velero
+        # Was critical until 2026-11-12. Paging policy: page when a backup is
+        # stale past 2x its period; 30h is one missed run, so it now warns on
+        # Discord and VeleroDailyBackupStaleCritical (48h) pages.
+        severity: warning
+    - alert: VeleroDailyBackupStaleCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Last successful daily-apps backup was {{ $value | humanizeDuration
+          }} ago (threshold 48h = 2 missed daily runs). Check Velero CRs and
+          PodVolumeBackup status.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#velerodailybackupstale
+        summary: Velero daily-apps backup missed 2 runs
+      expr: |
+        time() - velero_backup_last_successful_timestamp{schedule="daily-apps"} > 48 * 3600
+      for: 15m
+      labels:
+        component: velero
+        severity: critical
+    # Added 2026-11-12. monthly-apps (0 10 1 * *) had no staleness rule: the
+    # 2026-11-01 run ended PartiallyFailed (23 errors) and nothing outlived
+    # VeleroBackupRecentFailure's 24h window. 33d = one missed monthly run plus
+    # slack for a 31-day month; 62d = two missed runs, which pages.
+    - alert: VeleroMonthlyBackupStale
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Last successful monthly-apps backup was {{ $value | humanizeDuration
+          }} ago (threshold 33d). Inspect the newest monthly-apps Backup CR.
+        summary: Velero monthly-apps backup is stale
+      expr: |
+        time() - velero_backup_last_successful_timestamp{schedule="monthly-apps"} > 33 * 86400
+      for: 1h
+      labels:
+        component: velero
+        severity: warning
+    - alert: VeleroMonthlyBackupStaleCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Last successful monthly-apps backup was {{ $value | humanizeDuration
+          }} ago (threshold 62d = 2 missed monthly runs).
+        summary: Velero monthly-apps backup missed 2 runs
+      expr: |
+        time() - velero_backup_last_successful_timestamp{schedule="monthly-apps"} > 62 * 86400
+      for: 1h
+      labels:
+        component: velero
         severity: critical
     # VeleroWeeklyBackupStale REMOVED 2026-09-05.
     #
@@ -120,6 +179,26 @@ spec:
       labels:
         component: velero
         severity: warning
+    # Second stage (2026-11-12, paging policy: failed backups page). The 24h
+    # window above keeps firing after a retry already succeeded, which would
+    # re-page for a fixed problem. velero_backup_last_status tracks only the
+    # NEWEST backup per schedule (1 = Completed, 0 = Failed or PartiallyFailed),
+    # so this pages while the latest run is bad and clears on the next good one.
+    # Caveat: the gauge re-initialises to 1 when the velero pod restarts, so a
+    # failure followed by a restart is only caught by the staleness rules.
+    - alert: VeleroLatestBackupFailed
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: The most recent backup of schedule {{ $labels.schedule }} ended
+          Failed or PartiallyFailed. Inspect its Backup CR (errors, PodVolumeBackups).
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#velerobackuprecentfailure
+        summary: Velero schedule {{ $labels.schedule }} latest backup failed
+      expr: |
+        velero_backup_last_status{schedule!=""} == 0
+      for: 15m
+      labels:
+        component: velero
+        severity: critical
     - alert: VeleroBackupStorageDown
       annotations:
         dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
@@ -279,6 +358,25 @@ spec:
       labels:
         component: backup-host
         severity: warning
+    # Second stage (2026-11-12, paging policy: page past 2x the period). The
+    # slowest copies (archive and the S3 store backup-host) sync daily, so 48h = two
+    # missed syncs; on main (every 2h) 48h is far past any transient gap.
+    - alert: PBSVMBackupStaleCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: Last backup {{ $value | humanizeDuration }} ago on datastore
+          {{ $labels.datastore }}. Threshold 48h (2 missed daily syncs).
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsvmbackupstale
+        summary: 'PBS backup missed 2 cycles: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})'
+      expr: |
+        (time() - pbs_snapshot_vm_last_timestamp > 48*3600)
+          and on(vm_id) (
+            label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
+          )
+      for: 30m
+      labels:
+        component: backup-host
+        severity: critical
     # -----------------------------------------------------------------------
     # REPLICA GROUP MISSING - added 2026-09-13.
     #
@@ -317,6 +415,37 @@ spec:
       labels:
         component: backup-host
         severity: warning
+    # Second stage (2026-11-12). Both replicas sync daily; 48h pending = two
+    # consecutive syncs skipped the VM, which pages. Same expression as above.
+    - alert: PBSReplicaGroupMissingCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: VM {{ $labels.vm_id }} ({{ $labels.vm_name }}) has had no copy on
+          datastore {{ $labels.datastore }} for 48h (2 missed daily syncs).
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsreplicagroupmissing
+        summary: 'PBS replica missing 48h: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          not on {{ $labels.datastore }}'
+      expr: |
+        # max_over_time(...[1h]) so a backup-host-exporter scrape gap shorter than an
+        # hour does not empty the expression and reset the 36h pending timer.
+        (
+          label_replace(
+            max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
+              unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="backup-host"}[1h]),
+            "datastore", "backup-host", "", "")
+          or
+          label_replace(
+            max by (vm_id, vm_name) (max_over_time(pbs_snapshot_vm_last_timestamp{datastore="main"}[1h]))
+              unless on(vm_id) max_over_time(pbs_snapshot_vm_last_timestamp{datastore="archive"}[1h]),
+            "datastore", "archive", "", "")
+        )
+          and on(vm_id) (
+            label_replace(pve_up{id=~"qemu/.*|lxc/.*"} == 1, "vm_id", "$2", "id", "(qemu|lxc)/(.+)")
+          )
+      for: 48h
+      labels:
+        component: backup-host
+        severity: critical
     # -----------------------------------------------------------------------
     # VERIFY STALENESS - replaced PBSBackupVerifyFailed + PBSArchiveVerifyFailed
     # on 2026-09-06.
@@ -389,6 +518,25 @@ spec:
       labels:
         component: backup-host
         severity: warning
+    # Second stage (2026-11-12). Verify runs daily but the rule cannot tell
+    # "failed" from "not yet verified" per snapshot, so it works on a 30d window
+    # rather than the daily period; 60d (2x that window) means verification has
+    # been broken for a VM long enough that a restore is genuinely unproven.
+    - alert: PBSVerifyStaleCritical
+      annotations:
+        dashboard_url: https://grafana.__BASE-DOMAIN__/d/homelab-storage
+        description: No snapshot of VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          has passed verification on datastore {{ $labels.datastore }} for {{ $value
+          | humanizeDuration }}. Threshold 60d.
+        runbook_url: https://github.com/johntrottadev/homelab/blob/main/monitoring/RUNBOOKS.md#pbsverifystale
+        summary: 'PBS verify stale: VM {{ $labels.vm_id }} ({{ $labels.vm_name }})
+          unverified for 60d+'
+      expr: |
+        (time() - backup-host:last_verify_ok:timestamp{datastore!~"2tb|archive"}) > 60 * 24 * 3600
+      for: 1h
+      labels:
+        component: backup-host
+        severity: critical
   - interval: 1m
     name: homelab.synology.rules
     rules:
@@ -431,7 +579,8 @@ spec:
       for: 15m
       labels:
         component: synology
-        severity: warning
+        # warning -> critical 2026-11-12: disk hardware failure pages (policy).
+        severity: critical
     # Added 2026-08-18 with the cache retirement. SynologyDiskUnhealthy only fires on
     # a disk it can SEE. If the OID walk stops returning diskHealthStatus — SNMP perms
     # changed, MIB moved, exporter misconfigured — the rule matches nothing and looks
@@ -885,6 +1034,80 @@ spec:
       for: 30m
       labels:
         component: storage
+        severity: warning
+  # Added 2026-11-12 (paging policy: certs <=7d page, 8-30d warn on Discord).
+  # cert-manager metrics come from the ServiceMonitor enabled in
+  # cert-manager/helmrelease.yaml in the same change. Let's Encrypt certs are 90d
+  # and cert-manager renews at 30d remaining (default renewBefore = 1/3), so the
+  # 30d warning only survives its for: 1h when a renewal is actually failing.
+  - interval: 1m
+    name: homelab.certificates.rules
+    rules:
+    - alert: CertificateExpiringSoon
+      annotations:
+        description: cert-manager Certificate {{ $labels.namespace }}/{{ $labels.name
+          }} expires in {{ $value | humanizeDuration }} and has not renewed. Check
+          `kubectl describe certificate -n {{ $labels.namespace }} {{ $labels.name }}`
+          and the CertificateRequest/Order it owns.
+        summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in <30d
+      expr: |
+        (certmanager_certificate_expiration_timestamp_seconds - time()) < 30 * 86400
+          and (certmanager_certificate_expiration_timestamp_seconds - time()) > 7 * 86400
+      for: 1h
+      labels:
+        component: certificates
+        severity: warning
+    - alert: CertificateExpiryCritical
+      annotations:
+        description: cert-manager Certificate {{ $labels.namespace }}/{{ $labels.name
+          }} expires in {{ $value | humanizeDuration }}. Renewal has been failing
+          for 3+ weeks; ingress TLS breaks when it lapses.
+        summary: Certificate {{ $labels.namespace }}/{{ $labels.name }} expires in <=7d
+      expr: |
+        (certmanager_certificate_expiration_timestamp_seconds - time()) <= 7 * 86400
+      for: 15m
+      labels:
+        component: certificates
+        severity: critical
+    # k3s rotates its leaf certs on service start when they are within 120d of
+    # expiry, so a leaf at <30d means that node's k3s has not restarted in months.
+    - alert: K3sCertificateExpiringSoon
+      annotations:
+        description: k3s certificate {{ $labels.subject }} on {{ $labels.node }} expires
+          in {{ $value | humanizeDuration }}. Restarting k3s on the node rotates it.
+        summary: k3s certificate on {{ $labels.node }} expires in <30d
+      expr: |
+        min by (node, subject) (k3s_certificate_expiration_seconds) < 30 * 86400
+          and min by (node, subject) (k3s_certificate_expiration_seconds) > 7 * 86400
+      for: 1h
+      labels:
+        component: certificates
+        severity: warning
+    - alert: K3sCertificateExpiryCritical
+      annotations:
+        description: k3s certificate {{ $labels.subject }} on {{ $labels.node }} expires
+          in {{ $value | humanizeDuration }}. Restart k3s on the node now; an expired
+          client/serving cert takes the node out of the cluster.
+        summary: k3s certificate on {{ $labels.node }} expires in <=7d
+      expr: |
+        min by (node, subject) (k3s_certificate_expiration_seconds) <= 7 * 86400
+      for: 15m
+      labels:
+        component: certificates
+        severity: critical
+    # Same blind-spot class as SynologyDiskMetricsAbsent: if the cert-manager
+    # scrape breaks, the two rules above match nothing and look healthy.
+    - alert: CertManagerMetricsAbsent
+      annotations:
+        description: No certmanager_certificate_expiration_timestamp_seconds series
+          for 1h. Certificate expiry is unobserved. Check the cert-manager
+          ServiceMonitor and the Prometheus target for cert-manager:9402.
+        summary: cert-manager certificate metrics have disappeared
+      expr: |
+        absent(certmanager_certificate_expiration_timestamp_seconds)
+      for: 1h
+      labels:
+        component: certificates
         severity: warning
   - interval: 1m
     name: homelab.bastion.rules

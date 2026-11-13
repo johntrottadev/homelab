@@ -125,36 +125,25 @@ spec:
               }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
             url_title: Open dashboard
             user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
-        - name: pushover-warning
-          pushover_configs:
-          - html: true
-            message: |-
-              {{ range .Alerts }}<b>severity:</b> {{ .Labels.severity }}
-              {{ if .Labels.namespace }}<b>namespace:</b> {{ .Labels.namespace }}
-              {{ end }}{{ if .Labels.instance }}<b>instance:</b> {{ .Labels.instance }}
-              {{ end }}{{ if .Labels.pod }}<b>pod:</b> {{ .Labels.pod }}
-              {{ end }}
-              <b>{{ .Annotations.summary }}</b>
-              {{ if .Annotations.runbook_url }}
-              <a href="{{ .Annotations.runbook_url }}">[runbook]</a>{{ end }}
-              {{ end }}
-            priority: "0"
-            send_resolved: true
-            title: '[WARNING] {{ .CommonLabels.alertname }} ({{ .Status }})'
-            token_file: /etc/alertmanager/secrets/pushover-creds/token
-            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else
-              }}https://grafana.${BASE_DOMAIN}/d/homelab-front-page{{ end }}'
-            url_title: Open dashboard
-            user_key_file: /etc/alertmanager/secrets/pushover-creds/user_key
         route:
           group_by:
           - namespace
           - alertname
           group_interval: 5m
           group_wait: 30s
-          receiver: pushover-warning
+          # Default is "null", not Pushover (2026-11-12). Paging policy: Pushover is
+          # only for alerts that need action within hours, and that is expressed as
+          # severity=critical below. An alert with no severity used to fall through
+          # to pushover-warning and page; it now reaches Discord only (the
+          # AlertmanagerConfig in alertmanagerconfig-discord.yaml matches every
+          # severity except info/none, including a missing label).
+          receiver: "null"
           repeat_interval: 4h
           routes:
+          # Watchdog is also sent to the healthchecks.io dead man's switch by
+          # alertmanagerconfig-healthchecks.yaml (generated routes sit ahead of
+          # this tree with continue: true). This route only stops it reaching
+          # anything else.
           - matchers:
             - alertname = "Watchdog"
             receiver: "null"
@@ -181,6 +170,8 @@ spec:
           # sits ahead of this tree with continue: true). Pushover is reserved
           # for critical: warning volume exhausted its monthly cap on 2026-09-25
           # and again by 2026-09-27, taking critical pages down with it.
+          # These two routes are now equivalent to the "null" default; kept so the
+          # intent is explicit.
           - matchers:
             - severity = "warning"
             receiver: "null"

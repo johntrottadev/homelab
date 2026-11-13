@@ -268,6 +268,11 @@ resources:
   # can't silence every alert. Key `url`, referenced by the AlertmanagerConfig below.
   - monitoring/secret-discord-webhook.enc.yaml
   - monitoring/alertmanagerconfig-discord.yaml
+  # 2026-11-12 — Watchdog -> healthchecks.io dead man's switch. Needs Secret
+  # alertmanager-healthchecks (key `url`); until it exists the operator skips this
+  # AlertmanagerConfig. Add `- monitoring/secret-alertmanager-healthchecks.enc.yaml`
+  # above this line once the encrypted file is committed.
+  - monitoring/alertmanagerconfig-healthchecks.yaml
   # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
   - monitoring/secret-grafana-admin.enc.yaml
 

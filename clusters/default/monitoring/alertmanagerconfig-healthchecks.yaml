@@ -1,0 +1,44 @@
+# External dead man's switch for the alerting path (2026-11-12).
+#
+# Watchdog is an always-firing alert from kube-prometheus-stack. Until now it was
+# routed to "null", so if Prometheus, Alertmanager, or the cluster itself died,
+# nothing outside the cluster noticed and no page went out. Each delivery here
+# pings a healthchecks.io check; when the pings stop, healthchecks.io alerts
+# through its own integrations, independent of this cluster.
+#
+# Same pattern as alertmanagerconfig-discord.yaml: an AlertmanagerConfig with a
+# Secret reference the operator resolves itself, so the ping URL (which embeds
+# the check's UUID and is effectively a credential) lives only in the SOPS
+# secret alertmanager-healthchecks (key `url`). The operator prepends this route
+# to the root tree with continue: true; the root tree's Watchdog -> "null" route
+# still stops it reaching Pushover.
+#
+# Cadence: Alertmanager re-sends a still-firing group when repeatInterval has
+# elapsed, checked every groupInterval, so pings land every ~5-6 minutes.
+# Matching healthchecks.io check: period 5m, grace 15m (three missed pings).
+#
+# If the Secret is missing the operator skips this AlertmanagerConfig (the rest of
+# the Alertmanager config still loads) and Watchdog simply goes nowhere, as before.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: healthchecks
+  namespace: monitoring
+spec:
+  route:
+    receiver: healthchecks
+    groupBy: [alertname]
+    groupWait: 0s
+    groupInterval: 1m
+    repeatInterval: 5m
+    matchers:
+      - name: alertname
+        value: Watchdog
+    continue: true
+  receivers:
+    - name: healthchecks
+      webhookConfigs:
+        - urlSecret:
+            name: alertmanager-healthchecks
+            key: url
+          sendResolved: false

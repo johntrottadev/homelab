@@ -4,7 +4,7 @@
 # in 24h failed rateLimited, so every alert, including the ones saying so, went
 # nowhere. This route sits ahead of the Pushover routes in the root tree; the
 # operator forces continue: true on AlertmanagerConfig routes, so every
-# critical/warning alert goes to Discord AND still falls through to Pushover.
+# non-info alert goes to Discord AND still falls through to the Pushover tree.
 #
 # Why an AlertmanagerConfig and not discord_configs in the HelmRelease:
 # prometheus-operator v0.93 validates the base config against its own vendored
@@ -26,10 +26,15 @@ spec:
     groupWait: 30s
     groupInterval: 5m
     repeatInterval: 4h
+    # Everything except info and none (2026-11-12). Was =~ "critical|warning",
+    # which dropped alerts with no severity label on the floor once the root
+    # route stopped defaulting to Pushover. A missing label reads as "", which
+    # !~ matches, so unlabelled alerts land here. Watchdog and InfoInhibitor are
+    # severity=none and stay out.
     matchers:
       - name: severity
-        matchType: "=~"
-        value: "critical|warning"
+        matchType: "!~"
+        value: "info|none"
     continue: true
     routes:
       # The workstation laptop is scraped when reachable, but being asleep or

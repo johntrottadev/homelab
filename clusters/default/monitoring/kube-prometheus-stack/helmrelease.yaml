@@ -694,6 +694,31 @@ spec:
             target_label: instance
           - target_label: __address__
             replacement: blackbox-exporter:9115
+        # Hop-by-hop WAN path ICMP probes (isolate which hop fails during outages).
+        - job_name: blackbox-wan-path
+          metrics_path: /probe
+          scrape_interval: 15s
+          scrape_timeout: 10s
+          params:
+            module: [icmp]
+          static_configs:
+          - targets:
+            - 192.168.1.1
+            labels:
+              target_kind: wan_path
+              hop: isp_gateway
+          - targets:
+            - __ISP-EDGE-IP__
+            labels:
+              target_kind: wan_path
+              hop: isp_edge
+          relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox-exporter:9115
         - job_name: blackbox-public-dns
           metrics_path: /probe
           params:

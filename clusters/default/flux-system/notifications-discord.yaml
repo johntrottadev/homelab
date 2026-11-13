@@ -1,0 +1,76 @@
+# Flux reconcile errors -> Discord (2026-11-12).
+#
+# Until now Flux had no notification-controller Provider/Alert: a HelmRelease
+# stuck failing an upgrade, a Kustomization that could not build, or a
+# GitRepository that could not fetch was visible only via `flux get`.
+#
+# Secret: flux-discord-webhook in flux-system, key `address` (the Discord
+# webhook URL). Flux's discord provider reads `address`, so the existing
+# monitoring/discord-webhook Secret (key `url`) cannot be reused as is. Until the
+# Secret exists the Provider and Alert report NotReady and send nothing; nothing
+# else is affected (the flux-system Kustomization does not health-check them).
+#
+# Cross-namespace eventSources need an explicit namespace (there is no
+# namespace wildcard), so every namespace that holds a HelmRelease is listed.
+# Adding a HelmRelease in a new namespace means adding it here.
+# notification-controller v1.9.3 serves notification.toolkit.fluxcd.io/v1beta3.
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: discord
+  namespace: flux-system
+spec:
+  type: discord
+  username: flux
+  secretRef:
+    name: flux-discord-webhook
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: reconcile-errors-discord
+  namespace: flux-system
+spec:
+  providerRef:
+    name: discord
+  eventSeverity: error
+  eventSources:
+    - kind: GitRepository
+      name: '*'
+      namespace: flux-system
+    - kind: Kustomization
+      name: '*'
+      namespace: flux-system
+    - kind: HelmRepository
+      name: '*'
+      namespace: flux-system
+    - kind: HelmRelease
+      name: '*'
+      namespace: authentik
+    - kind: HelmRelease
+      name: '*'
+      namespace: cert-manager
+    - kind: HelmRelease
+      name: '*'
+      namespace: ciso-assistant
+    - kind: HelmRelease
+      name: '*'
+      namespace: crowdsec
+    - kind: HelmRelease
+      name: '*'
+      namespace: kube-system
+    - kind: HelmRelease
+      name: '*'
+      namespace: kyverno
+    - kind: HelmRelease
+      name: '*'
+      namespace: loki
+    - kind: HelmRelease
+      name: '*'
+      namespace: monitoring
+    - kind: HelmRelease
+      name: '*'
+      namespace: trivy-system
+    - kind: HelmRelease
+      name: '*'
+      namespace: velero

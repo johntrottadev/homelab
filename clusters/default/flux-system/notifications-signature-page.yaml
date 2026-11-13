@@ -1,0 +1,48 @@
+# Page on GitRepository signature-verification failure (2026-11-12).
+#
+# gitrepository flux-system has spec.verify (mode HEAD): Flux refuses any commit
+# not signed by a trusted key. A refusal means either an unsigned push (cluster
+# frozen on the last good commit until it is re-signed) or someone pushing as
+# us without the hardware key. Both need action within hours, so it pages.
+#
+# Flux has no Pushover provider type. Instead the event is handed to our own
+# Alertmanager (provider type alertmanager, in-cluster, no credential), which
+# already owns the Pushover integration and its rate-limit discipline. Route:
+# kube-prometheus-stack helmrelease.yaml, alertname =~ "FluxGitRepository.*"
+# -> pushover-critical. Discord also receives it through the generic Discord
+# route (severity "error" is not info/none).
+#
+# inclusionList filters on the event MESSAGE (Go regex). source-controller's
+# messages for this failure read "signature verification of commit ... failed"
+# / "unable to verify ...", so "verif" catches both without matching ordinary
+# fetch errors. Only this Alert feeds the alertmanager Provider, so every
+# FluxGitRepository* alert Alertmanager sees is a verification failure.
+#
+# Alertmanager auto-resolves these after resolve_timeout (5m) because Flux sends
+# no endsAt; notification-controller re-sends a repeating event every ~5m, and
+# Alertmanager's repeat_interval keeps re-pages to one per 6h.
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: alertmanager
+  namespace: flux-system
+spec:
+  type: alertmanager
+  address: http://prometheus-alertmanager.monitoring.svc:9093/api/v2/alerts/
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: signature-verification-page
+  namespace: flux-system
+spec:
+  providerRef:
+    name: alertmanager
+  eventSeverity: error
+  eventSources:
+    - kind: GitRepository
+      name: flux-system
+  inclusionList:
+    - '(?i)verif'
+  eventMetadata:
+    summary: Flux refused an unsigned or untrusted commit on gitrepository/flux-system

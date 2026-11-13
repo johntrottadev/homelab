@@ -273,6 +273,13 @@ resources:
   # AlertmanagerConfig. Add `- monitoring/secret-alertmanager-healthchecks.enc.yaml`
   # above this line once the encrypted file is committed.
   - monitoring/alertmanagerconfig-healthchecks.yaml
+  # 2026-11-12 — Flux notification-controller: reconcile errors -> Discord, and
+  # GitRepository signature-verification failure -> Alertmanager -> Pushover.
+  # Discord Provider needs Secret flux-system/flux-discord-webhook (key `address`);
+  # add `- flux-system/secret-flux-discord-webhook.enc.yaml` above these once it
+  # is committed. The alertmanager Provider needs no secret.
+  - flux-system/notifications-discord.yaml
+  - flux-system/notifications-signature-page.yaml
   # Phase 12 wave 12-06 — was secret-grafana-admin.template (kubectl apply).
   - monitoring/secret-grafana-admin.enc.yaml
 

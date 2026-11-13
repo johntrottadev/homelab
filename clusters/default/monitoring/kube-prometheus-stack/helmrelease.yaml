@@ -158,6 +158,16 @@ spec:
           - matchers:
             - alertname =~ "AlertmanagerFailedToSendAlerts|AlertmanagerClusterFailedToSendAlerts|AlertmanagerClusterDown|AlertmanagerFailedReload"
             receiver: "null"
+          # Flux GitRepository signature-verification failures, posted by the
+          # notification-controller alertmanager Provider
+          # (clusters/default/flux-system/notifications-signature-page.yaml). They
+          # carry severity="error", not critical, so they need their own page route.
+          - continue: false
+            group_wait: 10s
+            matchers:
+            - alertname =~ "FluxGitRepository.*"
+            receiver: pushover-critical
+            repeat_interval: 6h
           # 1h repeat spent the monthly Pushover cap on re-sends of the same page.
           # A still-firing critical re-pages every 6h; new criticals page at once.
           - continue: false

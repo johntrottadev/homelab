@@ -1,0 +1,19 @@
+# SQLite database volume. Dynamic PVC against the DB-tier NFS class (same
+# convention as other single-writer DB volumes):
+#   __NAS-IP__:/volume1/kub/homelab/beer-tracker/beer-tracker-data/
+# SQLite on NFS is only safe with one writer and without WAL: the Deployment
+# runs 1 replica with strategy Recreate and sets SQLITE_JOURNAL_MODE=DELETE.
+# OPEN QUESTION (README): Longhorn RWO would allow WAL; storage-dbs matches backup
+# coverage conventions. Kept storage-dbs pending John's call.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: beer-tracker-data
+  namespace: beer-tracker
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: storage-dbs

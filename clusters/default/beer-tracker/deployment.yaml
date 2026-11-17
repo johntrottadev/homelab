@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beer-tracker
+  namespace: beer-tracker
+  labels:
+    app: beer-tracker
+  annotations:
+    # Roll the pod when the secret changes (Stakater Reloader, same as fitjat).
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  # SQLite: never two pods on the same database file.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: beer-tracker
+  template:
+    metadata:
+      labels:
+        app: beer-tracker
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: beer-tracker
+          # Private GHCR package (imagePullSecrets: ghcr-pull). Pin tag AND digest after the first CI push,
+          # e.g. ghcr.io/johntrottadev/beer-tracker:sha-abc1234@sha256:...
+          image: ghcr.io/johntrottadev/beer-tracker:sha-4b2a286@sha256:0ee3e9ca2425739297167e303a31c6b212f05a2f90e0356fb3ba03e92bd83d22
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "8080"
+            - name: DB_PATH
+              value: /data/beer-tracker.db
+            - name: SQLITE_JOURNAL_MODE
+              value: DELETE   # NFS-backed PVC; see pvc.yaml
+            - name: DISCORD_WEBHOOK_URL_FILE
+              value: /var/run/secrets/beer-tracker/discord-webhook
+            - name: DISCORD_TROON_WEBHOOK_URL_FILE
+              value: /var/run/secrets/beer-tracker/discord-troon-webhook
+            # Gmail collector (read-only). Either file missing => "gmail disabled", sources skipped.
+            - name: GMAIL_OAUTH_CLIENT_FILE
+              value: /var/run/secrets/beer-tracker/gmail-oauth-client
+            - name: GMAIL_TOKEN_FILE
+              value: /var/run/secrets/beer-tracker/gmail-token
+            - name: LOG_LEVEL
+              value: info
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 2
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 96Mi
+            limits:
+              memory: 384Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+            - name: secrets
+              mountPath: /var/run/secrets/beer-tracker
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: beer-tracker-data
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: secrets
+          secret:
+            secretName: beer-tracker
+            # Missing secret/key => app logs "discord disabled" / "gmail disabled" and keeps running.
+            optional: true
+            defaultMode: 0400
+            items:
+              - key: discord-webhook
+                path: discord-webhook
+              - key: gmail-oauth-client
+                path: gmail-oauth-client
+              - key: gmail-token
+                path: gmail-token

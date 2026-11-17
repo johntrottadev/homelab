@@ -35,6 +35,7 @@ spec:
       - events
     includedNamespaces:
       - authentik
+      - beer-tracker
       - ciso-assistant
       - crowdsec
       - guacamole

@@ -148,6 +148,17 @@ resources:
   # by Flux; storage-apps PVs are Retain, so the NFS data stays on the NAS until deleted
   # by hand. Manifests deleted from clusters/default/fitjat/.
 
+  # beer-tracker (2026-11-17) — brewery release tracker, host whalehunter.__BASE-DOMAIN__.
+  # Source: github.com/johntrottadev/beer-tracker (private GHCR image, ghcr-pull secret).
+  # Secret beer-tracker is optional in the pod spec: missing keys disable Discord/Gmail.
+  - beer-tracker/namespace.yaml
+  - beer-tracker/secret-ghcr-pull.enc.yaml       # read:packages PAT (classic), dockerconfigjson
+  - beer-tracker/secret-beer-tracker.enc.yaml   # discord-webhook, discord-troon-webhook; gmail keys added at L2
+  - beer-tracker/pvc.yaml
+  - beer-tracker/deployment.yaml
+  - beer-tracker/service.yaml
+  - beer-tracker/ingressroute.yaml
+
   # homarr removed 2026-07-12 — consolidated dashboards onto Dashy (two dashboards).
   # Namespace "homarr" + leftover sh.helm.release.v1.homarr.* secrets pruned by Flux;
   # manifests deleted from clusters/default/homarr/.
@@ -604,6 +615,7 @@ resources:
   - network-policies/drawio.yaml
   - network-policies/guacamole.yaml       # scaled to 0; policy lands ahead of any future restart
   - network-policies/netalert.yaml        # its collector is hostNetwork, so policy is a no-op for that pod
+  - network-policies/beer-tracker.yaml
   # Additive fix (2026-09-04): the Longhorn chart's own longhorn-manager policy
   # has no namespaceSelector, so Prometheus has NEVER been able to scrape :9500.
   # up{job="longhorn-backend"} was 0 across all instances for the full retention

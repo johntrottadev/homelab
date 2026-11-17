@@ -1,0 +1,44 @@
+# Ingress segmentation for the `beer-tracker` namespace.
+# Copied from clusters/default/network-policies/fitjat.yaml.
+# Standard: AI-Backbone/standards/security/network-segmentation-standard.md
+#
+# Ingress-only by design. Egress stays open: the collectors reach public brewery
+# shops, Untappd and Discord, and egress default-deny breaks DNS on first apply.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: beer-tracker
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-sources
+  namespace: beer-tracker
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+        # Traefik - the only intended external entry point.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        # Monitoring namespace (blackbox-exporter probes every app).
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: uptime-kuma
+        # hostNetwork collectors arrive as node IPs (__LAN-IP__-147); kubelet probes too.
+        - ipBlock:
+            cidr: __LAN-IP__/29

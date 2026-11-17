@@ -1,0 +1,24 @@
+# whalehunter.__BASE-DOMAIN__ (BASE_DOMAIN is substituted by Flux from flux-system/cluster-vars).
+# App, namespace and Service keep the name beer-tracker; only the public host differs.
+# Pattern copied from clusters/default/stirling-pdf/ingressroute.yaml:
+# crowdsec-bouncer FIRST, then authentik-forwardauth (both live in kube-system).
+# The app has no auth of its own - this route is the only entry point.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: beer-tracker
+  namespace: beer-tracker
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`whalehunter.${BASE_DOMAIN}`)
+      kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: authentik-forwardauth
+          namespace: kube-system
+      services:
+        - name: beer-tracker
+          port: 80

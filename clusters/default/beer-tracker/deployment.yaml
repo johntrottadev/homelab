@@ -106,10 +106,4 @@ spec:
             # Missing secret/key => app logs "discord disabled" / "gmail disabled" and keeps running.
             optional: true
             defaultMode: 0400
-            items:
-              - key: discord-webhook
-                path: discord-webhook
-              - key: gmail-oauth-client
-                path: gmail-oauth-client
-              - key: gmail-token
-                path: gmail-token
+            # No items list: every key mounts as a file of the same name, so new keys need no manifest change.

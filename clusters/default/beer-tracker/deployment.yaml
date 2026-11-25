@@ -34,7 +34,7 @@ spec:
         - name: beer-tracker
           # Private GHCR package (imagePullSecrets: ghcr-pull). Pin tag AND digest after the first CI push,
           # e.g. ghcr.io/johntrottadev/beer-tracker:sha-abc1234@sha256:...
-          image: ghcr.io/johntrottadev/beer-tracker:sha-4b2a286@sha256:0ee3e9ca2425739297167e303a31c6b212f05a2f90e0356fb3ba03e92bd83d22
+          image: ghcr.io/johntrottadev/beer-tracker:sha-a48ecb8@sha256:ac558cfce08112a3dbc89cacfb79e7f710fa9ec9193b8dfec697c2b940f5b256
           imagePullPolicy: IfNotPresent
           env:
             - name: PORT
@@ -47,6 +47,9 @@ spec:
               value: /var/run/secrets/beer-tracker/discord-webhook
             - name: DISCORD_TROON_WEBHOOK_URL_FILE
               value: /var/run/secrets/beer-tracker/discord-troon-webhook
+            # Burner IG session cookie; missing key => "instagram disabled". Block signals halt IG until `troon ig-reset`.
+            - name: INSTAGRAM_SESSIONID_FILE
+              value: /var/run/secrets/beer-tracker/instagram-sessionid
             # Gmail collector (read-only). Either file missing => "gmail disabled", sources skipped.
             - name: GMAIL_OAUTH_CLIENT_FILE
               value: /var/run/secrets/beer-tracker/gmail-oauth-client

@@ -1,0 +1,12 @@
+# quick-261126-t07: Longhorn settings managed in git (Longhorn itself is installed outside Flux).
+#
+# node-down-pod-deletion-policy: when a node is down, Longhorn force-deletes the stuck
+# Deployment/StatefulSet pods that use Longhorn volumes, so they reschedule elsewhere instead of
+# sitting in Terminating. It was do-nothing; on 2026-11-24 pods on k3s-wkr-3 waited ~40 h.
+# This only covers Longhorn-backed pods; NFS-backed apps (storage-apps/storage-dbs) are not covered.
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: node-down-pod-deletion-policy
+  namespace: longhorn-system
+value: delete-both-statefulset-and-deployment-pod

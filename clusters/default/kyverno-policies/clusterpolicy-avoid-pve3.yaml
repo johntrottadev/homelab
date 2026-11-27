@@ -1,0 +1,86 @@
+# quick-261126-t07: keep Deployment/StatefulSet pods off __PVE-NODE-3__.
+#
+# WHY
+# ---
+# __PVE-NODE-3__ does not power back on by itself after a power outage. On 2026-11-24 it took k3s-wkr-3 and
+# k3s-ctl-3 down for ~40 h, and single-replica apps stranded there sat in Terminating the whole
+# time. __PVE-NODE-1__/__PVE-NODE-2__ have the headroom, so app pods get a hard "not on __PVE-NODE-3__" rule at admission.
+#
+# WHAT IT DOES
+# ------------
+# On Pod CREATE, for pods owned by a ReplicaSet (Deployments) or a StatefulSet, adds
+#   nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution:
+#     topology.kubernetes.io/zone NotIn [__PVE-NODE-3__]
+# Node zone labels already name the Proxmox host (__PVE-NODE-1__/__PVE-NODE-2__/__PVE-NODE-3__).
+#
+# NOT AFFECTED
+# ------------
+# - DaemonSet pods (must run on every node), Job/CronJob pods, Longhorn instance managers.
+# - Namespaces kube-system, longhorn-system, kyverno.
+# - Pods that already carry required nodeAffinity (skipped, so we never clobber it).
+# - Opt-out: label the pod template `homelab/allow-__PVE-NODE-3__: "true"` (stateless, multi-replica apps
+#   that are fine on __PVE-NODE-3__).
+# k3s-ctl-3 stays on __PVE-NODE-3__ on purpose: etcd needs its third member on a third host.
+#
+# SAFETY
+# ------
+# failurePolicy: Ignore. If Kyverno itself is down (exactly when a host just died), pod creation
+# must keep working; the pod just schedules without the extra rule.
+# Existing pods are not moved. Restart a workload to apply the rule to it.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: avoid-__PVE-NODE-3__
+  annotations:
+    policies.kyverno.io/title: Keep app pods off __PVE-NODE-3__
+    policies.kyverno.io/category: Scheduling
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      __PVE-NODE-3__ does not auto-power-on after an outage. Pods owned by Deployments or StatefulSets get a
+      required node affinity excluding topology.kubernetes.io/zone=__PVE-NODE-3__. Opt out with the pod label
+      homelab/allow-__PVE-NODE-3__=true.
+spec:
+  failurePolicy: Ignore
+  background: false
+  rules:
+    - name: require-not-__PVE-NODE-3__
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              operations:
+                - CREATE
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - longhorn-system
+                - kyverno
+          - resources:
+              selector:
+                matchLabels:
+                  homelab/allow-__PVE-NODE-3__: "true"
+      preconditions:
+        all:
+          - key: "{{ request.object.metadata.ownerReferences[0].kind || '' }}"
+            operator: AnyIn
+            value:
+              - ReplicaSet
+              - StatefulSet
+          - key: "{{ request.object.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution || '' }}"
+            operator: Equals
+            value: ""
+      mutate:
+        patchStrategicMerge:
+          spec:
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: topology.kubernetes.io/zone
+                          operator: NotIn
+                          values:
+                            - __PVE-NODE-3__

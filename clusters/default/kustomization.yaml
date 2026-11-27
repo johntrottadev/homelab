@@ -29,6 +29,8 @@ resources:
   # PBS-matching retention: 3 x 2-hourly + 2 daily. Long-term retention belongs
   # to the cloud tier, not to local disk.
   - longhorn-snapshots.yaml
+  # Longhorn node-down-pod-deletion-policy (2026-11-26, quick-261126-t07): unstick pods on dead nodes.
+  - longhorn-settings.yaml
   # Longhorn metrics scrape (2026-07-03) — feeds homelab.longhorn.rules alerts.
   - monitoring/longhorn-servicemonitor.yaml
   # Wave 1 — cert-manager + Traefik shared
@@ -476,6 +478,8 @@ resources:
   - kyverno-policies/servicemonitor.yaml
   - kyverno-policies/prometheusrule.yaml
   - kyverno-policies/grafana-dashboard-cm.yaml
+  # Keep Deployment/StatefulSet pods off __PVE-NODE-3__ (no auto power-on). quick-261126-t07.
+  - kyverno-policies/clusterpolicy-avoid-__PVE-NODE-3__.yaml
 
   # vs.yaml superseded by vscode/ subdir below (Phase 999.2 plan-02)
 
